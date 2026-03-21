@@ -5,6 +5,7 @@ public enum DownloadStatus {
     EXTRACTING("Extracting URL"),
     DOWNLOADING("Downloading"),
     MERGING("Merging tracks"),
+    COPYING("Copying to destination"),
     COMPLETED("Completed"),
     FAILED("Failed"),
     CANCELLED("Cancelled"),

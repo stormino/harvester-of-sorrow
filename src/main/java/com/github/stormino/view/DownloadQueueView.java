@@ -190,7 +190,8 @@ public class DownloadQueueView extends VerticalLayout {
         long extracting = allTasks.stream()
                 .filter(t -> t.getStatus() == DownloadStatus.EXTRACTING).count();
         long merging = allTasks.stream()
-                .filter(t -> t.getStatus() == DownloadStatus.MERGING).count();
+                .filter(t -> t.getStatus() == DownloadStatus.MERGING ||
+                             t.getStatus() == DownloadStatus.COPYING).count();
         long completed = allTasks.stream()
                 .filter(t -> t.getStatus() == DownloadStatus.COMPLETED).count();
         long failed = allTasks.stream()
@@ -533,7 +534,8 @@ public class DownloadQueueView extends VerticalLayout {
     private boolean isActiveStatus(DownloadStatus status) {
         return status == DownloadStatus.DOWNLOADING ||
                status == DownloadStatus.EXTRACTING ||
-               status == DownloadStatus.MERGING;
+               status == DownloadStatus.MERGING ||
+               status == DownloadStatus.COPYING;
     }
 
     private String getItemDisplayName(DownloadItem item) {
@@ -651,7 +653,7 @@ public class DownloadQueueView extends VerticalLayout {
             case FAILED, CANCELLED -> badge.getElement().getThemeList().add("error");
             case NOT_FOUND -> badge.getElement().getThemeList().add("warning");
             case DOWNLOADING -> badge.getElement().getThemeList().add("contrast");
-            case MERGING -> badge.getElement().getThemeList().add("primary");
+            case MERGING, COPYING -> badge.getElement().getThemeList().add("primary");
             default -> badge.getElement().getThemeList().add("primary");
         }
 

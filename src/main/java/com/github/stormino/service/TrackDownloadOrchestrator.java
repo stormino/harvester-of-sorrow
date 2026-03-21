@@ -42,6 +42,7 @@ public class TrackDownloadOrchestrator {
     private final SubtitleTrackDownloadStrategy subtitleStrategy;
     private final DownloadExecutorService executorService;
     private final FfmpegCommandBuilder commandBuilder;
+    private final FileCopyService fileCopyService;
 
     @Qualifier("trackExecutor")
     private final Executor trackExecutor;
@@ -355,57 +356,70 @@ public class TrackDownloadOrchestrator {
         log.debug("Found {} completed audio tracks and {} subtitle tracks for merging",
                 audioTasks.size(), subtitleTasks.size());
 
-        // If no audio tracks and no subtitles, just copy the video file
+        // Determine the local temp merged file path and the final destination
+        Path finalDestination = Paths.get(task.getOutputPath());
+        Path tempMergedFile;
+
+        // If no audio tracks and no subtitles, the video file is the merged result
         if (audioTasks.isEmpty() && subtitleTasks.isEmpty()) {
-            log.debug("No separate audio or subtitle tracks - copying video file directly");
-            try {
-                java.nio.file.Files.copy(
-                        java.nio.file.Paths.get(videoTask.getTempFilePath()),
-                        java.nio.file.Paths.get(task.getOutputPath()),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                );
-                return true;
-            } catch (IOException e) {
-                log.error("Failed to copy video file for task {}: {}", task.getId(), e.getMessage(), e);
-                task.setErrorMessage("Failed to copy video file: " + e.getMessage());
+            log.debug("No separate audio or subtitle tracks - video file is the final result");
+            tempMergedFile = Paths.get(videoTask.getTempFilePath());
+        } else {
+            // Merge into temp directory first (avoids writing directly to NFS)
+            tempMergedFile = tempDir.resolve("merged" + getFileExtension(finalDestination));
+
+            List<FfmpegCommandBuilder.AudioTrackInput> audioInputs = audioTasks.stream()
+                    .map(task1 -> new FfmpegCommandBuilder.AudioTrackInput(
+                            Paths.get(task1.getTempFilePath()), task1))
+                    .toList();
+
+            List<FfmpegCommandBuilder.SubtitleTrackInput> subtitleInputs = subtitleTasks.stream()
+                    .map(task1 -> new FfmpegCommandBuilder.SubtitleTrackInput(
+                            Paths.get(task1.getTempFilePath()), task1))
+                    .toList();
+
+            List<String> command = commandBuilder.buildMergeCommand(
+                    Paths.get(videoTask.getTempFilePath()),
+                    audioInputs,
+                    subtitleInputs,
+                    tempMergedFile
+            );
+
+            DownloadResult result = executorService.mergeTracks(
+                    command,
+                    task.getId(),
+                    update -> progressBroadcast.broadcastProgress(update)
+            );
+
+            if (!result.isSuccess()) {
+                task.setErrorMessage(result.getErrorMessage() != null ? result.getErrorMessage() : "Failed to merge tracks");
                 task.setStatus(DownloadStatus.FAILED);
                 broadcastParentUpdate(task);
                 return false;
             }
         }
 
-        // Build merge command using FfmpegCommandBuilder
-        List<FfmpegCommandBuilder.AudioTrackInput> audioInputs = audioTasks.stream()
-                .map(task1 -> new FfmpegCommandBuilder.AudioTrackInput(
-                        Paths.get(task1.getTempFilePath()), task1))
-                .toList();
+        // Copy the completed file from local temp to final destination (NFS-safe)
+        // Uses rsync with checksum verification, retried by Spring Retry
+        task.setStatus(DownloadStatus.COPYING);
+        task.setProgress(0.0);
+        broadcastParentUpdate(task);
 
-        List<FfmpegCommandBuilder.SubtitleTrackInput> subtitleInputs = subtitleTasks.stream()
-                .map(task1 -> new FfmpegCommandBuilder.SubtitleTrackInput(
-                        Paths.get(task1.getTempFilePath()), task1))
-                .toList();
-
-        List<String> command = commandBuilder.buildMergeCommand(
-                Paths.get(videoTask.getTempFilePath()),
-                audioInputs,
-                subtitleInputs,
-                Paths.get(task.getOutputPath())
-        );
-
-        DownloadResult result = executorService.mergeTracks(
-                command,
-                task.getId(),
-                update -> progressBroadcast.broadcastProgress(update)
-        );
-
-        if (!result.isSuccess()) {
-            task.setErrorMessage(result.getErrorMessage() != null ? result.getErrorMessage() : "Failed to merge tracks");
+        try {
+            fileCopyService.copyWithVerification(tempMergedFile, finalDestination);
+            return true;
+        } catch (IOException e) {
+            task.setErrorMessage("Failed to copy file to destination: " + e.getMessage());
             task.setStatus(DownloadStatus.FAILED);
             broadcastParentUpdate(task);
             return false;
         }
+    }
 
-        return true;
+    private String getFileExtension(Path path) {
+        String filename = path.getFileName().toString();
+        int dotIndex = filename.lastIndexOf('.');
+        return dotIndex >= 0 ? filename.substring(dotIndex) : ".mp4";
     }
 
     private Path createTempDirectory(DownloadTask task) throws IOException {
