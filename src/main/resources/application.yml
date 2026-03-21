@@ -20,6 +20,9 @@ vixsrc:
     max-retry-delay-ms: ${MAX_RETRY_DELAY_MS:30000}
     retry-backoff-multiplier: ${RETRY_BACKOFF_MULTIPLIER:2}
 
+app:
+  version: '@project.version@'
+
 spring:
   application:
     name: vixsrc-downloader
