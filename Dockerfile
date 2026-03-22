@@ -25,6 +25,7 @@ LABEL org.opencontainers.image.licenses="MIT"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
+    rsync \
     wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

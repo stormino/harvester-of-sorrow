@@ -21,7 +21,8 @@ A production-ready video downloader for vixsrc.to with web UI, built with Spring
 
 - Java 21+
 - Maven 3.6+
-- ffmpeg (for video downloading)
+- ffmpeg (for video downloading and track merging)
+- rsync (for checksum-verified file copy to NFS/network destinations)
 - Docker (optional, for containerized deployment)
 
 ## Quick Start
@@ -50,9 +51,9 @@ curl http://localhost:8080/api/downloads
 ### Manual Setup
 
 ```bash
-# 1. Install ffmpeg
-sudo apt-get install ffmpeg  # Debian/Ubuntu
-brew install ffmpeg          # macOS
+# 1. Install ffmpeg and rsync
+sudo apt-get install ffmpeg rsync  # Debian/Ubuntu
+brew install ffmpeg rsync          # macOS
 
 # 2. Set TMDB API key
 export TMDB_API_KEY="your_api_key_here"
@@ -95,10 +96,11 @@ See `src/main/resources/application.yml` for all configuration options.
 │   ├── DownloadExecutorService - ffmpeg wrapper
 │   ├── TmdbMetadataService - TMDB API integration
 │   ├── DownloadQueueService - Download orchestration
+│   ├── FileCopyService - rsync-based file copy with Spring Retry
 │   └── ProgressBroadcastService - SSE broadcasting
 ├── Models
 │   ├── DownloadTask - Download task entity
-│   ├── DownloadStatus - Task status enum
+│   ├── DownloadStatus - Task status enum (QUEUED→EXTRACTING→DOWNLOADING→MERGING→COPYING→COMPLETED)
 │   ├── ProgressUpdate - Progress event
 │   └── ContentMetadata - TMDB metadata
 └── Config
@@ -230,10 +232,16 @@ mvn verify
 3. **Extract URL** - System extracts HLS playlist from vixsrc.to
    - Multiple extraction strategies (window.masterPlaylist, regex, API endpoints)
    - Cloudflare bypass via custom OkHttp interceptor
-4. **Download** - ffmpeg downloads video
+4. **Download** - ffmpeg downloads video tracks to local temp directory
    - Real-time progress parsed from stdout
    - Progress broadcast via SSE to UI
-5. **Save** - File saved with metadata-based filename
+5. **Merge** - ffmpeg merges video/audio/subtitle tracks in local temp directory
+6. **Copy** - Merged file copied to final destination via rsync
+   - Checksum verification ensures file integrity
+   - Writes to hidden `.tmp` file first, then atomic rename
+   - Automatic retry (3 attempts with exponential backoff) via Spring Retry
+   - NFS-safe: avoids writing directly to network shares during merge
+7. **Save** - File available at destination with metadata-based filename
    - Movies: `Title.Year.mp4`
    - TV: `Show.S01E01.Episode.mp4`
    - Directory structure: `Show/Season XX/episode.mp4`
@@ -263,15 +271,15 @@ For downloads with multiple languages:
 
 ## Troubleshooting
 
-### "ffmpeg not found"
+### "ffmpeg not found" / "rsync not found"
 
-Install ffmpeg:
+Install required system dependencies:
 ```bash
 # Debian/Ubuntu
-sudo apt-get install ffmpeg
+sudo apt-get install ffmpeg rsync
 
 # macOS
-brew install ffmpeg
+brew install ffmpeg rsync
 ```
 
 ### "Failed to extract playlist URL"
@@ -419,7 +427,8 @@ See `k8s/` directory for deployment manifests (coming soon).
 - [ ] Multi-language download implementation
 - [ ] Bulk TV download UI (entire seasons)
 - [ ] Download queue persistence (H2/PostgreSQL)
-- [ ] Retry mechanisms
+- [x] Retry mechanisms (Spring Retry for file copy)
+- [x] NFS-safe file copy (rsync with checksum verification)
 - [ ] Subtitle download support
 - [ ] Webhook notifications
 - [ ] API authentication
