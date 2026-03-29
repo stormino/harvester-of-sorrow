@@ -9,6 +9,7 @@ import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
 import com.github.stormino.service.command.FfmpegCommandBuilder;
 import com.github.stormino.util.DownloadConstants;
+import com.github.stormino.util.PathUtils;
 import com.github.stormino.util.TempFileManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,13 +22,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -417,9 +416,8 @@ public class TrackDownloadOrchestrator {
     }
 
     private String getFileExtension(Path path) {
-        String filename = path.getFileName().toString();
-        int dotIndex = filename.lastIndexOf('.');
-        return dotIndex >= 0 ? filename.substring(dotIndex) : ".mp4";
+        String ext = PathUtils.getExtension(path.getFileName().toString());
+        return ext.isEmpty() ? ".mp4" : ext;
     }
 
     private Path createTempDirectory(DownloadTask task) throws IOException {

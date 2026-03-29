@@ -54,7 +54,9 @@ public class FileCopyService {
             throw new IOException("rsync was interrupted", e);
         } finally {
             // Clean up temp file on any failure (no-op if move already succeeded)
-            try { Files.deleteIfExists(tempDestination); } catch (IOException ignored) { }
+            try { Files.deleteIfExists(tempDestination); } catch (IOException cleanupEx) {
+                log.warn("Failed to clean up temp file {}: {}", tempDestination, cleanupEx.getMessage());
+            }
         }
     }
 
