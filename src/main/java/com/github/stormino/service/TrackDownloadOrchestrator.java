@@ -7,6 +7,7 @@ import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
+import com.github.stormino.persistence.TaskPersistenceService;
 import com.github.stormino.service.command.FfmpegCommandBuilder;
 import com.github.stormino.util.DownloadConstants;
 import com.github.stormino.util.PathUtils;
@@ -42,6 +43,7 @@ public class TrackDownloadOrchestrator {
     private final DownloadExecutorService executorService;
     private final FfmpegCommandBuilder commandBuilder;
     private final FileCopyService fileCopyService;
+    private final TaskPersistenceService persistenceService;
 
     @Qualifier("trackExecutor")
     private final Executor trackExecutor;
@@ -73,6 +75,7 @@ public class TrackDownloadOrchestrator {
             // 3. Initialize sub-tasks: 1 video + N audio tracks + N subtitle tracks
             List<DownloadSubTask> subTasks = initializeTrackSubTasks(task, languages);
             task.setSubTasks(subTasks);
+            persistenceService.saveSubTasks(subTasks);
 
             // Broadcast initial tree structure
             broadcastTaskStructure(task);
@@ -106,6 +109,7 @@ public class TrackDownloadOrchestrator {
                     log.error("Video track download failed");
                     task.setErrorMessage("Video track failed to download");
                     task.setStatus(DownloadStatus.FAILED);
+                    persistenceService.updateTaskStatus(task);
                     broadcastParentUpdate(task);
                     return false;
                 }
@@ -116,6 +120,7 @@ public class TrackDownloadOrchestrator {
                     log.error("All audio track downloads failed");
                     task.setErrorMessage("No audio tracks downloaded successfully");
                     task.setStatus(DownloadStatus.FAILED);
+                    persistenceService.updateTaskStatus(task);
                     broadcastParentUpdate(task);
                     return false;
                 }
@@ -138,6 +143,7 @@ public class TrackDownloadOrchestrator {
                 log.error("Download error: {}", e.getMessage(), e);
                 task.setErrorMessage("Download error: " + e.getMessage());
                 task.setStatus(DownloadStatus.FAILED);
+                persistenceService.updateTaskStatus(task);
                 broadcastParentUpdate(task);
                 return false;
             }
@@ -155,6 +161,7 @@ public class TrackDownloadOrchestrator {
             task.setDownloadSpeed(null);
             task.setEtaSeconds(null);
             task.setBitrate(null);
+            persistenceService.updateTaskStatus(task);
             broadcastParentUpdate(task);
             log.info("Download completed successfully: {}", task.getDisplayName());
 
@@ -301,6 +308,7 @@ public class TrackDownloadOrchestrator {
                 subTask.setCompletedAt(LocalDateTime.now());
                 subTask.setDownloadSpeed(null);
                 subTask.setEtaSeconds(null);
+                persistenceService.updateSubTaskStatus(subTask);
                 broadcastSubTaskUpdate(task, subTask);
                 log.debug("Completed download for: {}", subTask.getDisplayName());
                 return true;
@@ -312,6 +320,7 @@ public class TrackDownloadOrchestrator {
                     subTask.setStatus(DownloadStatus.FAILED);
                     subTask.setErrorMessage(result.getErrorMessage() != null ? result.getErrorMessage() : "Download failed");
                 }
+                persistenceService.updateSubTaskStatus(subTask);
                 broadcastSubTaskUpdate(task, subTask);
                 log.debug("Download not successful for: {} (status: {}, error: {})",
                         subTask.getDisplayName(), subTask.getStatus(), result.getErrorMessage());
@@ -326,6 +335,7 @@ public class TrackDownloadOrchestrator {
 
         task.setStatus(DownloadStatus.MERGING);
         task.setProgress(0.0);
+        persistenceService.updateTaskStatus(task);
         broadcastParentUpdate(task);
 
         // Find video track
@@ -337,6 +347,7 @@ public class TrackDownloadOrchestrator {
         if (videoTask == null || videoTask.getTempFilePath() == null) {
             task.setErrorMessage("No video track found for merging");
             task.setStatus(DownloadStatus.FAILED);
+            persistenceService.updateTaskStatus(task);
             broadcastParentUpdate(task);
             return false;
         }
@@ -393,6 +404,7 @@ public class TrackDownloadOrchestrator {
             if (!result.isSuccess()) {
                 task.setErrorMessage(result.getErrorMessage() != null ? result.getErrorMessage() : "Failed to merge tracks");
                 task.setStatus(DownloadStatus.FAILED);
+                persistenceService.updateTaskStatus(task);
                 broadcastParentUpdate(task);
                 return false;
             }
@@ -402,6 +414,7 @@ public class TrackDownloadOrchestrator {
         // Uses rsync with checksum verification, retried by Spring Retry
         task.setStatus(DownloadStatus.COPYING);
         task.setProgress(0.0);
+        persistenceService.updateTaskStatus(task);
         broadcastParentUpdate(task);
 
         try {
@@ -410,6 +423,7 @@ public class TrackDownloadOrchestrator {
         } catch (IOException e) {
             task.setErrorMessage("Failed to copy file to destination: " + e.getMessage());
             task.setStatus(DownloadStatus.FAILED);
+            persistenceService.updateTaskStatus(task);
             broadcastParentUpdate(task);
             return false;
         }

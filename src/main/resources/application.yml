@@ -26,7 +26,19 @@ app:
 spring:
   application:
     name: vixsrc-downloader
-  
+
+  datasource:
+    url: jdbc:sqlite:${SQLITE_DB_PATH:data/vixsrc.db}
+    driver-class-name: org.sqlite.JDBC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  sql:
+    init:
+      mode: never
+
   # Vaadin configuration
   vaadin:
     launch-browser: false

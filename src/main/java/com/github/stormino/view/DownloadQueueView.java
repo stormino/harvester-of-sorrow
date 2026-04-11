@@ -737,6 +737,20 @@ public class DownloadQueueView extends VerticalLayout {
             actions.add(cancelBtn);
         }
 
+        if (task.isFailed() || task.getStatus() == DownloadStatus.CANCELLED) {
+            Button retryBtn = new Button(VaadinIcon.REFRESH.create());
+            retryBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+            retryBtn.getElement().setAttribute("title", "Retry download");
+            retryBtn.addClickListener(e -> {
+                if (downloadQueueService.retryTask(task.getId())) {
+                    Notification.show("Download re-queued", 3000, Notification.Position.BOTTOM_END)
+                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    refreshGrid();
+                }
+            });
+            actions.add(retryBtn);
+        }
+
         if (task.isFailed() && task.getErrorMessage() != null) {
             Button infoBtn = new Button(VaadinIcon.INFO_CIRCLE.create());
             infoBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);

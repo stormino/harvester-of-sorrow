@@ -120,4 +120,13 @@ public class DownloadController {
         boolean cancelled = downloadQueueService.cancelTask(id);
         return cancelled ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
+
+    /**
+     * Retry a failed or cancelled download
+     */
+    @PostMapping("/downloads/{id}/retry")
+    public ResponseEntity<Void> retryDownload(@PathVariable String id) {
+        boolean retried = downloadQueueService.retryTask(id);
+        return retried ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    }
 }

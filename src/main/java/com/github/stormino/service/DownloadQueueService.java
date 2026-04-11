@@ -6,11 +6,14 @@ import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
+import com.github.stormino.persistence.TaskPersistenceService;
 import com.github.stormino.util.DownloadConstants;
 import com.github.stormino.util.PathUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +34,7 @@ public class DownloadQueueService {
     private final TrackDownloadOrchestrator trackOrchestrator;
     private final ProgressBroadcastService progressBroadcast;
     private final VixSrcProperties properties;
+    private final TaskPersistenceService persistenceService;
 
     @Lazy
     @Autowired
@@ -44,13 +48,53 @@ public class DownloadQueueService {
                                 DownloadExecutorService executorService,
                                 TrackDownloadOrchestrator trackOrchestrator,
                                 ProgressBroadcastService progressBroadcast,
-                                VixSrcProperties properties) {
+                                VixSrcProperties properties,
+                                TaskPersistenceService persistenceService) {
         this.extractorService = extractorService;
         this.metadataService = metadataService;
         this.executorService = executorService;
         this.trackOrchestrator = trackOrchestrator;
         this.progressBroadcast = progressBroadcast;
         this.properties = properties;
+        this.persistenceService = persistenceService;
+    }
+
+    /**
+     * On startup, restore tasks from the database.
+     * In-flight tasks (interrupted by the restart) are marked as FAILED.
+     * QUEUED tasks are re-added to the queue.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void restoreFromDatabase() {
+        log.info("Restoring download queue from database...");
+
+        List<DownloadStatus> inFlight = List.of(
+                DownloadStatus.DOWNLOADING,
+                DownloadStatus.EXTRACTING,
+                DownloadStatus.MERGING,
+                DownloadStatus.COPYING
+        );
+
+        List<DownloadTask> storedTasks = persistenceService.loadAll();
+
+        for (DownloadTask task : storedTasks) {
+            if (inFlight.contains(task.getStatus())) {
+                task.setStatus(DownloadStatus.FAILED);
+                task.setErrorMessage("Application was restarted during download");
+                persistenceService.updateTaskStatus(task);
+            }
+            tasks.put(task.getId(), task);
+            if (task.getStatus() == DownloadStatus.QUEUED) {
+                queue.offer(task);
+            }
+        }
+
+        log.info("Restored {} tasks ({} re-queued)", storedTasks.size(),
+                storedTasks.stream().filter(t -> t.getStatus() == DownloadStatus.QUEUED).count());
+
+        if (!queue.isEmpty()) {
+            processQueue();
+        }
     }
     
     /**
@@ -125,6 +169,7 @@ public class DownloadQueueService {
         // Store and queue
         tasks.put(task.getId(), task);
         queue.offer(task);
+        persistenceService.saveTask(task);
 
         log.info("Added download task: {} [{}]", task.getDisplayName(), task.getId());
 
@@ -265,6 +310,7 @@ public class DownloadQueueService {
         // Store and queue
         tasks.put(task.getId(), task);
         queue.offer(task);
+        persistenceService.saveTask(task);
 
         return task;
     }
@@ -331,6 +377,7 @@ public class DownloadQueueService {
         if (task != null && !task.isCompleted()) {
             task.setStatus(DownloadStatus.CANCELLED);
             queue.remove(task);
+            persistenceService.updateTaskStatus(task);
 
             // Kill the running process if it exists
             executorService.cancelDownload(taskId);
@@ -354,6 +401,41 @@ public class DownloadQueueService {
     }
 
     /**
+     * Retry a failed or cancelled task by resetting it to QUEUED and re-scheduling it.
+     */
+    public boolean retryTask(String taskId) {
+        DownloadTask task = tasks.get(taskId);
+        if (task == null || (task.getStatus() != DownloadStatus.FAILED && task.getStatus() != DownloadStatus.CANCELLED)) {
+            return false;
+        }
+
+        task.setStatus(DownloadStatus.QUEUED);
+        task.setProgress(0.0);
+        task.setErrorMessage(null);
+        task.setStartedAt(null);
+        task.setCompletedAt(null);
+        task.setDownloadSpeed(null);
+        task.setEtaSeconds(null);
+        task.setBitrate(null);
+        task.getSubTasks().clear();
+
+        persistenceService.resetForRetry(task);
+
+        queue.offer(task);
+
+        progressBroadcast.broadcastProgress(ProgressUpdate.builder()
+                .taskId(taskId)
+                .status(DownloadStatus.QUEUED)
+                .progress(0.0)
+                .message("Retry queued")
+                .build());
+
+        log.info("Retrying task: {} [{}]", task.getDisplayName(), taskId);
+        processQueue();
+        return true;
+    }
+
+    /**
      * Clear all tasks in final states (COMPLETED, FAILED, CANCELLED, NOT_FOUND)
      */
     public int clearCompletedTasks() {
@@ -366,6 +448,7 @@ public class DownloadQueueService {
                 .toList();
 
         toRemove.forEach(tasks::remove);
+        persistenceService.deleteCompleted();
         log.info("Cleared {} completed tasks", toRemove.size());
 
         return toRemove.size();
@@ -417,6 +500,7 @@ public class DownloadQueueService {
             }
 
             task.setPlaylistUrl(playlistInfo.get().getUrl());
+            persistenceService.updateTaskPlaylistUrl(task);
 
             // Always use track orchestrator for concurrent downloads
             downloadWithTracks(task);
@@ -431,9 +515,8 @@ public class DownloadQueueService {
     }
     
     private void downloadWithTracks(DownloadTask task) {
-        updateTaskStatus(task, DownloadStatus.DOWNLOADING, 0.0, "Starting download");
-
         task.setStartedAt(LocalDateTime.now());
+        updateTaskStatus(task, DownloadStatus.DOWNLOADING, 0.0, "Starting download");
 
         // Use track orchestrator for concurrent video/audio downloads
         boolean success = trackOrchestrator.downloadWithTracks(task);
@@ -456,6 +539,7 @@ public class DownloadQueueService {
     private void updateTaskStatus(DownloadTask task, DownloadStatus status, Double progress, String message) {
         task.setStatus(status);
         task.setProgress(progress);
+        persistenceService.updateTaskStatus(task);
 
         ProgressUpdate update = ProgressUpdate.builder()
                 .taskId(task.getId())

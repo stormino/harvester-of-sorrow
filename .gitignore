@@ -70,6 +70,7 @@ spring-boot-devtools.properties
 HELP.md
 
 # Database (H2/PostgreSQL for future use)
+data/
 *.db
 *.mv.db
 *.trace.db
