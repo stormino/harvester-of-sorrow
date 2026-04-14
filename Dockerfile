@@ -38,8 +38,8 @@ WORKDIR /app
 # Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Create downloads directories and set permissions
-RUN mkdir -p /downloads/movies /downloads/tvshows /downloads/temp && \
+# Create downloads and data directories and set permissions
+RUN mkdir -p /downloads/movies /downloads/tvshows /downloads/temp /app/data && \
     chown -R vixsrc:vixsrc /app /downloads
 
 # Set environment variables
