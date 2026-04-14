@@ -24,6 +24,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ${DOWNLOAD_PATH:-./downloads}:/downloads
+      - vixsrc-data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
@@ -31,3 +32,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+volumes:
+  vixsrc-data:
