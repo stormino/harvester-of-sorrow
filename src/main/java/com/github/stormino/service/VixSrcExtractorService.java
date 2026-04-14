@@ -35,23 +35,70 @@ public class VixSrcExtractorService {
     private static final Pattern API_ENDPOINTS_PATTERN = 
             Pattern.compile("[\"']([/]api/[^\"']+)[\"']");
     
-    private static final Pattern VIDEO_ID_PATTERN = 
+    private static final Pattern VIDEO_ID_PATTERN =
             Pattern.compile("video[_-]?id[\"']?\\s*[:=]\\s*[\"']?(\\d+)", Pattern.CASE_INSENSITIVE);
-    
+
+    private static final Pattern EMBED_SRC_PATTERN =
+            Pattern.compile("\"src\"\\s*:\\s*\"([^\"]+)\"");
+
     /**
      * Get playlist URL for a movie
      */
     public Optional<PlaylistInfo> getMoviePlaylist(int tmdbId, String language) {
-        String embedUrl = buildMovieUrl(tmdbId, language);
-        return extractPlaylistUrl(embedUrl, language);
+        String apiUrl = String.format("%s/api/movie/%d", properties.getExtractor().getBaseUrl(), tmdbId);
+        return fetchEmbedUrl(apiUrl, language)
+                .flatMap(embedUrl -> extractPlaylistUrl(embedUrl, language));
     }
-    
+
     /**
      * Get playlist URL for a TV episode
      */
     public Optional<PlaylistInfo> getTvPlaylist(int tmdbId, int season, int episode, String language) {
-        String embedUrl = buildTvUrl(tmdbId, season, episode, language);
-        return extractPlaylistUrl(embedUrl, language);
+        String apiUrl = String.format("%s/api/tv/%d/%d/%d", properties.getExtractor().getBaseUrl(), tmdbId, season, episode);
+        return fetchEmbedUrl(apiUrl, language)
+                .flatMap(embedUrl -> extractPlaylistUrl(embedUrl, language));
+    }
+
+    /**
+     * Call the vixsrc API to get the embed URL for a given content API endpoint.
+     * The API returns JSON like: {"src": "/embed/696101?token=...&lang=en&..."}
+     */
+    private Optional<String> fetchEmbedUrl(String apiUrl, String language) {
+        log.debug("Fetching embed src from API: {}", apiUrl);
+        try {
+            Request request = new Request.Builder().url(apiUrl).build();
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    log.warn("API call failed for {}: {}", apiUrl, response.code());
+                    return Optional.empty();
+                }
+                String json = response.body().string();
+                Matcher matcher = EMBED_SRC_PATTERN.matcher(json);
+                if (!matcher.find()) {
+                    log.warn("No 'src' field in API response from {}: {}", apiUrl, json);
+                    return Optional.empty();
+                }
+                String src = matcher.group(1).replace("\\/", "/");
+                // Prepend base URL if relative, then override language
+                String baseUrl = properties.getExtractor().getBaseUrl();
+                String embedUrl = src.startsWith("http") ? src : baseUrl + src;
+                embedUrl = overrideLang(embedUrl, language);
+                log.debug("Resolved embed URL: {}", embedUrl);
+                return Optional.of(embedUrl);
+            }
+        } catch (IOException e) {
+            log.error("Error calling API {}: {}", apiUrl, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    private String overrideLang(String url, String language) {
+        HttpUrl parsed = HttpUrl.parse(url);
+        if (parsed == null) return url;
+        return parsed.newBuilder()
+                .removeAllQueryParameters("lang")
+                .addQueryParameter("lang", language)
+                .build().toString();
     }
     
     /**
@@ -62,7 +109,6 @@ public class VixSrcExtractorService {
 
         try {
             String htmlContent = fetchEmbedPage(embedUrl);
-
             // Try multiple extraction strategies
             Optional<String> playlistUrl = extractFromMasterPlaylist(htmlContent, language)
                     .or(() -> extractFromDirectPattern(htmlContent))
@@ -280,13 +326,5 @@ public class VixSrcExtractorService {
         return matcher.find() ? matcher.group(1) : null;
     }
     
-    private String buildMovieUrl(int tmdbId, String language) {
-        return String.format("%s/movie/%d?lang=%s", 
-                properties.getExtractor().getBaseUrl(), tmdbId, language);
-    }
-    
-    private String buildTvUrl(int tmdbId, int season, int episode, String language) {
-        return String.format("%s/tv/%d/%d/%d?lang=%s",
-                properties.getExtractor().getBaseUrl(), tmdbId, season, episode, language);
-    }
+
 }
