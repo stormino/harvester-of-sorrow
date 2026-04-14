@@ -1,9 +1,9 @@
 services:
   vixsrc-downloader:
     # Use pre-built image from GitHub Container Registry
-    image: ghcr.io/stormino/vixsrc-downloader-java:latest
-    # Or build locally (uncomment below, comment image above)
-    # build: .
+    # image: ghcr.io/stormino/vixsrc-downloader-java:latest
+    # Or build locally
+    build: .
     container_name: vixsrc-downloader
     ports:
       - "8080:8080"
