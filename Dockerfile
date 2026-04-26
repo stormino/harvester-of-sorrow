@@ -31,7 +31,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN groupadd -r vixsrc && useradd -r -g vixsrc vixsrc
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} vixsrc && useradd -u ${UID} -g vixsrc vixsrc
 
 WORKDIR /app
 
