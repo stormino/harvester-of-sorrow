@@ -1,5 +1,6 @@
 package com.github.stormino.model;
 
+import com.github.stormino.model.source.SourceMetadata;
 import com.github.stormino.util.FormatUtils;
 import lombok.Builder;
 import lombok.Data;
@@ -12,10 +13,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Data
 @Builder
 public class DownloadTask {
-    
+
     @Builder.Default
     private String id = UUID.randomUUID().toString();
-    
+
+    @Builder.Default
+    private MediaSource source = MediaSource.VIXSRC;
+    private SourceMetadata sourceMetadata;
+
     private ContentType contentType;
     private Integer tmdbId;
     private Integer season;

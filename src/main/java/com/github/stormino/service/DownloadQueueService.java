@@ -4,8 +4,10 @@ import com.github.stormino.config.VixSrcProperties;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
+import com.github.stormino.model.source.VixSrcMetadata;
 import com.github.stormino.persistence.TaskPersistenceService;
 import com.github.stormino.util.DownloadConstants;
 import com.github.stormino.util.PathUtils;
@@ -146,6 +148,8 @@ public class DownloadQueueService {
 
         // Build task
         DownloadTask.DownloadTaskBuilder taskBuilder = DownloadTask.builder()
+                .source(MediaSource.VIXSRC)
+                .sourceMetadata(new VixSrcMetadata(tmdbId, season, episode))
                 .contentType(contentType)
                 .tmdbId(tmdbId)
                 .season(season)
@@ -292,6 +296,8 @@ public class DownloadQueueService {
                                                         List<String> languages, String quality) {
         // Build task
         DownloadTask task = DownloadTask.builder()
+                .source(MediaSource.VIXSRC)
+                .sourceMetadata(new VixSrcMetadata(tmdbId, season, episode))
                 .contentType(DownloadTask.ContentType.TV)
                 .tmdbId(tmdbId)
                 .season(season)

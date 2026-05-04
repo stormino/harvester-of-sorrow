@@ -1,12 +1,17 @@
 package com.github.stormino.model;
 
+import com.github.stormino.model.source.SourceMetadata;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
 public class ContentMetadata {
-    
+
+    @Builder.Default
+    private MediaSource source = MediaSource.VIXSRC;
+    private SourceMetadata sourceMetadata;
+
     private Integer tmdbId;
     private String title;
     private String originalTitle;

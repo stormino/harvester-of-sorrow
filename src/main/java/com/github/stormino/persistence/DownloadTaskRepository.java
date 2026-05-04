@@ -10,11 +10,13 @@ import java.time.LocalDateTime;
 public interface DownloadTaskRepository extends CrudRepository<DownloadTaskRecord, String> {
 
     @Modifying
-    @Query("INSERT INTO download_task (id, content_type, tmdb_id, season, episode, title, episode_name, " +
+    @Query("INSERT INTO download_task (id, source, source_metadata, content_type, tmdb_id, season, episode, title, episode_name, " +
            "year, languages, quality, output_path, playlist_url, status, error_message, created_at, started_at, completed_at) " +
-           "VALUES (:id, :contentType, :tmdbId, :season, :episode, :title, :episodeName, " +
+           "VALUES (:id, :source, :sourceMetadata, :contentType, :tmdbId, :season, :episode, :title, :episodeName, " +
            ":year, :languages, :quality, :outputPath, :playlistUrl, :status, :errorMessage, :createdAt, :startedAt, :completedAt)")
     void insert(@Param("id") String id,
+                @Param("source") String source,
+                @Param("sourceMetadata") String sourceMetadata,
                 @Param("contentType") String contentType,
                 @Param("tmdbId") Integer tmdbId,
                 @Param("season") Integer season,
