@@ -77,15 +77,16 @@ Update `DownloadTask` (`model/DownloadTask.java`):
 - Add `SourceMetadata sourceMetadata`.
 - `tmdbId` / `season` / `episode` stay on the task as nullable convenience fields populated from the metadata at construction time, since lots of code (`getDisplayName`, output-path generation, the controller's `season`/`episode` query params) reads them. Treat them as **derived** from `sourceMetadata` — single source of truth is the metadata blob.
 
-### 1.3 Persistence — JSON column for source metadata
+### 1.3 Persistence — JSON-as-TEXT with Jackson polymorphism
 
-SQLite has JSON1 built in, and Spring Data JDBC supports custom converters for column ↔ object mapping. We'll store the metadata as TEXT and use Jackson for (de)serialization.
+A note on column type. SQLite has no real `JSON` type — `JSON` is just a hint, the storage is still TEXT, and there's no built-in validation. Declaring `JSON` instead of `TEXT` would only be cosmetic. JSONB (3.45+) is a separate binary representation that requires going through `jsonb_*` functions on read/write, and we never query *into* this blob from SQL — we read/write the whole thing from Java. So we declare `TEXT` and add an explicit `CHECK (json_valid(...))` constraint to actually validate writes.
 
 `src/main/resources/db/migration/V2__multi_source.sql`:
 
 ```sql
 ALTER TABLE download_task ADD COLUMN source           TEXT NOT NULL DEFAULT 'VIXSRC';
-ALTER TABLE download_task ADD COLUMN source_metadata  TEXT;  -- JSON
+ALTER TABLE download_task ADD COLUMN source_metadata  TEXT
+    CHECK (source_metadata IS NULL OR json_valid(source_metadata));
 -- Backfill: build VixSrc metadata for existing rows from tmdb_id/season/episode.
 -- json_object is part of SQLite's JSON1 extension.
 UPDATE download_task
@@ -99,20 +100,29 @@ UPDATE download_task
 CREATE INDEX IF NOT EXISTS idx_task_source ON download_task(source);
 ```
 
-Mapping wiring:
+Mapping wiring — Jackson polymorphism, no Spring Data JDBC converter:
 
-- Add `JacksonConfig` (or extend the existing one) with a `Module` that knows about `SourceMetadata`'s subtypes.
-- Register two `@WritingConverter` / `@ReadingConverter`:
+- `SourceMetadata` is already annotated with `@JsonTypeInfo(use = NAME, property = "type")` + `@JsonSubTypes` (see §1.2), which gives us discriminated (de)serialization out of the box.
+- Keep `DownloadTaskRecord.sourceMetadata` as a raw **`String`** (matches the column). Spring Data JDBC stays out of polymorphism entirely.
+- Do the conversion at the persistence boundary inside `TaskPersistenceService`:
   ```java
-  @WritingConverter
-  class SourceMetadataToString implements Converter<SourceMetadata, String> { ... }
-  @ReadingConverter
-  class StringToSourceMetadata implements Converter<String, SourceMetadata> { ... }
-  ```
-  registered via `JdbcCustomConversions` bean. Spring Data JDBC then maps `source_metadata TEXT` ↔ the polymorphic `SourceMetadata` field on `DownloadTaskRecord` automatically.
-- If conversion through Spring Data JDBC's converters proves awkward (it can be picky with sealed interfaces), the fallback is to keep `DownloadTaskRecord.sourceMetadata` as a raw `String` and do Jackson (de)serialization explicitly inside `TaskPersistenceService` when mapping record ↔ domain. Either is fine; pick whichever lands cleanly.
+  // record -> domain
+  task.setSourceMetadata(
+      record.getSourceMetadata() == null
+          ? null
+          : objectMapper.readValue(record.getSourceMetadata(), SourceMetadata.class));
 
-`DownloadTaskRecord` gets the two new fields. Existing `tmdbId` / `season` / `episode` columns and fields are kept (still populated, still useful for queries / display).
+  // domain -> record
+  record.setSourceMetadata(
+      task.getSourceMetadata() == null
+          ? null
+          : objectMapper.writeValueAsString(task.getSourceMetadata()));
+  ```
+- One `ObjectMapper` bean (the existing Spring Boot autoconfigured one) is enough — Jackson's polymorphic annotations don't need any module registration when the subtypes are listed via `@JsonSubTypes`.
+
+Why not Spring Data JDBC converters: a `Converter<String, SourceMetadata>` on top of Jackson's polymorphism stacks two discrimination mechanisms that have to agree, and SDJ's resolution is fiddly with sealed/parameterized types. The mapper-in-`TaskPersistenceService` path is single-source-of-truth, fully explicit, and trivial to grep / step through when something looks off.
+
+`DownloadTaskRecord` gets the two new fields. Existing `tmdbId` / `season` / `episode` columns and fields are kept (still populated from the metadata at write time, still useful for queries / display).
 
 ---
 
@@ -373,6 +383,29 @@ Manual verification:
 
 ---
 
+## 6.5 Verification of RaiPlay assumptions (do this before commit #5)
+
+Everything in §3 about RaiPlay's APIs is **reasoned from RaiPlay's public patterns, not observed end-to-end** in this planning session. RaiPlay is geo-restricted to Italy, so verification has to happen from an Italian network (or VPN to IT). Treat this as a prerequisite for the RaiPlay implementation commit, not the multi-source refactor.
+
+Concretely, capture real responses for the following and drop them under `src/test/resources/raiplay/` as fixtures:
+
+1. **Search**: `GET https://www.raiplay.it/atomatic/raiplay-search-service/api/v1/msearch?q=cosmonauta&pl=raiplay&size=20`
+   → confirm hit shape (`id`, `path_id`, `type`, `program_name`, `subtitle`, `year`, `description`).
+2. **Film descriptor**: `GET https://www.raiplay.it/video/2018/12/COSMONAUTA-f5cbe4fd-7eb2-490f-af5b-ff0cd2009973.json`
+   → confirm `video.content_url` exists and points to a relinker. **If 404**, fetch the `.html` instead and grep for `__INITIAL_STATE__` / `data-video-json` — that's the fallback path. Whichever wins, lock it as the primary path and keep the other as fallback.
+3. **Series program page**: pick a series (Hateful Eight is a film — find a real series e.g. *L'amica geniale* or any RaiPlay series). Capture the program JSON and one season's episodes JSON. Confirm episode → `path_id` mapping and that episodes carry `season_number` / `episode_number`.
+4. **Relinker**: `GET <content_url>&output=64` → confirm JSON shape, locate the m3u8 URL inside it (likely `video[0].url` or similar). If `output=64` is rejected, try `output=47` (HLS) or no output param.
+5. **Master playlist**: `GET <m3u8>` with appropriate `Referer` → confirm it's a master with multiple `#EXT-X-MEDIA:TYPE=AUDIO` lines for the Hateful Eight URL, and that the existing `HlsParserService` parses it correctly. Capture the raw `.m3u8` as a fixture.
+6. **Audio Description detection**: in the captured master playlist, note exactly how the audio-description rendition is labelled. Likely candidates:
+   - `NAME="Audio Description"` / `"Audiodescrizione"` / `"AD"`
+   - `CHARACTERISTICS="public.accessibility.describes-video"`
+   - A specific `LANGUAGE` code like `it-AD`
+   The matching predicate in the orchestrator (`isAudioDescription(AudioTrack t)`) is tuned to whatever the fixture shows; the dialog checkbox label uses the same wording RaiPlay uses.
+
+These fixtures also become the inputs for `RaiPlayApiClientTest` and a new `HlsAudioDescriptionDetectionTest`. The tests are the contract — if RaiPlay reshapes the API later, the fixtures get re-captured and the test diffs tell us exactly what changed.
+
+If even one of (2) / (4) / (5) doesn't work as planned, surface it before writing the production code and we'll revise §3.
+
 ## 7. Out of scope (explicit)
 
 - TMDB enrichment of RaiPlay results (matching RaiPlay programs to TMDB IDs). Nice-to-have, but the source's own metadata is sufficient for filename generation.
@@ -390,6 +423,7 @@ Recommended commit-by-commit order so each step is reviewable on its own:
 2. Introduce `MediaSourceProvider` interface + `MediaSourceRegistry`. Refactor existing VixSrc code into `VixSrcSourceProvider`. `DownloadQueueService` goes through the registry. No track-plan refactor yet — keep the language-driven sub-task plan working as-is.
 3. Refactor `TrackDownloadOrchestrator` to be playlist-driven: add `resolveMaster` on the provider, build sub-tasks from parsed renditions, drop the per-language playlist re-resolution. Verify VixSrc downloads still match byte-for-byte (or close enough) on a known-good title.
 4. Add the source tag to `SearchResultCard` + queue rows. Add the "include audio description" checkbox to the download dialog.
-5. Implement `RaiPlaySourceProvider` + `RaiPlayApiClient` with fixture-based tests (search response, content descriptor, relinker JSON).
-6. Wire RaiPlay into the registry, `SearchView` fan-out, and the controller's `source` parameter.
-7. Manual end-to-end verification with the COSMONAUTA and Hateful Eight examples.
+5. **Pre-step (manual, no commit):** capture the RaiPlay fixtures listed in §6.5. Don't start commit #5 until this is done — the parser is shaped by the real responses.
+6. Implement `RaiPlaySourceProvider` + `RaiPlayApiClient` against the fixtures. Tests use the saved fixtures as canned HTTP responses.
+7. Wire RaiPlay into the registry, `SearchView` fan-out, and the controller's `source` parameter.
+8. Manual end-to-end verification with the COSMONAUTA and Hateful Eight examples (from an Italian network).
