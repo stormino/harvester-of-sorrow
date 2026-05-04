@@ -31,37 +31,88 @@ public enum MediaSource {
 
 Rationale: a typed enum is cheaper than free-form strings and makes the UI tag / persistence column easy to render.
 
-### 1.2 Generalize identifiers
+### 1.2 Generalize identifiers — typed `SourceMetadata`
 
-VixSrc content keys off TMDB integer IDs. RaiPlay content keys off a **UUID string** (`f5cbe4fd-7eb2-490f-af5b-ff0cd2009973` from the example URL). We need to carry both without forcing one into the other.
+VixSrc content keys off TMDB integer IDs. RaiPlay content keys off **multiple UUIDs** (program UUID, season slug/number, episode UUID — `f5cbe4fd-7eb2-490f-af5b-ff0cd2009973` is the episode UUID from the example URL). Future sources will likely have their own shape too.
+
+Instead of stuffing everything into a single `sourceId` string we keep a typed, polymorphic `SourceMetadata` blob alongside `MediaSource`:
+
+```java
+// model/source/SourceMetadata.java
+@JsonTypeInfo(use = NAME, property = "type")
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = VixSrcMetadata.class,  name = "VIXSRC"),
+    @JsonSubTypes.Type(value = RaiPlayMetadata.class, name = "RAIPLAY"),
+})
+public sealed interface SourceMetadata permits VixSrcMetadata, RaiPlayMetadata {
+    MediaSource source();
+}
+
+public record VixSrcMetadata(int tmdbId, Integer season, Integer episode) implements SourceMetadata {
+    public MediaSource source() { return MediaSource.VIXSRC; }
+}
+
+public record RaiPlayMetadata(
+        String pathId,         // e.g. "/video/2018/12/COSMONAUTA-<uuid>.html"
+        String contentUuid,    // the UUID at the end of the path
+        String programUuid,    // null for stand-alone films
+        String seasonId,       // null for films
+        String episodeUuid     // null for films
+) implements SourceMetadata {
+    public MediaSource source() { return MediaSource.RAIPLAY; }
+}
+```
+
+A sealed interface + records gives us exhaustive `switch` on the consumer side and keeps Jackson polymorphism explicit.
 
 Update `ContentMetadata` (`model/ContentMetadata.java`):
 
 - Add `MediaSource source` (required).
-- Add `String sourceId` — the canonical ID for that source (TMDB id as string for VixSrc, UUID for RaiPlay).
-- Keep `Integer tmdbId` as an optional convenience for the VixSrc/TMDB path (so existing TMDB-based code keeps compiling).
-- For RaiPlay results, also keep the program/series UUID and (if applicable) episode UUID.
+- Add `SourceMetadata sourceMetadata` (required).
+- Drop the bare `Integer tmdbId` field over time — for now keep it nullable as a convenience for the existing TMDB code paths, but new code reads it from the metadata (`((VixSrcMetadata) m.getSourceMetadata()).tmdbId()`).
 
 Update `DownloadTask` (`model/DownloadTask.java`):
 
-- Add `MediaSource source` (default `VIXSRC` for backward compat with persisted rows).
-- Add `String sourceId`.
-- `tmdbId` becomes nullable (RaiPlay items won't have one unless we map them).
-- `getDisplayName()` falls back to source-provided title; no other behavior change.
+- Add `MediaSource source` (default `VIXSRC` so legacy rows materialize correctly).
+- Add `SourceMetadata sourceMetadata`.
+- `tmdbId` / `season` / `episode` stay on the task as nullable convenience fields populated from the metadata at construction time, since lots of code (`getDisplayName`, output-path generation, the controller's `season`/`episode` query params) reads them. Treat them as **derived** from `sourceMetadata` — single source of truth is the metadata blob.
 
-### 1.3 Persistence migration
+### 1.3 Persistence — JSON column for source metadata
 
-New file `src/main/resources/db/migration/V2__multi_source.sql`:
+SQLite has JSON1 built in, and Spring Data JDBC supports custom converters for column ↔ object mapping. We'll store the metadata as TEXT and use Jackson for (de)serialization.
+
+`src/main/resources/db/migration/V2__multi_source.sql`:
 
 ```sql
-ALTER TABLE download_task ADD COLUMN source     TEXT NOT NULL DEFAULT 'VIXSRC';
-ALTER TABLE download_task ADD COLUMN source_id  TEXT;
--- Backfill source_id from tmdb_id for existing rows
-UPDATE download_task SET source_id = CAST(tmdb_id AS TEXT) WHERE source_id IS NULL;
+ALTER TABLE download_task ADD COLUMN source           TEXT NOT NULL DEFAULT 'VIXSRC';
+ALTER TABLE download_task ADD COLUMN source_metadata  TEXT;  -- JSON
+-- Backfill: build VixSrc metadata for existing rows from tmdb_id/season/episode.
+-- json_object is part of SQLite's JSON1 extension.
+UPDATE download_task
+   SET source_metadata = json_object(
+       'type',    'VIXSRC',
+       'tmdbId',  tmdb_id,
+       'season',  season,
+       'episode', episode
+   )
+ WHERE source_metadata IS NULL;
 CREATE INDEX IF NOT EXISTS idx_task_source ON download_task(source);
 ```
 
-Update `DownloadTaskRecord` and the mapper in `TaskPersistenceService` to read/write the two new columns. `tmdbId` stays nullable.
+Mapping wiring:
+
+- Add `JacksonConfig` (or extend the existing one) with a `Module` that knows about `SourceMetadata`'s subtypes.
+- Register two `@WritingConverter` / `@ReadingConverter`:
+  ```java
+  @WritingConverter
+  class SourceMetadataToString implements Converter<SourceMetadata, String> { ... }
+  @ReadingConverter
+  class StringToSourceMetadata implements Converter<String, SourceMetadata> { ... }
+  ```
+  registered via `JdbcCustomConversions` bean. Spring Data JDBC then maps `source_metadata TEXT` ↔ the polymorphic `SourceMetadata` field on `DownloadTaskRecord` automatically.
+- If conversion through Spring Data JDBC's converters proves awkward (it can be picky with sealed interfaces), the fallback is to keep `DownloadTaskRecord.sourceMetadata` as a raw `String` and do Jackson (de)serialization explicitly inside `TaskPersistenceService` when mapping record ↔ domain. Either is fine; pick whichever lands cleanly.
+
+`DownloadTaskRecord` gets the two new fields. Existing `tmdbId` / `season` / `episode` columns and fields are kept (still populated, still useful for queries / display).
 
 ---
 
@@ -162,9 +213,13 @@ vixsrc:
 raiplay:
   base-url: https://www.raiplay.it
   search-url: https://www.raiplay.it/atomatic/raiplay-search-service/api/v1/msearch
-  user-agent: ${vixsrc.extractor.user-agent}
+  user-agent: ${vixsrc.extractor.user-agent}   # already a full Chrome 120 Windows UA
   timeout-seconds: 15
 ```
+
+> Note on UA: `vixsrc.extractor.user-agent` is already
+> `"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"`,
+> which is what we want — nothing identifies us as a downloader. Reuse it as-is for RaiPlay.
 
 ### 3.2 Implementation notes
 
@@ -181,14 +236,56 @@ raiplay:
 - **`getTvPlaylist`**: For series, the `DownloadTask` carries `season` + `episode`. Resolve the program JSON, walk seasons → episodes, find the matching episode UUID, then run the same pipeline as `getMoviePlaylist` for that episode's `path_id`. If RaiPlay numbering doesn't align with TMDB's, prefer RaiPlay's own `season_number` / `episode_number` (we're already source-native here — TMDB has no role).
 - **`supportedLanguages`**: `Set.of("it")`. RaiPlay only ships Italian audio; the language selector in the dialog should reflect this.
 
-### 3.3 Track orchestrator implications
+### 3.3 Track orchestrator — switch to playlist-driven sub-task plan
 
-RaiPlay HLS streams typically embed audio inside the master playlist (no separate audio renditions, no subtitle tracks of the kind VixSrc serves). Two options:
+**Reality check:** RaiPlay does ship multi-track HLS. The Hateful Eight (`/video/2018/09/FILM-The-Hateful-Eight-13e41e79-2f3f-4428-981a-3c142b5ef33a.html`) exposes:
 
-- **Option A (preferred):** keep the orchestrator generic. Let the strategy detect "no separate audio renditions" and skip audio sub-tasks (today's code already tolerates `NOT_FOUND` audio — confirm path 119 of `TrackDownloadOrchestrator` handles "all audio NOT_FOUND" gracefully; it does).
-- **Option B:** add a `MediaSourceProvider.trackPlan(DownloadTask)` method that returns the list of sub-task types to spawn. Implement only if Option A turns out to misbehave with RaiPlay streams.
+- 3 audio renditions: Italian, Original (English), Audio Description (IT)
+- 1 subtitle rendition: Italian
 
-Plan to start with A and revisit only if we hit failures during testing.
+The current orchestrator (`TrackDownloadOrchestrator.initializeTrackSubTasks`) is **language-driven**: it spawns 1 video + N audio + N subtitle sub-tasks based on `task.languages`. That's a poor fit for both:
+
+- **RaiPlay**: user can't know in advance what languages or "Audio Description" tracks exist. Also the language code on the rendition (`ita`, `und`, etc.) doesn't always match what a user types.
+- **VixSrc with multiple audio variants**: same problem in the limit.
+
+Good news: `HlsParserService` already discovers everything we need. `HlsPlaylist` exposes `List<AudioTrack> {url, language, name, groupId}` and `List<SubtitleTrack> {url, language, name}`, populated from `#EXT-X-MEDIA:TYPE=AUDIO` / `TYPE=SUBTITLES`. We just don't use them for sub-task planning.
+
+**New plan — playlist-first:**
+
+1. Add `MediaSourceProvider.resolveMaster(DownloadTask, String primaryLanguage)` returning `Optional<ResolvedMedia>` where:
+   ```java
+   record ResolvedMedia(
+       PlaylistInfo playlist,        // master playlist URL + referer + verified flag
+       HlsPlaylist parsed,           // already-parsed master with audio/sub renditions
+       Set<String> defaultAudioLanguages  // hint when the source has a "preferred" audio
+   ) {}
+   ```
+2. `TrackDownloadOrchestrator.downloadWithTracks` is restructured:
+   - Step 1 (was: nothing): call `provider.resolveMaster(task, primaryLanguage)`. Bail out as `FAILED` if empty.
+   - Step 2: build sub-tasks from the parsed renditions:
+     - 1 video sub-task (always).
+     - 1 audio sub-task per discovered `AudioTrack` whose `language` is in `task.languages` — **plus** any track with `name` indicating audio description if the user opted in (default off; new `task.includeAudioDescription` flag, surfaced as a checkbox in the download dialog).
+     - 1 subtitle sub-task per discovered `SubtitleTrack` whose `language` is in `task.languages`.
+     - If the user requested a language that isn't in the parsed renditions → log + skip (don't fail). If **none** of the requested languages match any audio rendition, fall back to the source's `defaultAudioLanguages` so we always download something playable.
+   - Step 3 onward (download tracks, merge, copy) is unchanged. The existing AUDIO/SUBTITLE strategies already accept a playlist URL — we just feed them the rendition URL from the parsed master rather than re-resolving.
+3. `DownloadSubTask` gets two optional fields: `String trackName` (e.g. `"Audio Description"`) and `String renditionUrl` (the per-rendition m3u8). They're used by ffmpeg-merge metadata and the queue UI for clarity. Persisted in V3 if needed (or stored only in memory for now and re-derived on restart — easier to skip persistence here since failed-on-restart tasks restart from extraction anyway).
+
+**Why this is also a win for VixSrc:**
+
+- Today VixSrc audio fetching re-resolves the playlist URL once per language inside `downloadTrackAsync`. After this change there's a single `resolveMaster` call up front, and audio/subtitle tracks come from the parsed master directly. Fewer HTTP round-trips, fewer chances for the language `?lang=` query trick to misbehave.
+- The "all audio NOT_FOUND => assume embedded audio" hack at line 119 of `TrackDownloadOrchestrator` becomes a clean branch: if `parsed.audioTracks` is empty, we simply don't spawn any audio sub-tasks. No more inferring from failures.
+
+**Provider implementations of `resolveMaster`:**
+
+- `VixSrcSourceProvider`: existing extractor → `PlaylistInfo` → `hlsParserService.parsePlaylist(url, embedUrl)` → wrap.
+- `RaiPlaySourceProvider`: relinker → m3u8 → `hlsParserService.parsePlaylist(url, pageUrl)` → wrap. `defaultAudioLanguages = Set.of("ita")`.
+
+### 3.4 UI implications of multi-track discovery
+
+Knowing the renditions only after `resolveMaster` is a small UX wart: the download dialog can't show a definitive language list before the user clicks "Add to Queue". Two acceptable options:
+
+- **Defer-and-display (preferred):** the dialog stays simple (language multiselect + quality + "include audio description" checkbox). After enqueue, the queue row shows the actually-downloaded tracks (we already render sub-tasks). This is what we'll do.
+- **Probe-on-open:** call `resolveMaster` when the dialog opens and populate language options from it. Costs an HTTP round-trip per dialog open; defer unless users complain.
 
 ---
 
@@ -265,10 +362,14 @@ Unit tests (per existing `src/test/java` layout):
 Manual verification:
 
 1. Search for "cosmonauta" → expect a RaiPlay card with year 2018, source tag "RaiPlay".
-2. Click download → dialog shows Italian as the only language.
-3. Queue runs end-to-end: extract relinker → resolve m3u8 → ffmpeg downloads → file lands in `moviesPath`.
-4. Search for "fight club" → expect VixSrc card to still work and show source tag "VixSrc". No regression.
-5. Restart the app → existing in-flight tasks restored as FAILED with proper `source` populated; QUEUED tasks re-queued.
+2. Click download → dialog shows Italian + the "include audio description" checkbox.
+3. Queue runs end-to-end: extract relinker → resolve m3u8 → parse master → spawn 1 video + 1 audio (IT) sub-task → ffmpeg merges → file lands in `moviesPath`.
+4. Search for "hateful eight" → RaiPlay card. Download with default language "it":
+   - Queue should show 1 video sub-task + 1 audio (IT) sub-task + 1 subtitle (IT) sub-task.
+   - Re-download with the audio-description checkbox enabled → an extra audio sub-task labelled "Audio Description" appears.
+   - Re-download with `it,en` languages → adds the Original/English audio sub-task too.
+5. Search for "fight club" → expect VixSrc card to still work and show source tag "VixSrc". Output and merged file identical to before the refactor.
+6. Restart the app mid-download → in-flight tasks restored as FAILED with `source` populated correctly; QUEUED tasks re-queued.
 
 ---
 
@@ -285,9 +386,10 @@ Manual verification:
 
 Recommended commit-by-commit order so each step is reviewable on its own:
 
-1. Add `MediaSource` enum + plumb `source`/`sourceId` through `ContentMetadata`, `DownloadTask`, persistence (V2 migration). All new fields default to VixSrc — zero behavior change.
-2. Introduce `MediaSourceProvider` interface + `MediaSourceRegistry`. Refactor existing VixSrc code into `VixSrcSourceProvider`. `DownloadQueueService` and `TrackDownloadOrchestrator` go through the registry.
-3. Add the source tag to `SearchResultCard` + queue rows.
-4. Implement `RaiPlaySourceProvider` + `RaiPlayApiClient` with fixture-based tests.
-5. Wire RaiPlay into the registry, `SearchView` fan-out, and the controller's `source` parameter.
-6. Manual end-to-end verification with the COSMONAUTA example.
+1. Add `MediaSource` enum + sealed `SourceMetadata` interface + records. Plumb `source`/`sourceMetadata` through `ContentMetadata`, `DownloadTask`, persistence (V2 migration with JSON1 backfill, Spring Data JDBC converters). All new fields default to VixSrc — zero behavior change.
+2. Introduce `MediaSourceProvider` interface + `MediaSourceRegistry`. Refactor existing VixSrc code into `VixSrcSourceProvider`. `DownloadQueueService` goes through the registry. No track-plan refactor yet — keep the language-driven sub-task plan working as-is.
+3. Refactor `TrackDownloadOrchestrator` to be playlist-driven: add `resolveMaster` on the provider, build sub-tasks from parsed renditions, drop the per-language playlist re-resolution. Verify VixSrc downloads still match byte-for-byte (or close enough) on a known-good title.
+4. Add the source tag to `SearchResultCard` + queue rows. Add the "include audio description" checkbox to the download dialog.
+5. Implement `RaiPlaySourceProvider` + `RaiPlayApiClient` with fixture-based tests (search response, content descriptor, relinker JSON).
+6. Wire RaiPlay into the registry, `SearchView` fan-out, and the controller's `source` parameter.
+7. Manual end-to-end verification with the COSMONAUTA and Hateful Eight examples.
