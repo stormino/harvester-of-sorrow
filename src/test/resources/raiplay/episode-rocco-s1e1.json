@@ -1,0 +1,399 @@
+   {
+      "id": "ContentItem-7f69fae5-8252-4169-bb65-c5b8994000c9",
+      "type": "RaiPlay Video Item",
+      "date_published": "01-11-2016",
+      "time_published": "11:12",
+      "path_id": "/video/2016/11/Rocco-Schiavone-S1E1-Pista-nera-7f69fae5-8252-4169-bb65-c5b8994000c9.json",
+      "weblink": "/video/2016/11/Rocco-Schiavone-S1E1-Pista-nera-7f69fae5-8252-4169-bb65-c5b8994000c9.html",
+      "info_url": "/video/info/7f69fae5-8252-4169-bb65-c5b8994000c9.json",
+      "name": "Rocco Schiavone - S1E1 - Pista nera",
+      "subtitle": "St 1 Ep 1 - Rocco Schiavone",
+      "toptitle": "Pista nera",
+      "aria_label": "Stagione 1 - Episodio 1 - Pista nera  - Rocco Schiavone - Consigliato a bambini accompagnati",
+      "label": "",
+      "season": "1",
+      "episode": "1",
+      "episode_title": "Pista nera",
+      "direction": "",
+      "actors": "",
+      "rating": "",
+      "author": "",
+      "editor": "",
+      "channel": "Rai 2",
+      "genres": [],
+      "subgenres": [],
+      "collections": [
+         {
+            "path_id": "/collezioni/isabellaragonese.json",
+            "weblink": "/collezioni/isabellaragonese",
+            "link": "/collezioni/isabellaragonese",
+            "name": "Isabella Ragonese",
+            "id": "Category-10a8edea-c63b-4f32-affd-3448084e51a9"
+         }
+      ],
+      "caption": "Il vicequestore romano Rocco Schiavone è stat...",
+      "description": "Il vicequestore romano Rocco Schiavone è stato trasferito ad Aosta da poco tempo e subito si trova a fare i conti con un drammatico caso di omicidio che coinvolge il gestore di un rifugio sulle piste da sci di Champoluc.",
+      "vanity": "",
+      "form": "Integrale",
+      "video": {
+         "content_url": "https://mediapolisvod.rai.it/relinker/relinkerServlet.htm?cont=WJvG7xrE5JoeeqqEEqual",
+         "duration": "01:41:49",
+         "highlights": "",
+         "subtitles": "",
+         "subtitlesArray": [
+            {
+               "language": "it",
+               "label": "Italiano",
+               "url": "/dl/video/stl/PISTA NERA.srt"
+            }
+         ],
+         "subtitleList": [
+            {
+               "language": "it",
+               "label": "Italiano",
+               "url": "/dl/video/stl/PISTA NERA.srt"
+            }
+         ]
+      },
+      "images": {
+         "landscape": "/dl/img/2017/06/27/1498574604644_schiavone_11.jpg",
+         "portrait": "",
+         "square": "",
+         "landscape43": "",
+         "portrait43": "",
+         "portrait_logo": "",
+         "landscape_logo": ""
+      },
+      "details": [
+         {
+            "type": "label",
+            "key": "program_name",
+            "value": "Rocco Schiavone"
+         },
+         {
+            "type": "label",
+            "key": "year",
+            "value": "2016"
+         },
+         {
+            "type": "label",
+            "key": "country",
+            "value": "Italia"
+         },
+         {
+            "type": "label",
+            "key": "season",
+            "value": "St 1"
+         },
+         {
+            "type": "label",
+            "key": "episode",
+            "value": "Ep 1"
+         },
+         {
+            "type": "icon",
+            "key": "subtitles",
+            "value": true
+         },
+         {
+            "type": "label",
+            "key": "duration_in_minutes",
+            "value": "101 min"
+         },
+         {
+            "type": "symbol",
+            "key": "parental_control",
+            "value": "BA"
+         },
+         {
+            "type": "placeholder",
+            "key": "availability"
+         }
+      ],
+      "login_required": true,
+      "ignore_whitelist": false,
+      "parent_page": "Page-0d3cbf6c-a8f0-4df2-825f-1cc770482144",
+      "related": "",
+      "availabilities": null,
+      "adv": true,
+      "noroll": false,
+      "nofloorad": false,
+      "dfp": {},
+      "rights_management": {
+         "rights": {
+            "offline": {},
+            "drm": {},
+            "geoprotection": {
+               "Fuori dall'Europa": true,
+               "Fuori dall'Italia": true
+            }
+         }
+      },
+      "program_info": {
+         "id": "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+         "name": "Rocco Schiavone",
+         "type": "RaiPlay Programma Stagione Item",
+         "channel": "Rai 2",
+         "editor": "",
+         "social": {
+            "sms": "",
+            "phone_number": "",
+            "whatsapp": "",
+            "email": ""
+         },
+         "layout": "multi",
+         "onair_date": "",
+         "subtitle": "",
+         "website": "",
+         "year": "2016",
+         "direction": "Simone Spada, Giulio Manfredonia, Michele Soavi",
+         "production": "",
+         "country": "Italia",
+         "actors": "Marco Giallini, Ernesto D'Argenio, Claudia Vismara, Isabella Ragonese, Valeria Solarino, Francesca Cavallin",
+         "presenter": "",
+         "seasons_number": "",
+         "rating": "",
+         "description": "Rocco Schiavone è un vicequestore in forza alla Polizia di Stato, romano fin nel midollo, che si ritrova a dover svolgere le sue funzioni nella città di Aosta. Saccente, sarcastico, nel senso più romanesco del termine, maleducato, cinico quanto basta, odia il suo lavoro, ma soprattutto odia Aosta. Però ha talento.",
+         "vanity": "Le indagini del vicequestore più saccente, sarcastico e cinico della Tv italiana",
+         "label": "Nuova stagione",
+         "weblink": "/programmi/roccoschiavone",
+         "info_url": "/programmi/info/77523b38-712f-4020-9cf5-7d3dc68ac659.json",
+         "path_id": "/programmi/roccoschiavone.json",
+         "source": "program_roccoschiavone",
+         "typology": "Fiction",
+         "typologies": [
+            {
+               "nome": "Fiction",
+               "name": "Fiction",
+               "id": "Category-07e35cfa-98ae-43d6-bff2-d40a13b74bab"
+            }
+         ],
+         "genres": [
+            {
+               "principal": true,
+               "name": "Fiction Italiana",
+               "nome": "Fiction Italiana",
+               "id": "Category-ZpspXPvi-fTBvzyui-JYrm-QnmU-QFEF-tmUpFzvAnVtK"
+            },
+            {
+               "nome": "Azione & Avventura",
+               "name": "Azione & Avventura",
+               "id": "Category-rpSKNrXO-BRFeHuZO-PTBH-acbr-XSak-hoGJHMhflQuN"
+            },
+            {
+               "nome": "Giallo and Crime",
+               "name": "Giallo and Crime",
+               "id": "Category-PRDfvRtO-nOthheGq-vxvQ-BQYl-Twvm-UosZqvSLEgjE"
+            }
+         ],
+         "subgenres": [
+            {
+               "principal": true,
+               "name": "in divisa",
+               "nome": "in divisa",
+               "id": "Category-EtuEvnOf-brTGByfE-XtkK-zUBo-ZWdg-cfWqsFFCDPwY"
+            },
+            {
+               "nome": "mistery",
+               "name": "mistery",
+               "id": "Category-vrKAFZQB-SNKMCDPe-EFAC-rwGk-HRSo-ggGmoeDgmrpf"
+            },
+            {
+               "nome": "crimini & misfatti",
+               "name": "crimini & misfatti",
+               "id": "Category-LIwaNvOu-SGUeZWzA-MYGx-hsNU-XKJh-HbMiBwbXKcvW"
+            }
+         ],
+         "related": "Category:Fiction:Category-07e35cfa-98ae-43d6-bff2-d40a13b74bab^Category:Fiction%20Italiana:Category-ZpspXPvi-fTBvzyui-JYrm-QnmU-QFEF-tmUpFzvAnVtK^Category:Azione%20%26%20Avventura:Category-rpSKNrXO-BRFeHuZO-PTBH-acbr-XSak-hoGJHMhflQuN^Category:Giallo%20and%20Crime:Category-PRDfvRtO-nOthheGq-vxvQ-BQYl-Twvm-UosZqvSLEgjE^Category:in%20divisa:Category-EtuEvnOf-brTGByfE-XtkK-zUBo-ZWdg-cfWqsFFCDPwY^Category:mistery:Category-vrKAFZQB-SNKMCDPe-EFAC-rwGk-HRSo-ggGmoeDgmrpf^Category:crimini%20%26%20misfatti:Category-LIwaNvOu-SGUeZWzA-MYGx-hsNU-XKJh-HbMiBwbXKcvW",
+         "az": true,
+         "play_service_inverted": false,
+         "details": [
+            {
+               "type": "label",
+               "key": "year",
+               "value": "2016"
+            },
+            {
+               "type": "label",
+               "key": "country",
+               "value": "Italia"
+            },
+            {
+               "type": "label",
+               "key": "seasons",
+               "value": "6 stagioni"
+            },
+            {
+               "type": "placeholder",
+               "key": "rating"
+            },
+            {
+               "type": "symbol",
+               "key": "parental_control",
+               "value": "CDV"
+            },
+            {
+               "type": "placeholder",
+               "key": "availability"
+            }
+         ],
+         "actions": null,
+         "images": {
+            "landscape": "/dl/img/2025/02/18/1739856512860_2048x1152.jpg",
+            "portrait": "",
+            "square": "/dl/img/2025/02/18/1739856516163_2048x2048.jpg",
+            "landscape43": "/dl/img/2025/02/18/1739856513526_2048x1536.jpg",
+            "portrait43": "/dl/img/2025/02/18/1739856514806_1536x2048.jpg",
+            "landscape_logo": "/dl/img/2025/02/18/1739856516884_2048x1152_label.jpg",
+            "portrait_logo": "/dl/img/2025/02/18/1739856517847_1536x2048_label.jpg"
+         },
+         "program_category": {
+            "id": "Category-599f845f-e9a4-4ff1-8f49-79724d22f84f",
+            "name": "Rocco Schiavone"
+         },
+         "rights_management": {
+            "rights": {
+               "offline": {},
+               "geoprotection": {
+                  "europe": true,
+                  "italy": true
+               }
+            }
+         },
+         "fmt": "fmt_rpvod_video",
+         "keyw": "",
+         "banner300x250": "rpl_rtv_fiction^rtv_vicequestoreschiavone_box^300x250",
+         "bannerUnicoLoc": "rpl_rtv_fiction^rtv_vicequestoreschiavone",
+         "dfp": {
+            "escaped_name": "RoccoSchiavone",
+            "label": "fictn",
+            "escaped_genres": [
+               {
+                  "id": "Category-ZpspXPvi-fTBvzyui-JYrm-QnmU-QFEF-tmUpFzvAnVtK",
+                  "name": "FictionItaliana"
+               },
+               {
+                  "id": "Category-rpSKNrXO-BRFeHuZO-PTBH-acbr-XSak-hoGJHMhflQuN",
+                  "name": "AzioneAvventura"
+               },
+               {
+                  "id": "Category-PRDfvRtO-nOthheGq-vxvQ-BQYl-Twvm-UosZqvSLEgjE",
+                  "name": "GialloandCrime"
+               }
+            ],
+            "escaped_typology": [
+               {
+                  "id": "Category-07e35cfa-98ae-43d6-bff2-d40a13b74bab",
+                  "name": "Fiction"
+               }
+            ]
+         },
+         "adv": true,
+         "noroll": false,
+         "nofloorad": false
+      },
+      "is_live": false,
+      "actions": [
+         {
+            "action": "play",
+            "label": "RIPRODUCI",
+            "aria_label": "Riproduci Rocco Schiavone - S1E1 - Pista nera",
+            "path_id": "/video/2016/11/Rocco-Schiavone-S1E1-Pista-nera-7f69fae5-8252-4169-bb65-c5b8994000c9.json",
+            "sub_type": "RaiPlay Video Item",
+            "label_keepwatching": "RIPRENDI",
+            "aria_label_keepwatching": "Riprendi Rocco Schiavone - S1E1 - Pista nera",
+            "context_path_id": "/programmi/roccoschiavone.json"
+         },
+         {
+            "action": "goto",
+            "label": "Info",
+            "aria_label": "Maggiori informazioni su Rocco Schiavone",
+            "path_id": "/programmi/roccoschiavone.json",
+            "sub_type": "RaiPlay Programma Item",
+            "weblink": "/programmi/roccoschiavone",
+            "style": "icon"
+         },
+         {
+            "action": "favourites",
+            "label": "Salva",
+            "aria_label": "Salva Rocco Schiavone",
+            "path_id": "/programmi/roccoschiavone.json",
+            "id": "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+            "label_active": "Salvato"
+         }
+      ],
+      "track_info": {
+         "id": "ContentItem-7f69fae5-8252-4169-bb65-c5b8994000c9",
+         "domain": "raiplay",
+         "platform": "[platform]",
+         "media_type": "vod",
+         "page_type": "video",
+         "editor": "rai",
+         "year": "2016",
+         "edit_year": "2016",
+         "section": "video",
+         "sub_section": "",
+         "content": "pagina foglia",
+         "title": "rocco schiavone - s1e1 - pista nera",
+         "channel": "rai 2",
+         "channel_auditel": "0002",
+         "date": "2016-11-01",
+         "publication_date": "2016-11-09",
+         "emission_date": "2016-11-09",
+         "update_date": "2026-04-08",
+         "typology": "fiction",
+         "genres": [
+            "giallo and crime",
+            "fiction italiana",
+            "azione & avventura"
+         ],
+         "sub_genres": [
+            "crimini & misfatti",
+            "in divisa",
+            "mistery"
+         ],
+         "program_title": "rocco schiavone",
+         "program_typology": "fiction",
+         "program_genres": [
+            "giallo and crime",
+            "fiction italiana",
+            "azione & avventura"
+         ],
+         "program_sub_genres": [
+            "crimini & misfatti",
+            "in divisa",
+            "mistery"
+         ],
+         "edition": "1",
+         "season": "1",
+         "episode_number": "1",
+         "distribution_model": "to",
+         "episode_title": "pista nera",
+         "form": "integrale",
+         "listaDateMo": [],
+         "page_url": "/video/2016/11/Rocco-Schiavone-S1E1-Pista-nera-7f69fae5-8252-4169-bb65-c5b8994000c9.html",
+         "nodmp": false,
+         "dfp": {
+            "escaped_name": "RoccoSchiavone",
+            "label": "fictn",
+            "escaped_genres": [
+               {
+                  "id": "Category-PRDfvRtO-nOthheGq-vxvQ-BQYl-Twvm-UosZqvSLEgjE",
+                  "name": "GialloandCrime"
+               },
+               {
+                  "id": "Category-ZpspXPvi-fTBvzyui-JYrm-QnmU-QFEF-tmUpFzvAnVtK",
+                  "name": "FictionItaliana"
+               }
+            ],
+            "escaped_typology": [
+               {
+                  "id": "Category-07e35cfa-98ae-43d6-bff2-d40a13b74bab",
+                  "name": "Fiction"
+               }
+            ]
+         },
+         "origin": "",
+         "target": ""
+      }
+   }
