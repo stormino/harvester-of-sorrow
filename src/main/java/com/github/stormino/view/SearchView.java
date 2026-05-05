@@ -18,9 +18,12 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.github.stormino.config.VixSrcProperties;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaSource;
 import com.github.stormino.service.DownloadQueueService;
 import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.VixSrcAvailabilityService;
+import com.github.stormino.service.source.MediaSourceProvider;
+import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.view.component.SearchResultCard;
 
 import java.util.List;
@@ -36,6 +39,7 @@ public class SearchView extends VerticalLayout {
     private final DownloadQueueService downloadQueueService;
     private final VixSrcAvailabilityService availabilityService;
     private final VixSrcProperties properties;
+    private final MediaSourceRegistry sourceRegistry;
 
     private final TextField searchField;
     private final RadioButtonGroup<String> contentTypeGroup;
@@ -43,11 +47,13 @@ public class SearchView extends VerticalLayout {
     private final Div resultsContainer;
 
     public SearchView(TmdbMetadataService tmdbService, DownloadQueueService downloadQueueService,
-                     VixSrcAvailabilityService availabilityService, VixSrcProperties properties) {
+                     VixSrcAvailabilityService availabilityService, VixSrcProperties properties,
+                     MediaSourceRegistry sourceRegistry) {
         this.tmdbService = tmdbService;
         this.downloadQueueService = downloadQueueService;
         this.availabilityService = availabilityService;
         this.properties = properties;
+        this.sourceRegistry = sourceRegistry;
         
         setSizeFull();
         setPadding(false);
@@ -181,19 +187,25 @@ public class SearchView extends VerticalLayout {
     }
     
     private void addResultCard(ContentMetadata content, DownloadTask.ContentType type) {
+        MediaSource source = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
+        MediaSourceProvider provider = sourceRegistry.get(source);
+        Set<String> supported = provider.supportedLanguages();
+
         SearchResultCard card = new SearchResultCard(
                 content,
                 type,
                 () -> Set.of(properties.getDownload().getDefaultLanguage()),
                 () -> properties.getDownload().getDefaultQuality(),
+                supported,
                 this::handleDownload
         );
         resultsContainer.add(card);
     }
-    
+
     private void handleDownload(ContentMetadata content, DownloadTask.ContentType type,
                                 Integer season, Integer episode,
-                                Set<String> languages, String quality) {
+                                Set<String> languages, String quality,
+                                boolean includeAudioDescription) {
         // Show immediate feedback
         String feedbackMessage = buildQueueMessage(content, type, season, episode);
         Notification.show(feedbackMessage, 2000, Notification.Position.BOTTOM_END);
@@ -208,7 +220,8 @@ public class SearchView extends VerticalLayout {
                     season,
                     episode,
                     List.copyOf(languages),
-                    quality
+                    quality,
+                    includeAudioDescription
             );
         }).thenAccept(task -> {
             getUI().ifPresent(ui -> ui.access(() -> {
