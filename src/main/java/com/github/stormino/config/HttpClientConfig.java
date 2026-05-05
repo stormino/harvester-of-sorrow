@@ -1,5 +1,6 @@
 package com.github.stormino.config;
 
+import com.github.stormino.service.source.raiplay.RaiPlayAuthService;
 import com.github.stormino.service.source.raiplay.RaiPlayCookieInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class HttpClientConfig {
 
     private final VixSrcProperties properties;
-    private final RaiPlayProperties raiPlayProperties;
+    private final RaiPlayAuthService raiPlayAuthService;
 
     @Bean
     public OkHttpClient okHttpClient() {
@@ -33,7 +34,7 @@ public class HttpClientConfig {
                 .readTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
                 .writeTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
                 .addInterceptor(new CloudflareInterceptor())
-                .addInterceptor(new RaiPlayCookieInterceptor(raiPlayProperties))
+                .addInterceptor(new RaiPlayCookieInterceptor(raiPlayAuthService))
                 .addInterceptor(new RetryInterceptor(Integer.MAX_VALUE))
                 .cookieJar(new InMemoryCookieJar())
                 .followRedirects(true)

@@ -7,10 +7,10 @@ vixsrc:
     segment-concurrency: ${SEGMENT_CONCURRENCY:5}
     default-quality: ${DEFAULT_QUALITY:best}
     default-language: ${DEFAULT_LANGUAGE:en}
-    
+
   tmdb:
     api-key: ${TMDB_API_KEY:}
-    
+
   extractor:
     base-url: https://vixsrc.to
 
@@ -20,17 +20,26 @@ raiplay:
   search-template-in: ${RAIPLAY_SEARCH_TEMPLATE_IN:6470a982e4e0301afe1f81f1}
   search-template-out: ${RAIPLAY_SEARCH_TEMPLATE_OUT:6516ac5d40da6c377b151642}
   search-page-size: ${RAIPLAY_SEARCH_PAGE_SIZE:48}
-  # Paste the full Cookie header value from a logged-in raiplay.it browser session.
-  # Required because content descriptors marked login_required=true won't serve the
-  # m3u8 / segments without a valid session cookie.
-  session-cookie: ${RAIPLAY_SESSION_COOKIE:}
   enabled: ${RAIPLAY_ENABLED:true}
-    timeout-seconds: 30
-    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    retry-delay-ms: ${RETRY_DELAY_MS:2000}
-    max-retries: ${MAX_RETRIES:2147483647}
-    max-retry-delay-ms: ${MAX_RETRY_DELAY_MS:30000}
-    retry-backoff-multiplier: ${RETRY_BACKOFF_MULTIPLIER:2}
+
+  # ── Auto-login (preferred) ────────────────────────────────────────────────
+  # Set RAIPLAY_USERNAME + RAIPLAY_PASSWORD and the app will log in
+  # automatically via Gigya on startup and refresh the session every 23 hours.
+  username: ${RAIPLAY_USERNAME:}
+  password: ${RAIPLAY_PASSWORD:}
+
+  # Gigya (SAP CDC) site key embedded in the RaiPlay website JS.
+  # Verify via DevTools: any request to accounts.eu1.gigya.com → apiKey param.
+  gigya-api-key: ${RAIPLAY_GIGYA_API_KEY:3_zEiEMnMEqZDFtEUvLMbJbMQq82GXvOBkE8MBG4gFqIjI7LyKVBJJXHjXoWgHJBm}
+
+  # RaiPlay endpoint that accepts {"idToken":"<gigya-jwt>"} and returns session cookies.
+  # If auto-login fails, check app logs and find the correct URL in DevTools during login.
+  gigya-exchange-url: ${RAIPLAY_GIGYA_EXCHANGE_URL:https://www.raiplay.it/login/social}
+
+  # ── Manual cookie fallback ────────────────────────────────────────────────
+  # Paste the full Cookie header from a logged-in browser session.
+  # Only used when username/password are not set or auto-login fails.
+  session-cookie: ${RAIPLAY_SESSION_COOKIE:}
 
 app:
   version: '@project.version@'
@@ -54,7 +63,7 @@ spring:
   # Vaadin configuration
   vaadin:
     launch-browser: false
-    
+
   # Servlet configuration for large file handling
   servlet:
     multipart:
@@ -66,7 +75,7 @@ server:
   port: ${SERVER_PORT:8080}
   compression:
     enabled: true
-  
+
 # Logging
 logging:
   level:
