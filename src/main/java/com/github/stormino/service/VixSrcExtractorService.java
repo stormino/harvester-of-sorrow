@@ -123,6 +123,7 @@ public class VixSrcExtractorService {
                         .url(url)
                         .language(language)
                         .verified(verified)
+                        .referer(embedUrl)
                         .build());
             }
             

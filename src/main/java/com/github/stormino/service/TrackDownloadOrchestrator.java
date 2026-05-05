@@ -9,6 +9,8 @@ import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
 import com.github.stormino.persistence.TaskPersistenceService;
 import com.github.stormino.service.command.FfmpegCommandBuilder;
+import com.github.stormino.service.source.MediaSourceProvider;
+import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.util.DownloadConstants;
 import com.github.stormino.util.PathUtils;
 import com.github.stormino.util.TempFileManager;
@@ -34,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class TrackDownloadOrchestrator {
 
-    private final VixSrcExtractorService extractorService;
+    private final MediaSourceRegistry sourceRegistry;
     private final ProgressBroadcastService progressBroadcast;
     private final VixSrcProperties properties;
     private final VideoTrackDownloadStrategy videoStrategy;
@@ -220,26 +222,9 @@ public class TrackDownloadOrchestrator {
 
             log.debug("Starting download for track: {}", subTask.getDisplayName());
 
-            // Build embed URL (referer)
-            String embedUrl;
-            if (task.getContentType() == DownloadTask.ContentType.TV) {
-                embedUrl = String.format("%s/tv/%d/%d/%d?lang=%s",
-                        properties.getExtractor().getBaseUrl(),
-                        task.getTmdbId(), task.getSeason(), task.getEpisode(), language);
-            } else {
-                embedUrl = String.format("%s/movie/%d?lang=%s",
-                        properties.getExtractor().getBaseUrl(),
-                        task.getTmdbId(), language);
-            }
-
-            // Get playlist URL
-            Optional<PlaylistInfo> playlistInfo;
-            if (task.getContentType() == DownloadTask.ContentType.TV) {
-                playlistInfo = extractorService.getTvPlaylist(
-                        task.getTmdbId(), task.getSeason(), task.getEpisode(), language);
-            } else {
-                playlistInfo = extractorService.getMoviePlaylist(task.getTmdbId(), language);
-            }
+            // Resolve playlist + referer through the source provider
+            MediaSourceProvider provider = sourceRegistry.get(task.getSource());
+            Optional<PlaylistInfo> playlistInfo = provider.getPlaylist(task, language);
 
             if (playlistInfo.isEmpty()) {
                 log.error("Failed to get playlist for {}", subTask.getDisplayName());
@@ -250,6 +235,7 @@ public class TrackDownloadOrchestrator {
             }
 
             String playlistUrl = playlistInfo.get().getUrl();
+            String embedUrl = playlistInfo.get().getReferer();
 
             // Set output path
             Path outputPath;

@@ -9,6 +9,8 @@ import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
 import com.github.stormino.model.source.VixSrcMetadata;
 import com.github.stormino.persistence.TaskPersistenceService;
+import com.github.stormino.service.source.MediaSourceProvider;
+import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.util.DownloadConstants;
 import com.github.stormino.util.PathUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class DownloadQueueService {
 
-    private final VixSrcExtractorService extractorService;
+    private final MediaSourceRegistry sourceRegistry;
     private final TmdbMetadataService metadataService;
     private final DownloadExecutorService executorService;
     private final TrackDownloadOrchestrator trackOrchestrator;
@@ -45,14 +47,14 @@ public class DownloadQueueService {
     private final ConcurrentHashMap<String, DownloadTask> tasks = new ConcurrentHashMap<>();
     private final Queue<DownloadTask> queue = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
-    public DownloadQueueService(VixSrcExtractorService extractorService,
+    public DownloadQueueService(MediaSourceRegistry sourceRegistry,
                                 TmdbMetadataService metadataService,
                                 DownloadExecutorService executorService,
                                 TrackDownloadOrchestrator trackOrchestrator,
                                 ProgressBroadcastService progressBroadcast,
                                 VixSrcProperties properties,
                                 TaskPersistenceService persistenceService) {
-        this.extractorService = extractorService;
+        this.sourceRegistry = sourceRegistry;
         this.metadataService = metadataService;
         this.executorService = executorService;
         this.trackOrchestrator = trackOrchestrator;
@@ -491,14 +493,8 @@ public class DownloadQueueService {
 
             // Extract playlist URL for primary language
             String primaryLang = task.getLanguages().get(0);
-            Optional<PlaylistInfo> playlistInfo;
-
-            if (task.getContentType() == DownloadTask.ContentType.TV) {
-                playlistInfo = extractorService.getTvPlaylist(
-                        task.getTmdbId(), task.getSeason(), task.getEpisode(), primaryLang);
-            } else {
-                playlistInfo = extractorService.getMoviePlaylist(task.getTmdbId(), primaryLang);
-            }
+            MediaSourceProvider provider = sourceRegistry.get(task.getSource());
+            Optional<PlaylistInfo> playlistInfo = provider.getPlaylist(task, primaryLang);
 
             if (playlistInfo.isEmpty()) {
                 updateTaskStatus(task, DownloadStatus.FAILED, 0.0, "Failed to extract playlist URL");
