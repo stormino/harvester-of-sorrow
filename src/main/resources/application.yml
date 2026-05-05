@@ -17,7 +17,13 @@ vixsrc:
 raiplay:
   base-url: https://www.raiplay.it
   search-url: https://www.raiplay.it/atomatic/raiplay-search-service/api/v1/msearch
-  search-page-size: ${RAIPLAY_SEARCH_PAGE_SIZE:20}
+  search-template-in: ${RAIPLAY_SEARCH_TEMPLATE_IN:6470a982e4e0301afe1f81f1}
+  search-template-out: ${RAIPLAY_SEARCH_TEMPLATE_OUT:6516ac5d40da6c377b151642}
+  search-page-size: ${RAIPLAY_SEARCH_PAGE_SIZE:48}
+  # Paste the full Cookie header value from a logged-in raiplay.it browser session.
+  # Required because content descriptors marked login_required=true won't serve the
+  # m3u8 / segments without a valid session cookie.
+  session-cookie: ${RAIPLAY_SESSION_COOKIE:}
   enabled: ${RAIPLAY_ENABLED:true}
     timeout-seconds: 30
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

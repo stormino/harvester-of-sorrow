@@ -1,0 +1,1123 @@
+{
+  "agg": {
+    "totale": 78,
+    "video": {
+      "totale": 75,
+      "cards": [
+        {
+          "id": "ContentItem-f7c8f9b8-cfc4-4c19-872b-7132f9459532",
+          "immagine": "/dl/img/2025/02/14/1739532821172_R4.jpg",
+          "episodio": "4",
+          "stagione": "6",
+          "durata": "01:41:38",
+          "programma": "Rocco Schiavone",
+          "titolo": "Riusciranno i nostri eroi a ritrovare l'amico misteriosamente scomparso in Sudamerica?",
+          "aria_label": "Stagione 6 - Episodio 4 - Riusciranno i nostri eroi a ritrovare l'amico misteriosamente scomparso in Sudamerica?  - Rocco Schiavone",
+          "sommario": "Furio, partito per l'Argentina in cerca di Sebastiano, ha smesso di dare due notizie. A Brizio e Rocco non resta che volare in Sudamerica in cerca dei due uomini ma in un paese straniero, senza contatti né indizi, Schiavone deve fare leva su tutte le sue capacità investigative e su qualche asso nella manica.",
+          "url": "/video/2025/02/Rocco-Schiavone-S6E4-Riusciranno-i-nostri-eroi-a-ritrovare-lamico-misteriosamente-scomparso-in-Sudamerica-f7c8f9b8-cfc4-4c19-872b-7132f9459532.html",
+          "path_id": "/video/2025/02/Rocco-Schiavone-S6E4-Riusciranno-i-nostri-eroi-a-ritrovare-lamico-misteriosamente-scomparso-in-Sudamerica-f7c8f9b8-cfc4-4c19-872b-7132f9459532.json",
+          "info_url": "/video/info/f7c8f9b8-cfc4-4c19-872b-7132f9459532.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "A",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "101 min"
+        },
+        {
+          "id": "ContentItem-594320fc-4b8b-4732-8003-932db25507fa",
+          "immagine": "/dl/img/2025/02/18/1739856499783_Rocco_4.jpg",
+          "episodio": "3",
+          "stagione": "6",
+          "durata": "01:43:56",
+          "programma": "Rocco Schiavone",
+          "titolo": "Le ossa parlano",
+          "aria_label": "Stagione 6 - Episodio 3 - Le ossa parlano  - Rocco Schiavone",
+          "sommario": "Mentre Italo affronta le conseguenze delle sue azioni, Rocco e la squadra si concentrano sul caso del piccolo Mirko Sensini. Nel frattempo, la relazione tra Schiavone e la giornalista Sandra Buccellato fatica a decollare e il vicequestore preferisce rifugiarsi nel lavoro, ma una telefonata di Brizio gli aggiunge un altro grattacapo.",
+          "url": "/video/2025/02/Rocco-Schiavone-S6E3-Le-ossa-parlano-594320fc-4b8b-4732-8003-932db25507fa.html",
+          "path_id": "/video/2025/02/Rocco-Schiavone-S6E3-Le-ossa-parlano-594320fc-4b8b-4732-8003-932db25507fa.json",
+          "info_url": "/video/info/594320fc-4b8b-4732-8003-932db25507fa.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "A",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "103 min"
+        },
+        {
+          "id": "ContentItem-50f9724d-f4f6-495d-8b60-7e69092afcf9",
+          "immagine": "/dl/img/2025/02/17/1739806125727_2.jpg",
+          "episodio": "2",
+          "stagione": "6",
+          "durata": "01:40:56",
+          "programma": "Rocco Schiavone",
+          "titolo": "OSSA LOQUUNTUR",
+          "aria_label": "Stagione 6 - Episodio 2 - OSSA LOQUUNTUR  - Rocco Schiavone",
+          "sommario": "In un bosco vicino Aosta vengono ritrovate delle ossa e dai rilievi emerge che appartengono a un bambino scomparso sei anni prima. La notizia sconvolge tutti e Schiavone sospetta che dietro ci sia una violenza.Le indagini si concentrano su raccapriccianti chat pedofile nel dark web ma la distanza temporale non aiuta la squadra.",
+          "url": "/video/2025/02/Rocco-Schiavone-S6E2-OSSA-LOQUUNTUR-50f9724d-f4f6-495d-8b60-7e69092afcf9.html",
+          "path_id": "/video/2025/02/Rocco-Schiavone-S6E2-OSSA-LOQUUNTUR-50f9724d-f4f6-495d-8b60-7e69092afcf9.json",
+          "info_url": "/video/info/50f9724d-f4f6-495d-8b60-7e69092afcf9.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "A",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "100 min"
+        },
+        {
+          "id": "ContentItem-d4c50985-09f0-441c-8f43-10921f024bba",
+          "immagine": "/dl/img/2025/02/17/1739806148206_1.jpg",
+          "episodio": "1",
+          "stagione": "6",
+          "durata": "01:42:57",
+          "programma": "Rocco Schiavone",
+          "titolo": "La ruzzica de li porci",
+          "aria_label": "Stagione 6 - Episodio 1 - La ruzzica de li porci  - Rocco Schiavone",
+          "sommario": "Schiavone è tornato alla sua vita ad Aosta con l'animo appesantito dalla scoperta del tradimento di Sebastiano ma non si sottrae al lavoro e indaga sulla morte di un giovane in alta montagna. Nel frattempo affronta il suo passato in aula a Roma e, proprio nella Capitale, la sua sua ex-squadra fa una macabra scoperta.",
+          "url": "/video/2025/02/Rocco-Schiavone-S6E1-La-ruzzica-de-li-porci-d4c50985-09f0-441c-8f43-10921f024bba.html",
+          "path_id": "/video/2025/02/Rocco-Schiavone-S6E1-La-ruzzica-de-li-porci-d4c50985-09f0-441c-8f43-10921f024bba.json",
+          "info_url": "/video/info/d4c50985-09f0-441c-8f43-10921f024bba.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "A",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "102 min"
+        },
+        {
+          "id": "ContentItem-2b37fc9c-a4d1-46dc-987f-c2a0b34186dd",
+          "immagine": "/dl/img/2016/11/08/1478600056951_Giallini.jpg",
+          "durata": "00:03:31",
+          "programma": "Rocco Schiavone",
+          "titolo": "Giallini è il vicequestore Rocco Schiavone",
+          "aria_label": "Giallini è il vicequestore Rocco Schiavone  - Rocco Schiavone",
+          "sommario": "Intervista a Marco Giallini, protagonista della serie \"Rocco Schiavone\", in onda su Rai2 da mercoledì 9 e venerdì 11 novembre. ",
+          "url": "/video/2016/11/Intervista-Giallini-vicequestore-Rocco-Schiavone-2b37fc9c-a4d1-46dc-987f-c2a0b34186dd.html",
+          "path_id": "/video/2016/11/Intervista-Giallini-vicequestore-Rocco-Schiavone-2b37fc9c-a4d1-46dc-987f-c2a0b34186dd.json",
+          "info_url": "/video/info/2b37fc9c-a4d1-46dc-987f-c2a0b34186dd.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-27aaadff-1191-4820-86c2-1f0c2d6fe5d1",
+          "immagine": "/dl/img/2023/03/13/1678717783734_1.jpg",
+          "durata": "00:03:02",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 1",
+          "aria_label": "Backstage 1  - Rocco Schiavone",
+          "sommario": "Ironico, toccante, cinico, sofferente, ironico. Rocco Schiavone è un uomo che si muove attraverso mondi freddi con un cuore caldissimo. In questa stagione si fanno passi avanti ma anche meravigliosi passi indietro. Parola al regista Simone Spada.",
+          "url": "/video/2023/03/Rocco-Schiavone-S5-Backstage-1-27aaadff-1191-4820-86c2-1f0c2d6fe5d1.html",
+          "path_id": "/video/2023/03/Rocco-Schiavone-S5-Backstage-1-27aaadff-1191-4820-86c2-1f0c2d6fe5d1.json",
+          "info_url": "/video/info/27aaadff-1191-4820-86c2-1f0c2d6fe5d1.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-24005f03-ab3b-4cb2-8268-a18001ad7a53",
+          "immagine": "/dl/img/2021/03/11/1615456374924_z_vlcsnap-2021-03-11-10h54m49s363.png",
+          "durata": "00:03:24",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 3",
+          "aria_label": "Backstage 3  - Rocco Schiavone",
+          "sommario": "Come troviamo Rocco Schiavone all'esordio di questa nuova stagione? Cosa è cambiato in lui? Ne parlano il protagonista Marco Giallini e il regista Simone Spada.",
+          "url": "/video/2021/03/Rocco-Schiavone-S4-Backstage-3-24005f03-ab3b-4cb2-8268-a18001ad7a53.html",
+          "path_id": "/video/2021/03/Rocco-Schiavone-S4-Backstage-3-24005f03-ab3b-4cb2-8268-a18001ad7a53.json",
+          "info_url": "/video/info/24005f03-ab3b-4cb2-8268-a18001ad7a53.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-ed45aa42-ac72-4f7b-a513-87ab56e629ca",
+          "immagine": "/dl/img/2021/03/11/1615455969062_z_vlcsnap-2021-03-11-10h48m51s024.png",
+          "durata": "00:02:18",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 1",
+          "aria_label": "Backstage 1  - Rocco Schiavone",
+          "sommario": "Arriva una nuova stagione di \"Rocco Schiavone\": un nuovo inizio o un ritorno a casa per il vicequestore? Rispondono l'attore Marco Giallini e il regista Simone Spada",
+          "url": "/video/2021/03/Rocco-Schiavone-S4-Backstage-1-ed45aa42-ac72-4f7b-a513-87ab56e629ca.html",
+          "path_id": "/video/2021/03/Rocco-Schiavone-S4-Backstage-1-ed45aa42-ac72-4f7b-a513-87ab56e629ca.json",
+          "info_url": "/video/info/ed45aa42-ac72-4f7b-a513-87ab56e629ca.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-fa089cfd-4be4-400d-94d0-4ab2e1285790",
+          "immagine": "/dl/img/2023/03/13/1678717931695_3.jpg",
+          "durata": "00:02:21",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 3",
+          "aria_label": "Backstage 3  - Rocco Schiavone",
+          "sommario": "La forza della serie è un insieme di cose date da grandi professionisti. Una storia molto forte, con personaggi e storie che ti fanno riflettere sul mondo in cui viviamo. Parola i protagonisti.",
+          "url": "/video/2023/03/Rocco-Schiavone-S5-Backstage-3-fa089cfd-4be4-400d-94d0-4ab2e1285790.html",
+          "path_id": "/video/2023/03/Rocco-Schiavone-S5-Backstage-3-fa089cfd-4be4-400d-94d0-4ab2e1285790.json",
+          "info_url": "/video/info/fa089cfd-4be4-400d-94d0-4ab2e1285790.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-1d35b961-9356-4100-bc09-5aedbe5a85b0",
+          "immagine": "/dl/img/2016/11/04/1478275328218_schiavone-trailer.jpg",
+          "durata": "00:02:06",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il trailer della serie",
+          "aria_label": "Il trailer della serie  - Rocco Schiavone",
+          "sommario": "\"Rocco Schiavone\" è in onda da mercoledì 9 novembre in prima serata su Rai2.",
+          "url": "/video/2016/11/Rocco-Schiavone-Trailer-1d35b961-9356-4100-bc09-5aedbe5a85b0.html",
+          "path_id": "/video/2016/11/Rocco-Schiavone-Trailer-1d35b961-9356-4100-bc09-5aedbe5a85b0.json",
+          "info_url": "/video/info/1d35b961-9356-4100-bc09-5aedbe5a85b0.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-f1f4cacb-6476-467e-b76b-eddf044eedab",
+          "immagine": "/dl/img/2025/02/12/1739359705581_R3.jpg",
+          "durata": "00:03:31",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 3",
+          "aria_label": "Backstage 3  - Rocco Schiavone",
+          "sommario": "Quattro puntate molto diverse tra di loro: momenti molto forti; soprese inaspettate, e lontane vicende che trovano un proprio epilogo. Tutto questo è racchiuso nell'inedita stagione di Rocco Schiavone. Buona visione!",
+          "url": "/video/2025/01/Rocco-Schiavone-S6-Backstage-3-f1f4cacb-6476-467e-b76b-eddf044eedab.html",
+          "path_id": "/video/2025/01/Rocco-Schiavone-S6-Backstage-3-f1f4cacb-6476-467e-b76b-eddf044eedab.json",
+          "info_url": "/video/info/f1f4cacb-6476-467e-b76b-eddf044eedab.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-26604ee5-ce57-4a4d-b537-70fb14d190e9",
+          "immagine": "/dl/img/2025/02/12/1739358616284_R2%201.jpg",
+          "durata": "00:02:36",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 2",
+          "aria_label": "Backstage 2  - Rocco Schiavone",
+          "sommario": "Senza indugi, lo scrittore Antonio Manzini, è certo che solo Marco Giallini avrebbe potuto interpretare l'investigatore. «Tra il \"crocerossismo\" femminile e una patriarcale, nonché stupida,  simpatia maschile», a Rocco Schiavone gli si vuole bene. Parola ai diretti interessati.",
+          "url": "/video/2025/01/Rocco-Schiavone-S6-Backstage-2-26604ee5-ce57-4a4d-b537-70fb14d190e9.html",
+          "path_id": "/video/2025/01/Rocco-Schiavone-S6-Backstage-2-26604ee5-ce57-4a4d-b537-70fb14d190e9.json",
+          "info_url": "/video/info/26604ee5-ce57-4a4d-b537-70fb14d190e9.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-2c9cc98a-e096-48ff-8a15-9db5a7e06161",
+          "immagine": "/dl/img/2023/03/13/1678717833160_2.jpg",
+          "durata": "00:02:07",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 2",
+          "aria_label": "Backstage 2  - Rocco Schiavone",
+          "sommario": "Rocco è una persona con una sensibilità spiccata ma non si lega e non si riesce a legare ad una donna: tra passato e voglia di andare avanti. Parola alle protagoniste, Valeria Solarino e Miriam Dalmazio.",
+          "url": "/video/2023/03/Rocco-Schiavone-S5-Backstage-2-2c9cc98a-e096-48ff-8a15-9db5a7e06161.html",
+          "path_id": "/video/2023/03/Rocco-Schiavone-S5-Backstage-2-2c9cc98a-e096-48ff-8a15-9db5a7e06161.json",
+          "info_url": "/video/info/2c9cc98a-e096-48ff-8a15-9db5a7e06161.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-64e215ba-462e-4883-850d-be0e0fa4ffe2",
+          "immagine": "/dl/img/2021/03/11/1615456234379_z_vlcsnap-2021-03-11-10h52m08s971.png",
+          "durata": "00:02:04",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 2",
+          "aria_label": "Backstage 2  - Rocco Schiavone",
+          "sommario": "Quali sono le donne di Rocco? E che ruolo hanno nella sua vita? Ne parla il protagonista Marco Giallini",
+          "url": "/video/2021/03/Rocco-Schiavone-S4-Backstage-2-64e215ba-462e-4883-850d-be0e0fa4ffe2.html",
+          "path_id": "/video/2021/03/Rocco-Schiavone-S4-Backstage-2-64e215ba-462e-4883-850d-be0e0fa4ffe2.json",
+          "info_url": "/video/info/64e215ba-462e-4883-850d-be0e0fa4ffe2.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-5f74d1d9-02c9-4246-bfce-03a304525722",
+          "immagine": "/dl/img/2025/02/12/1739358038158_R1%201.jpg",
+          "durata": "00:02:18",
+          "programma": "Rocco Schiavone",
+          "titolo": "Backstage 1",
+          "aria_label": "Backstage 1  - Rocco Schiavone",
+          "sommario": "Ecco la nuova stagione del tenebroso Rocco Schiavone, vicequestore che fa della lealtà \"la sua legge\". Le parole di Marco Giallini e degli attori, Lorenza Indovina, Massimo Reale, Alberto Lo Porto, Cristian Ginepro e del regista Simone Spada.",
+          "url": "/video/2025/01/Rocco-Schiavone-S6-Backstage-1-5f74d1d9-02c9-4246-bfce-03a304525722.html",
+          "path_id": "/video/2025/01/Rocco-Schiavone-S6-Backstage-1-5f74d1d9-02c9-4246-bfce-03a304525722.json",
+          "info_url": "/video/info/5f74d1d9-02c9-4246-bfce-03a304525722.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-d3f351c1-a49a-4134-867a-89317620b91c",
+          "immagine": "/dl/img/2019/10/01/1569948126427_z_2019-10-01-18h45m13s013.png",
+          "durata": "00:02:22",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il trailer della terza stagione",
+          "aria_label": "Il trailer della terza stagione  - Rocco Schiavone",
+          "sommario": "Quattro nuove indagini per Rocco Schiavone, il vicequestore più scomodo della televisione italiana interpretato da Marco Giallini.",
+          "url": "/video/2019/10/Rocco-Schiavone-Extra-Il-trailer-della-terza-stagione-d3f351c1-a49a-4134-867a-89317620b91c.html",
+          "path_id": "/video/2019/10/Rocco-Schiavone-Extra-Il-trailer-della-terza-stagione-d3f351c1-a49a-4134-867a-89317620b91c.json",
+          "info_url": "/video/info/d3f351c1-a49a-4134-867a-89317620b91c.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-c6e76a6d-52df-4ff4-8ee9-ce954888e86b",
+          "immagine": "/dl/img/2021/03/12/1615549878317_z_vlcsnap-2021-03-12-12h52m52s404.png",
+          "durata": "00:02:02",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il riassunto delle stagioni precedenti",
+          "aria_label": "Il riassunto delle stagioni precedenti  - Rocco Schiavone",
+          "sommario": "Che cosa è successo nelle stagioni precedenti di \"Rocco Schiavone\"?",
+          "url": "/video/2021/03/Rocco-Schiavone-Il-riassunto-della-terza-stagione-c6e76a6d-52df-4ff4-8ee9-ce954888e86b.html",
+          "path_id": "/video/2021/03/Rocco-Schiavone-Il-riassunto-della-terza-stagione-c6e76a6d-52df-4ff4-8ee9-ce954888e86b.json",
+          "info_url": "/video/info/c6e76a6d-52df-4ff4-8ee9-ce954888e86b.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-6d38e6b5-30db-4b47-94e7-0391181eb57a",
+          "immagine": "/dl/img/2019/10/02/1570020874033_z_2019-10-02-14h57m55s899.png",
+          "durata": "00:02:27",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il riassunto della seconda stagione",
+          "aria_label": "Il riassunto della seconda stagione  - Rocco Schiavone",
+          "sommario": "Cosa è successo nella seconda stagione di \"Rocco Schiavone\"? Lo ricapitoliamo qui.",
+          "url": "/video/2019/10/Rocco-Schiavone-Il-riassunto-della-seconda-stagione-6d38e6b5-30db-4b47-94e7-0391181eb57a.html",
+          "path_id": "/video/2019/10/Rocco-Schiavone-Il-riassunto-della-seconda-stagione-6d38e6b5-30db-4b47-94e7-0391181eb57a.json",
+          "info_url": "/video/info/6d38e6b5-30db-4b47-94e7-0391181eb57a.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-cddaafa1-6131-419a-aaad-4f6ae708c9b1",
+          "immagine": "/dl/img/2018/07/05/1530786002247_vlcsnap-2018-07-05-11h47m17s886.png",
+          "durata": "00:03:10",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il trailer della seconda stagione",
+          "aria_label": "Il trailer della seconda stagione  - Rocco Schiavone",
+          "sommario": "In esclusiva le immagini della seconda stagione di \"Rocco Schiavone\" in onda il prossimo autunno su Rai2.",
+          "url": "/video/2018/07/Rocco-Schiavone-trailer-seconda-stagione-cddaafa1-6131-419a-aaad-4f6ae708c9b1.html",
+          "path_id": "/video/2018/07/Rocco-Schiavone-trailer-seconda-stagione-cddaafa1-6131-419a-aaad-4f6ae708c9b1.json",
+          "info_url": "/video/info/cddaafa1-6131-419a-aaad-4f6ae708c9b1.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-853365b0-71f8-41ec-a86e-7f38ac47b315",
+          "immagine": "/dl/img/2018/10/15/1539616669524_vlcsnap-2018-10-15-17h20m00s296.png",
+          "durata": "00:03:35",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Marco Giallini",
+          "aria_label": "Intervista a Marco Giallini  - Rocco Schiavone",
+          "sommario": "Marco Giallini torna nei panni del vicequestore Rocco Schiavone. Cosa ci aspetta in questa seconda stagione? Lo racconta ai nostri microfoni.",
+          "url": "/video/2018/10/Rocco-Schiavone-S2-Extra-Intervista-Marco-Giallini-853365b0-71f8-41ec-a86e-7f38ac47b315.html",
+          "path_id": "/video/2018/10/Rocco-Schiavone-S2-Extra-Intervista-Marco-Giallini-853365b0-71f8-41ec-a86e-7f38ac47b315.json",
+          "info_url": "/video/info/853365b0-71f8-41ec-a86e-7f38ac47b315.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-b7e23450-fa4b-4f77-9a04-65e0b1c0e5a8",
+          "immagine": "/dl/img/2016/11/09/1478708194007_vlcsnap-2016-11-09-16h57m14s107.png",
+          "durata": "00:02:32",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Claudia Vismara",
+          "aria_label": "Intervista a Claudia Vismara  - Rocco Schiavone",
+          "sommario": "L'attrice ci racconta di Caterina Rispoli, il suo personaggio, vice-ispettrice che aiuta Rocco Schiavone nelle sue indagini.",
+          "url": "/video/2016/11/Intervista-Claudia-Vismara-Rocco-Schiavone-b7e23450-fa4b-4f77-9a04-65e0b1c0e5a8.html",
+          "path_id": "/video/2016/11/Intervista-Claudia-Vismara-Rocco-Schiavone-b7e23450-fa4b-4f77-9a04-65e0b1c0e5a8.json",
+          "info_url": "/video/info/b7e23450-fa4b-4f77-9a04-65e0b1c0e5a8.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-b129db46-7b65-4a26-a28f-fd8d1d7e8229",
+          "immagine": "/dl/img/2019/10/02/1570003819435_z_2019-10-02-10h13m05s958.png",
+          "durata": "00:03:53",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Ernesto D'Argenio",
+          "aria_label": "Intervista a Ernesto D'Argenio  - Rocco Schiavone",
+          "sommario": "Nella terza stagione di \"Rocco Schiavone\" ritroviamo Italo Pierron, giovane poliziotto della squadra di Schiavone che, quest'anno, sembra nascondere un grande segreto. Di cosa si tratta? Lo abbiamo chiesto all'attore Ernesto D'Argenio.",
+          "url": "/video/2019/10/Rocco-Schiavone-S3-Extra-Intervista-a-Ernesto-DArgenio-b129db46-7b65-4a26-a28f-fd8d1d7e8229.html",
+          "path_id": "/video/2019/10/Rocco-Schiavone-S3-Extra-Intervista-a-Ernesto-DArgenio-b129db46-7b65-4a26-a28f-fd8d1d7e8229.json",
+          "info_url": "/video/info/b129db46-7b65-4a26-a28f-fd8d1d7e8229.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-17ce7572-d88d-4fc7-a17c-72cdf20d326d",
+          "immagine": "/dl/img/2016/11/04/1478275889436_schiavone-scrittore.jpg",
+          "durata": "00:04:42",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Antonio Manzini",
+          "aria_label": "Intervista a Antonio Manzini  - Rocco Schiavone",
+          "sommario": "Antonio Manzini, lo scrittore dalle cui opere è stata tratta la sceneggiatura della serie, racconta il personaggio di Rocco Schiavone",
+          "url": "/video/2016/11/Rocco-Schiavone-Intervista--Antonio-Manzini-17ce7572-d88d-4fc7-a17c-72cdf20d326d.html",
+          "path_id": "/video/2016/11/Rocco-Schiavone-Intervista--Antonio-Manzini-17ce7572-d88d-4fc7-a17c-72cdf20d326d.json",
+          "info_url": "/video/info/17ce7572-d88d-4fc7-a17c-72cdf20d326d.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "4 min"
+        },
+        {
+          "id": "ContentItem-3b2ab5fe-78cf-44ff-b889-00af50f23212",
+          "immagine": "/dl/img/2018/10/15/1539616884047_vlcsnap-2018-10-15-17h23m26s107.png",
+          "durata": "00:02:45",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Mirko Frezza",
+          "aria_label": "Intervista a Mirko Frezza  - Rocco Schiavone",
+          "sommario": "In \"Rocco Schiavone\" Mirko Frezza interpreta Furio, leale amico del vicequestore e aiuto nella soluzione dei casi in cui è coinvolto. Come cambierà il suo personaggio? Cosa ci aspetta nella seconda stagione?",
+          "url": "/video/2018/10/Rocco-Schiavone-2-Extra-Intervista-Mirko-Frezza-3b2ab5fe-78cf-44ff-b889-00af50f23212.html",
+          "path_id": "/video/2018/10/Rocco-Schiavone-2-Extra-Intervista-Mirko-Frezza-3b2ab5fe-78cf-44ff-b889-00af50f23212.json",
+          "info_url": "/video/info/3b2ab5fe-78cf-44ff-b889-00af50f23212.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-d9877de8-a31a-4e8b-8e04-244a13395fbb",
+          "immagine": "/dl/img/2023/03/13/1678718004522_t.jpg",
+          "durata": "00:02:58",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il trailer della quinta stagione",
+          "aria_label": "Il trailer della quinta stagione  - Rocco Schiavone",
+          "sommario": "Rocco Schiavone è tonato con nuove indagini e nuovi protagonisti. Il trailer della quinta stagione.",
+          "url": "/video/2023/03/Trailer-d9877de8-a31a-4e8b-8e04-244a13395fbb.html",
+          "path_id": "/video/2023/03/Trailer-d9877de8-a31a-4e8b-8e04-244a13395fbb.json",
+          "info_url": "/video/info/d9877de8-a31a-4e8b-8e04-244a13395fbb.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-3c9529da-6801-49d9-9805-08e0df06866b",
+          "immagine": "/dl/img/2016/11/04/1478275638915_schiavone-soavi.jpg",
+          "durata": "00:03:14",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Michele Soavi",
+          "aria_label": "Intervista a Michele Soavi  - Rocco Schiavone",
+          "sommario": "Michele Soavi, regista di \"Rocco Schiavone\", presenta la serie e racconta le sue impressioni.",
+          "url": "/video/2016/11/Rocco-Schiavone-intervista-regista-Michele-Soavi-3c9529da-6801-49d9-9805-08e0df06866b.html",
+          "path_id": "/video/2016/11/Rocco-Schiavone-intervista-regista-Michele-Soavi-3c9529da-6801-49d9-9805-08e0df06866b.json",
+          "info_url": "/video/info/3c9529da-6801-49d9-9805-08e0df06866b.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-2f948ee4-eeec-4a3d-8098-2f86ad10c861",
+          "immagine": "/dl/img/2019/10/01/1569947759921_z_2019-10-01-18h36m47s683.png",
+          "durata": "00:03:59",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Marco Giallini",
+          "aria_label": "Intervista a Marco Giallini  - Rocco Schiavone",
+          "sommario": "Cosa succede a Rocco Schiavone nella terza stagione della serie? Marco Giallini risponde a questa domanda con tutta la sua ironia.",
+          "url": "/video/2019/10/Rocco-Schiavone-S3-extra-Intervista-a-Marco-Giallini-2f948ee4-eeec-4a3d-8098-2f86ad10c861.html",
+          "path_id": "/video/2019/10/Rocco-Schiavone-S3-extra-Intervista-a-Marco-Giallini-2f948ee4-eeec-4a3d-8098-2f86ad10c861.json",
+          "info_url": "/video/info/2f948ee4-eeec-4a3d-8098-2f86ad10c861.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-ff92027d-5f11-41ba-9c1a-06fb0e516df2",
+          "immagine": "/dl/img/2021/03/12/1615549694837_z_vlcsnap-2021-03-12-12h50m31s754.png",
+          "durata": "00:02:38",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il trailer della quarta stagione",
+          "aria_label": "Il trailer della quarta stagione  - Rocco Schiavone",
+          "sommario": "Ritornano le indagini di Rocco Schiavone, il vicequestore più scorretto della Tv italiana.",
+          "url": "/video/2021/03/Rocco-Schiavone-Il-trailer-della-quarta-stagione-ff92027d-5f11-41ba-9c1a-06fb0e516df2.html",
+          "path_id": "/video/2021/03/Rocco-Schiavone-Il-trailer-della-quarta-stagione-ff92027d-5f11-41ba-9c1a-06fb0e516df2.json",
+          "info_url": "/video/info/ff92027d-5f11-41ba-9c1a-06fb0e516df2.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-9fc9a55c-123a-4942-bb32-3c59b1b76d87",
+          "immagine": "/dl/img/2019/10/02/1570003429230_z_2019-10-02-10h09m33s625.png",
+          "durata": "00:03:33",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Valeria Solarino",
+          "aria_label": "Intervista a Valeria Solarino  - Rocco Schiavone",
+          "sommario": "Valeria Solarino, nuovo arrivo nel cast di \"Rocco Schiavone\", ci racconta il personaggio di Sandra Bucellato, approfondendo il tema del particolare rapporto di Rocco con le donne.",
+          "url": "/video/2019/10/Rocco-Schiavone-S3-Extra-Intervista-a-Valeria-Solarino-9fc9a55c-123a-4942-bb32-3c59b1b76d87.html",
+          "path_id": "/video/2019/10/Rocco-Schiavone-S3-Extra-Intervista-a-Valeria-Solarino-9fc9a55c-123a-4942-bb32-3c59b1b76d87.json",
+          "info_url": "/video/info/9fc9a55c-123a-4942-bb32-3c59b1b76d87.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-122b2b41-2740-4627-894b-f5a9f5749219",
+          "immagine": "/dl/img/2019/10/02/1570004083149_z_2019-10-02-10h17m49s810.png",
+          "durata": "00:02:06",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Claudia Vismara",
+          "aria_label": "Intervista a Claudia Vismara  - Rocco Schiavone",
+          "sommario": "La seconda stagione di \"Rocco Schiavone\" si è chiusa con un colpo di scena: Caterina ha tradito la fiducia di Rocco e quella della squadra. Cosa succede al personaggio interpretato da Claudia Vismara nella terza stagione? Lo abbiamo chiesto all'attrice.",
+          "url": "/video/2019/10/Rocco-Schiavone-S3-Extra-Intervista-a-Claudia-Vismara-122b2b41-2740-4627-894b-f5a9f5749219.html",
+          "path_id": "/video/2019/10/Rocco-Schiavone-S3-Extra-Intervista-a-Claudia-Vismara-122b2b41-2740-4627-894b-f5a9f5749219.json",
+          "info_url": "/video/info/122b2b41-2740-4627-894b-f5a9f5749219.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-508bf840-b918-4e8a-bd31-bbfe80b3c25f",
+          "immagine": "/dl/img/2018/10/15/1539630939086_vlcsnap-2018-10-15-21h16m42s967.png",
+          "durata": "00:03:36",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Claudia Vismara",
+          "aria_label": "Intervista a Claudia Vismara  - Rocco Schiavone",
+          "sommario": "Grosse novità attendono Caterina, il personaggio interpretato da Claudia Vismara nella seconda stagione di \"Rocco Schiavone\". Scopriamole insieme ascoltando le parole dell'attrice.",
+          "url": "/video/2018/10/Rocco-Schiavone-S2-Extra-Intervista-Claudia-Vismara-508bf840-b918-4e8a-bd31-bbfe80b3c25f.html",
+          "path_id": "/video/2018/10/Rocco-Schiavone-S2-Extra-Intervista-Claudia-Vismara-508bf840-b918-4e8a-bd31-bbfe80b3c25f.json",
+          "info_url": "/video/info/508bf840-b918-4e8a-bd31-bbfe80b3c25f.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-eb8e9828-c65d-499a-b836-039cf8cdd789",
+          "immagine": "/dl/img/2016/11/09/1478706690307_vlcsnap-2016-11-09-16h54m21s359.png",
+          "durata": "00:04:16",
+          "programma": "Rocco Schiavone",
+          "titolo": "Intervista a Francesca Cavallin",
+          "aria_label": "Intervista a Francesca Cavallin  - Rocco Schiavone",
+          "sommario": "L'attrice parla di Nora, il personaggio che interpreta nella serie \"Rocco Schiavone\"",
+          "url": "/video/2016/11/Intervista-Francesca-Cavallin-Rocco-Schiavone-eb8e9828-c65d-499a-b836-039cf8cdd789.html",
+          "path_id": "/video/2016/11/Intervista-Francesca-Cavallin-Rocco-Schiavone-eb8e9828-c65d-499a-b836-039cf8cdd789.json",
+          "info_url": "/video/info/eb8e9828-c65d-499a-b836-039cf8cdd789.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "4 min"
+        },
+        {
+          "id": "ContentItem-f0228ba4-8eaf-4908-b424-6f42d7524b65",
+          "immagine": "/dl/img/2025/12/18/1766069703519_camilleri_incontri1.jpg",
+          "stagione": "1",
+          "durata": "00:48:46",
+          "programma": "Camilleri racconta - Amo le triglie di scoglio",
+          "titolo": "Montalbano e Schiavone indagano insieme",
+          "aria_label": "Stagione 1 - Montalbano e Schiavone indagano insieme  - Camilleri racconta - Amo le triglie di scoglio",
+          "sommario": "L'incontro con Antonio Manzini, padre delle indagini del vicequestore Rocco Schiavone. Camilleri e Manzini dialogano, ricostruendo la loro amicizia, gli episodi importanti della loro collaborazione artistica. Manzini è stato il primo lettore del manoscritto che ha inaugurato la serie delle indagini del commissario Montalbano: La forma dell'acqua. I due scrittori si sottopongono al gioco dell'immaginazione, inventano l'incipit di un'inchiesta condotta da Montalbano e Schiavone. La trama: hanno rapito Andrea Camilleri. Questo incontro, registrato nel dicembre del 2017, è condotto da Bruno Luverà",
+          "url": "/video/2025/12/Montalbano-e-Schiavone-indagano-insieme---Camilleri-racconta---Amo-le-triglie-di-scoglio-f0228ba4-8eaf-4908-b424-6f42d7524b65.html",
+          "path_id": "/video/2025/12/Montalbano-e-Schiavone-indagano-insieme---Camilleri-racconta---Amo-le-triglie-di-scoglio-f0228ba4-8eaf-4908-b424-6f42d7524b65.json",
+          "info_url": "/video/info/f0228ba4-8eaf-4908-b424-6f42d7524b65.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/camilleriracconta-amoletrigliediscoglio.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "48 min"
+        },
+        {
+          "id": "ContentItem-58019852-2a73-42b8-92df-be5378078386",
+          "immagine": "/dl/img/2025/07/23/1753293956608_Il-Collegio-4-Provini-Schiavone-Ricci-Piccamiglio-Pinzolo-Sogni.jpg",
+          "stagione": "2019",
+          "durata": "00:03:21",
+          "programma": "Il Collegio",
+          "titolo": "Schiavone, Ricci, Piccamiglio, Pinzolo, Sogni",
+          "aria_label": "Stagione 2019 - Schiavone, Ricci, Piccamiglio, Pinzolo, Sogni  - Il Collegio",
+          "sommario": "L'ammissione al \"Collegio 4\" non è certo una passeggiata! I futuri alunni devono rispondere a qualche domanda di cultura generale: Storia, Geografia, Matematica... . Ci riusciranno? E voi, sapreste rispondere? Confrontate la vostra preparazione con quella dei candidati per la classe 1982!",
+          "url": "/video/2019/10/Il-Collegio-4-Casting-Provini-Schiavone-Ricci-Piccamiglio-Pinzolo-Sogni-58019852-2a73-42b8-92df-be5378078386.html",
+          "path_id": "/video/2019/10/Il-Collegio-4-Casting-Provini-Schiavone-Ricci-Piccamiglio-Pinzolo-Sogni-58019852-2a73-42b8-92df-be5378078386.json",
+          "info_url": "/video/info/58019852-2a73-42b8-92df-be5378078386.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/ilcollegio.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-4ddc0099-b7a8-4972-b41a-21f1880d99e4",
+          "immagine": "/dl/img/2025/02/25675542.png",
+          "stagione": "2024/25",
+          "durata": "00:02:27",
+          "programma": "La volta buona",
+          "titolo": "Claudia Vismara:  stasera su Rai 2 con \"Rocco Schiavone\" - 26/02/2025 ",
+          "aria_label": "Stagione 2024/25 - Claudia Vismara:  stasera su Rai 2 con \"Rocco Schiavone\" - 26/02/2025   - La volta buona",
+          "sommario": "Stasera su Rai 2 la seconda puntata di Rocco Schiavone 6 con Marco Giallini e Claudia Vismara",
+          "url": "/video/2025/02/Claudia-Vismara--stasera-su-Rai-2-con-Rocco-Schiavone---La-Volta-Buona-26022025--4ddc0099-b7a8-4972-b41a-21f1880d99e4.html",
+          "path_id": "/video/2025/02/Claudia-Vismara--stasera-su-Rai-2-con-Rocco-Schiavone---La-Volta-Buona-26022025--4ddc0099-b7a8-4972-b41a-21f1880d99e4.json",
+          "info_url": "/video/info/4ddc0099-b7a8-4972-b41a-21f1880d99e4.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/lavoltabuona.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-e3f5a5d6-d418-4f27-9eb2-6af3a66fd2b1",
+          "immagine": "/dl/img/2026/01/28324071.png",
+          "stagione": "2025/26",
+          "durata": "00:03:48",
+          "programma": "La volta buona",
+          "titolo": "Julio Iglesias accusato di violenza sessuale: \"Ci usava come schiave\" - 15/01/2026",
+          "aria_label": "Stagione 2025/26 - Julio Iglesias accusato di violenza sessuale: \"Ci usava come schiave\" - 15/01/2026  - La volta buona",
+          "sommario": "Nelle ultime ore sono emersi nuovi dettagli sul caso che coinvolge Julio Iglesias. Secondo quanto riferito in Spagna, la Procura ascolterà le due donne che hanno presentato denuncia contro di lui. Secondo i loro racconti, sarebbero state aggredite e molestate sessualmente nelle residenze private del cantante, tra Caraibi e Bahamas. ",
+          "url": "/video/2026/01/Julio-Iglesias-accusato-di-violenza-sessuale-Ci-usava-come-schiave---La-Volta-Buona-15012026-e3f5a5d6-d418-4f27-9eb2-6af3a66fd2b1.html",
+          "path_id": "/video/2026/01/Julio-Iglesias-accusato-di-violenza-sessuale-Ci-usava-come-schiave---La-Volta-Buona-15012026-e3f5a5d6-d418-4f27-9eb2-6af3a66fd2b1.json",
+          "info_url": "/video/info/e3f5a5d6-d418-4f27-9eb2-6af3a66fd2b1.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/lavoltabuona.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "3 min"
+        },
+        {
+          "id": "ContentItem-ab93afab-9a40-4e74-a754-6d3238699e44",
+          "immagine": "/dl/img/2023/04/13/1681383928246_4.jpg",
+          "episodio": "4",
+          "stagione": "5",
+          "durata": "01:36:11",
+          "programma": "Rocco Schiavone",
+          "titolo": "Vecchie conoscenze",
+          "aria_label": "Stagione 5 - Episodio 4 - Vecchie conoscenze  - Rocco Schiavone",
+          "sommario": "Rocco aiuta Sebastiano a passare il confine con la Svizzera, a caccia di Baiocchi, il quale contatta il PM Baldi. Schiavone va all'incontro con il PM, ma le cose non vanno come previsto.",
+          "url": "/video/2023/04/Rocco-Schiavone-S5E4-Vecchie-conoscenze-ab93afab-9a40-4e74-a754-6d3238699e44.html",
+          "path_id": "/video/2023/04/Rocco-Schiavone-S5E4-Vecchie-conoscenze-ab93afab-9a40-4e74-a754-6d3238699e44.json",
+          "info_url": "/video/info/ab93afab-9a40-4e74-a754-6d3238699e44.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "BA",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "96 min"
+        },
+        {
+          "id": "ContentItem-b723f730-7f52-4a4a-9373-49c464939671",
+          "immagine": "/dl/img/2023/04/13/1681383910196_3.jpg",
+          "episodio": "3",
+          "stagione": "5",
+          "durata": "01:40:19",
+          "programma": "Rocco Schiavone",
+          "titolo": "Punti di vista",
+          "aria_label": "Stagione 5 - Episodio 3 - Punti di vista  - Rocco Schiavone",
+          "sommario": "Schiavone riprende le indagini sulla Martinet con l'aiuto della giornalista Buccellato, a modo suo. Intanto il passato di Rocco bussa con urgenza e non può più essere ignorato.",
+          "url": "/video/2023/04/Rocco-Schiavone-S5E3-Punti-di-vista-b723f730-7f52-4a4a-9373-49c464939671.html",
+          "path_id": "/video/2023/04/Rocco-Schiavone-S5E3-Punti-di-vista-b723f730-7f52-4a4a-9373-49c464939671.json",
+          "info_url": "/video/info/b723f730-7f52-4a4a-9373-49c464939671.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "BA",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "100 min"
+        },
+        {
+          "id": "ContentItem-02d4b000-adc0-4284-a1db-9c19de5b6525",
+          "immagine": "/dl/img/2023/04/04/1680621892965_2.jpg",
+          "episodio": "2",
+          "stagione": "5",
+          "durata": "01:42:03",
+          "programma": "Rocco Schiavone",
+          "titolo": "Chi parte e chi resta",
+          "aria_label": "Stagione 5 - Episodio 2 - Chi parte e chi resta  - Rocco Schiavone",
+          "sommario": "Sebastiano è fonte di grande stress per Rocco, che deve comunque occuparsi della morte della Martinet, nota studiosa di Leonardo. Tanti i pensieri per Schiavone, tra cui c'è anche Sandra",
+          "url": "/video/2023/04/Rocco-Schiavone-S5E2-Chi-parte-e-chi-resta-02d4b000-adc0-4284-a1db-9c19de5b6525.html",
+          "path_id": "/video/2023/04/Rocco-Schiavone-S5E2-Chi-parte-e-chi-resta-02d4b000-adc0-4284-a1db-9c19de5b6525.json",
+          "info_url": "/video/info/02d4b000-adc0-4284-a1db-9c19de5b6525.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "BA",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "102 min"
+        },
+        {
+          "id": "ContentItem-2549bd55-6434-4cf6-bcbe-2b93b5ee8558",
+          "immagine": "/dl/img/2023/03/28/1679987645916_Rocco%201.jpg",
+          "episodio": "1",
+          "stagione": "5",
+          "durata": "01:37:27",
+          "programma": "Rocco Schiavone",
+          "titolo": "Il viaggio continua",
+          "aria_label": "Stagione 5 - Episodio 1 - Il viaggio continua  - Rocco Schiavone",
+          "sommario": "Due operai francesi trovano un cadavere sul Monte Bianco. Per non finire nelle indagini, spostano il corpo in territorio italiano. Schiavone intuisce e coinvolge la polizia d'oltralpe.",
+          "url": "/video/2023/03/Rocco-Schiavone-S5E1-Il-viaggio-continua-2549bd55-6434-4cf6-bcbe-2b93b5ee8558.html",
+          "path_id": "/video/2023/03/Rocco-Schiavone-S5E1-Il-viaggio-continua-2549bd55-6434-4cf6-bcbe-2b93b5ee8558.json",
+          "info_url": "/video/info/2549bd55-6434-4cf6-bcbe-2b93b5ee8558.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "BA",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "97 min"
+        },
+        {
+          "id": "ContentItem-7025f5d5-0a59-4ed2-89aa-4b68b20eaa03",
+          "immagine": "/dl/img/2024/02/22508169.png",
+          "stagione": "2024",
+          "durata": "00:02:30",
+          "programma": "Dalla strada al palco",
+          "titolo": "L'esibizione di Luca Spadaro e Vittorio Schiavone - 27/02/2024",
+          "aria_label": "Stagione 2024 - L'esibizione di Luca Spadaro e Vittorio Schiavone - 27/02/2024  - Dalla strada al palco",
+          "sommario": "Luca Spadaro e Vittorio Schiavone ballano il tip tap.",
+          "url": "/video/2024/02/Lesibizione-di-Luca-Spadaro-e-Vittorio-Schiavone---Dalla-strada-al-palco---27022024-7025f5d5-0a59-4ed2-89aa-4b68b20eaa03.html",
+          "path_id": "/video/2024/02/Lesibizione-di-Luca-Spadaro-e-Vittorio-Schiavone---Dalla-strada-al-palco---27022024-7025f5d5-0a59-4ed2-89aa-4b68b20eaa03.json",
+          "info_url": "/video/info/7025f5d5-0a59-4ed2-89aa-4b68b20eaa03.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/dallastradaalpalco.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "2 min"
+        },
+        {
+          "id": "ContentItem-57624668-56c7-4748-b95d-cf5f5e8feaa1",
+          "immagine": "/dl/img/2024/02/22508146.png",
+          "stagione": "2024",
+          "durata": "00:01:53",
+          "programma": "Dalla strada al palco",
+          "titolo": "La storia di Luca Spadaro e Vittorio Schiavone - 27/02/2024",
+          "aria_label": "Stagione 2024 - La storia di Luca Spadaro e Vittorio Schiavone - 27/02/2024  - Dalla strada al palco",
+          "sommario": "Entrambi ballerini professionisti ed insegnanti di danza. Luca vanta un vasto curriculum nell'ensemble dei musical più famosi come Grease, Hairspray, Pinocchio. Vittorio invece artista poliedrico ha più esperienza dell'arte di strada pur avendo anche lui calcato i palcoscenici.",
+          "url": "/video/2024/02/La-storia-di-Luca-Spadaro-e-Vittorio-Schiavone---Dalla-strada-al-palco---27022024-57624668-56c7-4748-b95d-cf5f5e8feaa1.html",
+          "path_id": "/video/2024/02/La-storia-di-Luca-Spadaro-e-Vittorio-Schiavone---Dalla-strada-al-palco---27022024-57624668-56c7-4748-b95d-cf5f5e8feaa1.json",
+          "info_url": "/video/info/57624668-56c7-4748-b95d-cf5f5e8feaa1.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/dallastradaalpalco.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "1 min"
+        },
+        {
+          "id": "ContentItem-529d8960-7ca5-4175-b267-a2665d1fe55e",
+          "immagine": "/dl/img/2023/06/20338481.png",
+          "stagione": "2022/23",
+          "durata": "00:11:30",
+          "programma": "Chi l'ha visto?",
+          "titolo": "\"Ho paura di mio figlio schiavo dell'alcol, aiutatemi\", la storia di Irene - 21/06/2023",
+          "aria_label": "Stagione 2022/23 - \"Ho paura di mio figlio schiavo dell'alcol, aiutatemi\", la storia di Irene - 21/06/2023  - Chi l'ha visto?",
+          "sommario": "",
+          "url": "/video/2023/06/Ho-paura-di-mio-figlio-schiavo-dellalcol-aiutatemi-la-storia-di-Irene---Chi-lha-visto---21062023-529d8960-7ca5-4175-b267-a2665d1fe55e.html",
+          "path_id": "/video/2023/06/Ho-paura-di-mio-figlio-schiavo-dellalcol-aiutatemi-la-storia-di-Irene---Chi-lha-visto---21062023-529d8960-7ca5-4175-b267-a2665d1fe55e.json",
+          "info_url": "/video/info/529d8960-7ca5-4175-b267-a2665d1fe55e.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/chilhavisto.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "11 min"
+        },
+        {
+          "id": "ContentItem-d61e20bc-7bb9-4eb2-af61-4ecdc718ccb2",
+          "immagine": "/dl/img/2023/09/04/1693813373549_1693813301011.png",
+          "stagione": "2023",
+          "durata": "01:00:28",
+          "programma": "Venezia Biennale Cinema",
+          "titolo": "Conversazione con Francesca Lo Schiavo e Dante Ferretti - Cartier - \"The Art and Craft of Cinema\"",
+          "aria_label": "Stagione 2023 - Conversazione con Francesca Lo Schiavo e Dante Ferretti - Cartier - \"The Art and Craft of Cinema\"  - Venezia Biennale Cinema",
+          "sommario": "Conversazione con Francesca Lo Schiavo e Dante Ferretti – Cartier - \"The Art and Craft of Cinema\"",
+          "url": "/video/2023/08/Venezia-80---Conversazione-con-Francesca-Lo-Schiavo-e-Dante-Ferretti-Cartier---The-Art-and-Craft-of-Cinema-d61e20bc-7bb9-4eb2-af61-4ecdc718ccb2.html",
+          "path_id": "/video/2023/08/Venezia-80---Conversazione-con-Francesca-Lo-Schiavo-e-Dante-Ferretti-Cartier---The-Art-and-Craft-of-Cinema-d61e20bc-7bb9-4eb2-af61-4ecdc718ccb2.json",
+          "info_url": "/video/info/d61e20bc-7bb9-4eb2-af61-4ecdc718ccb2.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/veneziabiennalecinema.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "60 min"
+        },
+        {
+          "id": "ContentItem-72d15f7b-8129-4b57-b635-edccfe0fa8fb",
+          "immagine": "/dl/img/2023/04/19783172.png",
+          "stagione": "2023",
+          "durata": "00:16:20",
+          "programma": "Splendida Cornice",
+          "titolo": "Dante Ferretti e Francesca Lo Schiavo - 20/04/2023",
+          "aria_label": "Stagione 2023 - Dante Ferretti e Francesca Lo Schiavo - 20/04/2023  - Splendida Cornice",
+          "sommario": "Tre volte premi Oscar ognuno, coppia nella vita e sul set, hanno attraversato con la loro straordinaria carriera oltre sessant'anni di storia del cinema italiano e internazionale. Sono ospiti a \"Splendida Cornice\" lo scenografo Dante Ferretti e la set decorator Francesca Lo Schiavo.",
+          "url": "/video/2023/04/Dante-Ferretti-e-Francesca-Lo-Schiavo---Splendida-Cornice-20042023-72d15f7b-8129-4b57-b635-edccfe0fa8fb.html",
+          "path_id": "/video/2023/04/Dante-Ferretti-e-Francesca-Lo-Schiavo---Splendida-Cornice-20042023-72d15f7b-8129-4b57-b635-edccfe0fa8fb.json",
+          "info_url": "/video/info/72d15f7b-8129-4b57-b635-edccfe0fa8fb.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/splendidacornice.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "16 min"
+        },
+        {
+          "id": "ContentItem-471ea7b3-4144-4e42-8290-6674bdbaaf80",
+          "immagine": "/dl/img/2021/11/15488599.png",
+          "stagione": "2021/22",
+          "durata": "00:09:12",
+          "programma": "Tv7",
+          "titolo": "Schiave d'italia - 29/10/2021",
+          "aria_label": "Stagione 2021/22 - Schiave d'italia - 29/10/2021  - Tv7",
+          "sommario": "di Rosita Rosa - Donne di origine indiana, vessate e piegate nei campi a raccogliere le verdure destinate alle nostre tavole. E addirittura costrette a subire ricatti sessuali e violenze dai caporali.",
+          "url": "/video/2021/11/Schiave-ditalia---Tv7---29102021-471ea7b3-4144-4e42-8290-6674bdbaaf80.html",
+          "path_id": "/video/2021/11/Schiave-ditalia---Tv7---29102021-471ea7b3-4144-4e42-8290-6674bdbaaf80.json",
+          "info_url": "/video/info/471ea7b3-4144-4e42-8290-6674bdbaaf80.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/tv7.json",
+          "rights_management": {
+            "rights": {}
+          },
+          "duration_in_minutes": "9 min"
+        },
+        {
+          "id": "ContentItem-92c4bc4f-8cab-4aff-9699-efa56fbbe884",
+          "immagine": "/dl/img/2021/03/23/1616494136547_rocco_42.jpg",
+          "episodio": "2",
+          "stagione": "4",
+          "durata": "01:41:31",
+          "programma": "Rocco Schiavone",
+          "titolo": "Ah, l'amore, l'amore",
+          "aria_label": "Stagione 4 - Episodio 2 - Ah, l'amore, l'amore  - Rocco Schiavone",
+          "sommario": "Rocco è in ospedale per un'operazione, quando viene a sapere che un noto industriale è morto per un errore di trasfusione . Sentendo odore di crimine, inizia un'indagine notturna e segreta tra i corridoi dell'ospedale.",
+          "url": "/video/2021/03/Rocco-Schiavone-S4E2-Ah-l-amore-l-amore-92c4bc4f-8cab-4aff-9699-efa56fbbe884.html",
+          "path_id": "/video/2021/03/Rocco-Schiavone-S4E2-Ah-l-amore-l-amore-92c4bc4f-8cab-4aff-9699-efa56fbbe884.json",
+          "info_url": "/video/info/92c4bc4f-8cab-4aff-9699-efa56fbbe884.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "BA",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "101 min"
+        },
+        {
+          "id": "ContentItem-eb2b7715-9ac8-4a02-9635-9a98b5a70722",
+          "immagine": "/dl/img/2021/03/12/1615567460315_2048x1152.jpg",
+          "episodio": "1",
+          "stagione": "4",
+          "durata": "01:44:27",
+          "programma": "Rocco Schiavone",
+          "titolo": "Rien ne va plus",
+          "aria_label": "Stagione 4 - Episodio 1 - Rien ne va plus  - Rocco Schiavone",
+          "sommario": "Subito prima che la Polizia inizi gli scavi per riportare alla luce il cadavere di Luigi Baiocchi, Rocco Schiavone abbandona l'Italia. Sembra l'inizio di un lungo e solitario esilio per il vicequestore, ma inaspettatamente arrivano a fargli visita Brizio e Furio con importanti novità. Rocco, pieno di interrogativi e dubbi, fa ritorno ad Aosta, pronto a risolvere il caso dell'omicidio del ragioniere Favre, che era stato costretto a lasciare insoluto.",
+          "url": "/video/2021/03/Rocco-Schiavone-S4E1-Rien-ne-va-plus-eb2b7715-9ac8-4a02-9635-9a98b5a70722.html",
+          "path_id": "/video/2021/03/Rocco-Schiavone-S4E1-Rien-ne-va-plus-eb2b7715-9ac8-4a02-9635-9a98b5a70722.json",
+          "info_url": "/video/info/eb2b7715-9ac8-4a02-9635-9a98b5a70722.json",
+          "parent_path_id": "https://www.raiplay.it/programmi/roccoschiavone.json",
+          "parental_control_level": "BA",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          },
+          "duration_in_minutes": "104 min"
+        }
+      ]
+    },
+    "titoli": {
+      "totale": 3,
+      "cards": [
+        {
+          "id": "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+          "immagine": "/dl/img/2025/02/18/1739856517847_1536x2048_label.jpg",
+          "url": "/programmi/roccoschiavone",
+          "titolo": "Rocco Schiavone",
+          "tipo": "Programma",
+          "path_id": "/programmi/roccoschiavone.json",
+          "info_url": "/programmi/info/77523b38-712f-4020-9cf5-7d3dc68ac659.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          }
+        },
+        {
+          "id": "ContentItem-b979409b-ac3a-4dbd-9ba0-8a300aafd2ef",
+          "immagine": "/dl/img/2025/12/30/1767088424987_1536x2048_logo.jpg",
+          "url": "/programmi/sefossite",
+          "titolo": "Se fossi te",
+          "tipo": "Programma",
+          "path_id": "/programmi/sefossite.json",
+          "info_url": "/programmi/info/b979409b-ac3a-4dbd-9ba0-8a300aafd2ef.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              }
+            }
+          }
+        },
+        {
+          "id": "ContentItem-c6121aea-0aa9-4cc6-916e-56c69d97567c",
+          "immagine": "/dl/img/2024/03/08/1709887070133_1536x2048_logo.jpg",
+          "url": "/programmi/ifichissimi",
+          "titolo": "I fichissimi",
+          "tipo": "Programma",
+          "path_id": "/programmi/ifichissimi.json",
+          "info_url": "/programmi/info/c6121aea-0aa9-4cc6-916e-56c69d97567c.json",
+          "rights_management": {
+            "rights": {
+              "geoprotection": {
+                "europe": true,
+                "italy": true
+              },
+              "offline": {
+                "Smart Tv": true,
+                "Web": true,
+                "Tablet": true,
+                "Smartphone": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

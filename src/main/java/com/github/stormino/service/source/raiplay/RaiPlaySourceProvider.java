@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,19 +39,30 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
 
     @Override
     public List<ContentMetadata> search(String query, ContentTypeFilter filter) {
-        return apiClient.search(query, properties.getSearchPageSize())
-                .map(response -> response.results().stream()
-                        .filter(r -> r.pathId() != null)
-                        .filter(r -> matchesFilter(r, filter))
-                        .map(this::toContentMetadata)
-                        .filter(Objects::nonNull)
-                        .toList())
-                .orElse(List.of());
+        Optional<RaiPlaySearchResponse> response = apiClient.search(query, properties.getSearchPageSize());
+        if (response.isEmpty() || response.get().agg() == null) {
+            return List.of();
+        }
+        RaiPlaySearchResponse.Agg agg = response.get().agg();
+        if (agg.video() == null || agg.video().cards() == null) {
+            return List.of();
+        }
+
+        List<ContentMetadata> results = new ArrayList<>();
+        for (RaiPlaySearchResult card : agg.video().cards()) {
+            if (card.pathId() == null) continue;
+            boolean isEpisode = card.isEpisode();
+            if (filter == ContentTypeFilter.MOVIES && isEpisode) continue;
+            if (filter == ContentTypeFilter.TV && !isEpisode) continue;
+
+            ContentMetadata cm = toContentMetadata(card);
+            if (cm != null) results.add(cm);
+        }
+        return results;
     }
 
     @Override
     public AvailabilityResult checkAvailability(ContentMetadata content, Set<String> languages) {
-        // All content returned from the RaiPlay catalogue is considered available.
         return AvailabilityResult.builder()
                 .available(true)
                 .availableLanguages(SUPPORTED_LANGUAGES)
@@ -70,15 +82,17 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
 
         RaiPlayContentDescriptor descriptor = descriptorOpt.get();
         if (descriptor.contentUrl() == null) {
-            log.warn("Missing content_url in descriptor for pathId={}", meta.pathId());
+            log.warn("Missing video.content_url in descriptor for pathId={}", meta.pathId());
             return Optional.empty();
         }
+        if (descriptor.requiresLogin() && (properties.getSessionCookie() == null || properties.getSessionCookie().isBlank())) {
+            log.warn("Content {} requires login but raiplay.session-cookie is not configured", meta.pathId());
+        }
 
-        String hlsUrl = apiClient.buildHlsUrl(descriptor.contentUrl());
-        String referer = properties.getBaseUrl() + "/" + meta.pathId();
+        String referer = properties.getBaseUrl() + stripJsonSuffix(meta.pathId());
 
         return Optional.of(PlaylistInfo.builder()
-                .url(hlsUrl)
+                .url(Objects.requireNonNull(descriptor.contentUrl()))
                 .language("it")
                 .referer(referer)
                 .verified(false)
@@ -97,49 +111,34 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         return SUPPORTED_LANGUAGES;
     }
 
-    private boolean matchesFilter(RaiPlaySearchResult result, ContentTypeFilter filter) {
-        boolean isFilm = isFilmType(result.type());
-        return switch (filter) {
-            case MOVIES -> isFilm;
-            case TV -> !isFilm;
-            case BOTH -> true;
-        };
-    }
+    private ContentMetadata toContentMetadata(RaiPlaySearchResult card) {
+        boolean isEpisode = card.isEpisode();
+        String pathId = card.pathId().startsWith("/") ? card.pathId() : "/" + card.pathId();
 
-    /**
-     * RaiPlay type names observed: "Film", "Film tv" → movies; everything else → TV.
-     * Adjust once real search fixtures are captured.
-     */
-    private boolean isFilmType(String type) {
-        if (type == null) return true;
-        return type.toLowerCase().contains("film");
-    }
-
-    private ContentMetadata toContentMetadata(RaiPlaySearchResult result) {
         RaiPlayMetadata sourceMeta = new RaiPlayMetadata(
-                result.pathId(),
-                result.uid(),
-                result.programInfo() != null ? result.programInfo().uid() : null,
+                pathId,
+                card.id(),
                 null,
+                isEpisode ? card.stagione() : null,
                 null
         );
 
         ContentMetadata.ContentMetadataBuilder builder = ContentMetadata.builder()
                 .source(MediaSource.RAIPLAY)
                 .sourceMetadata(sourceMeta)
-                .title(result.name())
-                .overview(result.description());
+                .overview(card.sommario());
 
-        if (result.datePublished() != null && result.datePublished().length() >= 4) {
-            try {
-                builder.year(Integer.parseInt(result.datePublished().substring(0, 4)));
-            } catch (NumberFormatException ignored) {}
-        }
-
-        if (!isFilmType(result.type())) {
-            // Mark as TV by setting numberOfSeasons to a non-null sentinel so
-            // SearchResultCard treats it as TV content; real value unknown from search.
+        if (isEpisode) {
+            // For episodes the show name is `programma`; the episode title is `titolo`.
+            builder.title(card.programma() != null ? card.programma() : card.titolo());
+            builder.episodeName(card.titolo());
+            try { builder.season(Integer.parseInt(card.stagione())); } catch (NumberFormatException ignored) {}
+            try { builder.episode(Integer.parseInt(card.episodio())); } catch (NumberFormatException ignored) {}
+            // Mark as TV by setting numberOfSeasons to a non-null sentinel; real value
+            // is unknown from a single search card.
             builder.numberOfSeasons(0);
+        } else {
+            builder.title(card.titolo());
         }
 
         return builder.build();
@@ -151,5 +150,9 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         }
         log.warn("Task {} has no RaiPlayMetadata (source={})", task.getId(), task.getSource());
         return null;
+    }
+
+    private static String stripJsonSuffix(String path) {
+        return path.endsWith(".json") ? path.substring(0, path.length() - 5) : path;
     }
 }

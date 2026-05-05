@@ -4,13 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.stormino.config.RaiPlayProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -18,21 +21,42 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class RaiPlayApiClient {
 
+    private static final MediaType JSON = MediaType.parse("application/json");
+
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final RaiPlayProperties properties;
 
     public Optional<RaiPlaySearchResponse> search(String query, int size) {
-        HttpUrl url = HttpUrl.parse(properties.getSearchUrl()).newBuilder()
-                .addQueryParameter("q", query)
-                .addQueryParameter("pl", "raiplay")
-                .addQueryParameter("size", String.valueOf(size))
-                .build();
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("param", query);
+        params.put("from", 0);
+        params.put("sort", "relevance");
+        params.put("size", size);
+        params.put("additionalSize", 27);
+        params.put("onlyVideoQuery", false);
+        params.put("onlyProgramsQuery", false);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("templateIn", properties.getSearchTemplateIn());
+        body.put("templateOut", properties.getSearchTemplateOut());
+        body.put("params", params);
+
+        String json;
+        try {
+            json = objectMapper.writeValueAsString(body);
+        } catch (IOException e) {
+            log.error("Failed to serialize RaiPlay search body: {}", e.getMessage());
+            return Optional.empty();
+        }
 
         Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Accept", "application/json")
-                .addHeader("Referer", properties.getBaseUrl())
+                .url(properties.getSearchUrl())
+                .post(RequestBody.create(json, JSON))
+                .addHeader("Accept", "*/*")
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Origin", properties.getBaseUrl())
+                .addHeader("Referer", properties.getBaseUrl() + "/")
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
@@ -47,13 +71,18 @@ public class RaiPlayApiClient {
         }
     }
 
+    /**
+     * Fetch the content descriptor JSON for a given path.
+     * @param pathId leading-slash path like "/video/2018/12/COSMONAUTA-...json"
+     */
     public Optional<RaiPlayContentDescriptor> getContentDescriptor(String pathId) {
-        String url = properties.getBaseUrl() + "/" + pathId + ".json";
+        String normalized = pathId.startsWith("/") ? pathId : "/" + pathId;
+        String url = properties.getBaseUrl() + normalized;
 
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Accept", "application/json")
-                .addHeader("Referer", properties.getBaseUrl() + "/" + pathId)
+                .addHeader("Referer", properties.getBaseUrl() + stripJsonSuffix(normalized))
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
@@ -68,15 +97,7 @@ public class RaiPlayApiClient {
         }
     }
 
-    /**
-     * Ensures the content_url from the descriptor has output=64 for HLS delivery.
-     * RaiPlay's relinker URL typically accepts this parameter to return a master m3u8.
-     */
-    public String buildHlsUrl(String contentUrl) {
-        if (contentUrl == null) return null;
-        if (contentUrl.contains("output=")) {
-            return contentUrl.replaceAll("output=\\d+", "output=64");
-        }
-        return contentUrl + (contentUrl.contains("?") ? "&" : "?") + "output=64";
+    private static String stripJsonSuffix(String path) {
+        return path.endsWith(".json") ? path.substring(0, path.length() - 5) : path;
     }
 }
