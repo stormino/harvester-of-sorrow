@@ -6,6 +6,7 @@ import com.github.stormino.model.ContentTypeFilter;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.PlaylistInfo;
+import com.github.stormino.model.ResolvedMedia;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +40,19 @@ public interface MediaSourceProvider {
      * to. Returned {@link PlaylistInfo} must include {@code referer}.
      */
     Optional<PlaylistInfo> getPlaylist(DownloadTask task, String language);
+
+    /**
+     * Fetch and parse the master HLS playlist for a task in one shot, so the
+     * orchestrator can build sub-tasks from the actual renditions discovered in
+     * the playlist rather than iterating over requested languages.
+     *
+     * <p>Providers that do not yet support this optimisation may return
+     * {@link Optional#empty()} — the orchestrator will fall back to
+     * language-driven initialisation in that case.
+     */
+    default Optional<ResolvedMedia> resolveMaster(DownloadTask task, String primaryLanguage) {
+        return Optional.empty();
+    }
 
     /**
      * Languages this source natively serves. The download dialog uses this

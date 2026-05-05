@@ -52,6 +52,12 @@ public class HlsParserService {
         private String language;
         private String name;
         private String groupId;
+        private String characteristics;
+
+        public boolean isAudioDescription() {
+            return characteristics != null
+                    && characteristics.contains("public.accessibility.describes-video");
+        }
     }
 
     @Data
@@ -162,19 +168,26 @@ public class HlsParserService {
         // Parse audio tracks
         Pattern audioUriPattern = Pattern.compile("URI=\"([^\"]+)\"");
         Pattern audioLangPattern = Pattern.compile("LANGUAGE=\"([^\"]+)\"");
+        Pattern audioNamePattern = Pattern.compile("(?:^|,)NAME=\"([^\"]+)\"");
+        Pattern audioCharPattern = Pattern.compile("CHARACTERISTICS=\"([^\"]+)\"");
         for (String line : lines) {
             if (line.contains("#EXT-X-MEDIA:TYPE=AUDIO")) {
                 Matcher uriMatcher = audioUriPattern.matcher(line);
                 Matcher langMatcher = audioLangPattern.matcher(line);
+                Matcher nameMatcher = audioNamePattern.matcher(line);
+                Matcher charMatcher = audioCharPattern.matcher(line);
 
                 if (uriMatcher.find() && langMatcher.find()) {
                     String url = resolveUrl(baseUrl, uriMatcher.group(1));
                     String language = langMatcher.group(1);
+                    String name = nameMatcher.find() ? nameMatcher.group(1) : "Audio - " + language.toUpperCase();
+                    String characteristics = charMatcher.find() ? charMatcher.group(1) : null;
 
                     audioTracks.add(AudioTrack.builder()
                             .url(url)
                             .language(language)
-                            .name("Audio - " + language.toUpperCase())
+                            .name(name)
+                            .characteristics(characteristics)
                             .build());
                 }
             }
@@ -206,19 +219,22 @@ public class HlsParserService {
         // Parse subtitle tracks
         Pattern subtitleUriPattern = Pattern.compile("URI=\"([^\"]+)\"");
         Pattern subtitleLangPattern = Pattern.compile("LANGUAGE=\"([^\"]+)\"");
+        Pattern subtitleNamePattern = Pattern.compile("(?:^|,)NAME=\"([^\"]+)\"");
         for (String line : lines) {
             if (line.contains("#EXT-X-MEDIA:TYPE=SUBTITLES")) {
                 Matcher uriMatcher = subtitleUriPattern.matcher(line);
                 Matcher langMatcher = subtitleLangPattern.matcher(line);
+                Matcher nameMatcher = subtitleNamePattern.matcher(line);
 
                 if (uriMatcher.find() && langMatcher.find()) {
                     String url = resolveUrl(baseUrl, uriMatcher.group(1));
                     String language = langMatcher.group(1);
+                    String name = nameMatcher.find() ? nameMatcher.group(1) : "Subtitle - " + language.toUpperCase();
 
                     subtitleTracks.add(SubtitleTrack.builder()
                             .url(url)
                             .language(language)
-                            .name("Subtitle - " + language.toUpperCase())
+                            .name(name)
                             .build());
                 }
             }

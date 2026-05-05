@@ -6,6 +6,8 @@ import com.github.stormino.model.ContentTypeFilter;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.PlaylistInfo;
+import com.github.stormino.model.ResolvedMedia;
+import com.github.stormino.service.HlsParserService;
 import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.VixSrcExtractorService;
@@ -36,6 +38,7 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
     private final TmdbMetadataService tmdbService;
     private final VixSrcAvailabilityService availabilityService;
     private final VixSrcExtractorService extractorService;
+    private final HlsParserService hlsParser;
 
     @Override
     public MediaSource source() {
@@ -81,6 +84,17 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
                     task.getTmdbId(), task.getSeason(), task.getEpisode(), language);
         }
         return extractorService.getMoviePlaylist(task.getTmdbId(), language);
+    }
+
+    @Override
+    public Optional<ResolvedMedia> resolveMaster(DownloadTask task, String primaryLanguage) {
+        Optional<PlaylistInfo> playlistInfoOpt = getPlaylist(task, primaryLanguage);
+        if (playlistInfoOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        PlaylistInfo playlistInfo = playlistInfoOpt.get();
+        return hlsParser.parsePlaylist(playlistInfo.getUrl(), playlistInfo.getReferer())
+                .map(parsed -> new ResolvedMedia(playlistInfo, parsed));
     }
 
     @Override
