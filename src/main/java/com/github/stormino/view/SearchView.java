@@ -215,7 +215,7 @@ public class SearchView extends VerticalLayout {
 
         CompletableFuture.supplyAsync(() -> {
             return downloadQueueService.addDownload(
-                    content.getTmdbId(),
+                    content,
                     type,
                     season,
                     episode,

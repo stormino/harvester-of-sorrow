@@ -111,6 +111,58 @@ public class DownloadQueueService {
     }
 
     /**
+     * Add a download task using pre-populated {@link ContentMetadata}. Use this for
+     * sources that are not TMDB-keyed (e.g. RaiPlay). For VIXSRC content with a
+     * known tmdbId the call is forwarded to the tmdbId-based path so that batch
+     * season/show downloads continue to work.
+     */
+    public DownloadTask addDownload(ContentMetadata content, DownloadTask.ContentType contentType,
+                                   Integer season, Integer episode,
+                                   List<String> languages, String quality,
+                                   boolean includeAudioDescription) {
+        if (content.getSource() == MediaSource.VIXSRC && content.getTmdbId() != null) {
+            return addDownload(content.getTmdbId(), contentType, season, episode,
+                    languages, quality, includeAudioDescription);
+        }
+        return addSourceDownload(content, contentType, season, episode,
+                languages, quality, includeAudioDescription);
+    }
+
+    /**
+     * Create a task directly from {@link ContentMetadata} without TMDB lookups.
+     * Used for sources like RaiPlay where metadata is already resolved at search time.
+     */
+    private DownloadTask addSourceDownload(ContentMetadata content, DownloadTask.ContentType contentType,
+                                           Integer season, Integer episode,
+                                           List<String> languages, String quality,
+                                           boolean includeAudioDescription) {
+        DownloadTask task = DownloadTask.builder()
+                .source(content.getSource() != null ? content.getSource() : MediaSource.VIXSRC)
+                .sourceMetadata(content.getSourceMetadata())
+                .contentType(contentType)
+                .tmdbId(content.getTmdbId())
+                .season(season)
+                .episode(episode)
+                .title(content.getTitle())
+                .episodeName(content.getEpisodeName())
+                .year(content.getYear())
+                .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
+                .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
+                .includeAudioDescription(includeAudioDescription)
+                .build();
+
+        task.setOutputPath(generateOutputPath(task, content));
+
+        tasks.put(task.getId(), task);
+        queue.offer(task);
+        persistenceService.saveTask(task);
+
+        log.info("Added download task: {} [{}]", task.getDisplayName(), task.getId());
+        processQueue();
+        return task;
+    }
+
+    /**
      * Add a new download task with explicit audio-description preference.
      */
     public DownloadTask addDownload(int tmdbId, DownloadTask.ContentType contentType,
