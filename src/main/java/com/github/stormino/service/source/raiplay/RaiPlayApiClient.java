@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -19,6 +20,8 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnExpression(
+        "!'${raiplay.username:}'.isEmpty() && !'${raiplay.password:}'.isEmpty()")
 public class RaiPlayApiClient {
 
     private static final MediaType JSON = MediaType.parse("application/json");

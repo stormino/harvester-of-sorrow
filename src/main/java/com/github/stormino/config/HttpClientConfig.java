@@ -12,6 +12,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,16 +26,23 @@ import java.util.concurrent.TimeUnit;
 public class HttpClientConfig {
 
     private final VixSrcProperties properties;
-    private final RaiPlayAuthService raiPlayAuthService;
+    private final ObjectProvider<RaiPlayAuthService> raiPlayAuthService;
 
     @Bean
     public OkHttpClient okHttpClient() {
-        return new OkHttpClient.Builder()
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
                 .readTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
                 .writeTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
-                .addInterceptor(new CloudflareInterceptor())
-                .addInterceptor(new RaiPlayCookieInterceptor(raiPlayAuthService))
+                .addInterceptor(new CloudflareInterceptor());
+
+        // Only register the RaiPlay cookie interceptor when auto-login is enabled.
+        RaiPlayAuthService auth = raiPlayAuthService.getIfAvailable();
+        if (auth != null) {
+            builder.addInterceptor(new RaiPlayCookieInterceptor(auth));
+        }
+
+        return builder
                 .addInterceptor(new RetryInterceptor(Integer.MAX_VALUE))
                 .cookieJar(new InMemoryCookieJar())
                 .followRedirects(true)

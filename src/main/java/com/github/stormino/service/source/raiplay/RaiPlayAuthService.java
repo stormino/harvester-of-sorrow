@@ -13,6 +13,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -37,12 +38,13 @@ import java.util.Map;
  * (the application's shared client depends on {@link RaiPlayCookieInterceptor}, which reads
  * the cookie produced here).
  *
- * <p>Falls back to {@code raiplay.session-cookie} if credentials are not configured or if
- * the auto-login fails.
+ * <p>Only instantiated when {@code raiplay.username} and {@code raiplay.password} are both set.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@ConditionalOnExpression(
+        "!'${raiplay.username:}'.isEmpty() && !'${raiplay.password:}'.isEmpty()")
 public class RaiPlayAuthService {
 
     private static final String GIGYA_LOGIN_URL = "https://accounts.eu1.gigya.com/accounts.login";
@@ -67,46 +69,24 @@ public class RaiPlayAuthService {
                 .followRedirects(true)
                 .build();
 
-        if (hasCredentials()) {
-            log.info("RaiPlay credentials configured – attempting auto-login for user {}", properties.getUsername());
-            refresh();
-        }
+        log.info("RaiPlay auto-login enabled for user {}", properties.getUsername());
+        refresh();
     }
 
-    /**
-     * Returns the best available cookie string:
-     * <ol>
-     *   <li>Auto-obtained cookie (if credentials are configured and login succeeded)</li>
-     *   <li>Manually pasted {@code raiplay.session-cookie} from application config</li>
-     *   <li>{@code null} if neither is available</li>
-     * </ol>
-     */
+    /** Returns the active auto-obtained cookie, or {@code null} if login failed. */
     public String getCookie() {
         if (activeCookie != null && Instant.now().isBefore(cookieExpiry.minus(1, ChronoUnit.HOURS))) {
             return activeCookie;
         }
-        if (hasCredentials()) {
-            refresh();
-            if (activeCookie != null) {
-                return activeCookie;
-            }
-        }
-        String manual = properties.getSessionCookie();
-        return (manual != null && !manual.isBlank()) ? manual : null;
+        refresh();
+        return activeCookie;
     }
 
     /** Proactively refresh 1 hour before expiry (checked every 23 h). */
     @Scheduled(fixedDelayString = "PT23H")
     public void scheduledRefresh() {
-        if (hasCredentials()) {
-            log.debug("RaiPlay scheduled session refresh");
-            refresh();
-        }
-    }
-
-    private boolean hasCredentials() {
-        return properties.getUsername() != null && !properties.getUsername().isBlank()
-                && properties.getPassword() != null && !properties.getPassword().isBlank();
+        log.debug("RaiPlay scheduled session refresh");
+        refresh();
     }
 
     private synchronized void refresh() {
@@ -197,11 +177,6 @@ public class RaiPlayAuthService {
     /**
      * POSTs the Gigya JWT to RaiPlay's social-login endpoint and collects the
      * resulting session cookies as a single {@code Cookie:} header value.
-     *
-     * <p>The exchange URL is configurable via {@code raiplay.gigya-exchange-url}.
-     * If the default doesn't work, open DevTools → Network during a browser login,
-     * filter by {@code raiplay.it}, and find the POST that carries
-     * {@code "idToken"} in its body.
      */
     private String exchangeForRaiPlayCookie(String jwt) throws IOException {
         String exchangeUrl = properties.getGigyaExchangeUrl();

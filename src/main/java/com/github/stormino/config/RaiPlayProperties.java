@@ -23,22 +23,8 @@ public class RaiPlayProperties {
 
     private int searchPageSize = 48;
 
-    private boolean enabled = true;
-
     // -------------------------------------------------------------------------
-    // Manual session cookie (alternative to username/password)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Pre-authenticated browser cookie (full {@code Cookie:} header value)
-     * captured after logging into raiplay.it. Used as a fallback when no
-     * username/password are configured, or when auto-login fails.
-     * Empty string disables injection.
-     */
-    private String sessionCookie = "";
-
-    // -------------------------------------------------------------------------
-    // Auto-login credentials (preferred over manual cookie)
+    // Auto-login credentials – RaiPlay is fully disabled when either is blank.
     // -------------------------------------------------------------------------
 
     /** RaiPlay account e-mail. Set via {@code RAIPLAY_USERNAME} env var. */

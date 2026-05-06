@@ -13,6 +13,7 @@ import com.github.stormino.service.HlsParserService;
 import com.github.stormino.service.source.MediaSourceProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -24,6 +25,8 @@ import java.util.Set;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnExpression(
+        "!'${raiplay.username:}'.isEmpty() && !'${raiplay.password:}'.isEmpty()")
 public class RaiPlaySourceProvider implements MediaSourceProvider {
 
     private static final Set<String> SUPPORTED_LANGUAGES = Set.of("it");
@@ -84,9 +87,6 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         if (descriptor.contentUrl() == null) {
             log.warn("Missing video.content_url in descriptor for pathId={}", meta.pathId());
             return Optional.empty();
-        }
-        if (descriptor.requiresLogin() && (properties.getSessionCookie() == null || properties.getSessionCookie().isBlank())) {
-            log.warn("Content {} requires login but raiplay.session-cookie is not configured", meta.pathId());
         }
 
         String referer = properties.getBaseUrl() + stripJsonSuffix(meta.pathId());
