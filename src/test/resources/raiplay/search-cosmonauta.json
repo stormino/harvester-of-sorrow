@@ -1,0 +1,186 @@
+{
+    "agg": {
+        "totale": 8,
+        "video": {
+            "totale": 6,
+            "cards": [
+                {
+                    "id": "ContentItem-31770ff1-0025-4fd2-8512-61764e4eee1c",
+                    "immagine": "/dl/img/2025/04/24/1745499845024_puntata9ste.png",
+                    "stagione": "2025",
+                    "durata": "00:00:55",
+                    "programma": "Riserva Indiana",
+                    "titolo": "Anteprima Riserva Indiana - Stefano Massini racconta dei cosmonauti perduti ",
+                    "aria_label": "Stagione 2025 - Anteprima Riserva Indiana - Stefano Massini racconta dei cosmonauti perduti   - Riserva Indiana",
+                    "sommario": "",
+                    "url": "/video/2025/04/Anteprima-Riserva-Indiana---Stefano-Massini-racconta-dei-cosmonauti-perduti---09052025-31770ff1-0025-4fd2-8512-61764e4eee1c.html",
+                    "path_id": "/video/2025/04/Anteprima-Riserva-Indiana---Stefano-Massini-racconta-dei-cosmonauti-perduti---09052025-31770ff1-0025-4fd2-8512-61764e4eee1c.json",
+                    "info_url": "/video/info/31770ff1-0025-4fd2-8512-61764e4eee1c.json",
+                    "parent_path_id": "https://www.raiplay.it/programmi/riservaindiana.json",
+                    "rights_management": {
+                        "rights": {}
+                    },
+                    "duration_in_minutes": "55 sec"
+                },
+                {
+                    "id": "ContentItem-0a03f07e-8e11-4b70-a925-43f8ff1319fe",
+                    "immagine": "/dl/img/2024/11/24823522.png",
+                    "stagione": "2024",
+                    "durata": "00:01:39",
+                    "programma": "Sanremo Giovani",
+                    "titolo": "Cosmonauti borghesi: la presentazione - 26/11/2024",
+                    "aria_label": "Stagione 2024 - Cosmonauti borghesi: la presentazione - 26/11/2024  - Sanremo Giovani",
+                    "sommario": "La presentazione dei Cosmonauti borghesi a Sanremo Giovani 2024 ",
+                    "url": "/video/2024/11/Sanremo-Giovani-2024--Cosmonauti-borghesi-la-presentazione---26112024-0a03f07e-8e11-4b70-a925-43f8ff1319fe.html",
+                    "path_id": "/video/2024/11/Sanremo-Giovani-2024--Cosmonauti-borghesi-la-presentazione---26112024-0a03f07e-8e11-4b70-a925-43f8ff1319fe.json",
+                    "info_url": "/video/info/0a03f07e-8e11-4b70-a925-43f8ff1319fe.json",
+                    "parent_path_id": "https://www.raiplay.it/programmi/sanremogiovani.json",
+                    "rights_management": {
+                        "rights": {
+                            "offline": {
+                                "Smart Tv": true,
+                                "Web": true,
+                                "Tablet": true,
+                                "Smartphone": true
+                            }
+                        }
+                    },
+                    "duration_in_minutes": "1 min"
+                },
+                {
+                    "id": "ContentItem-7ae9d361-8a9e-4824-a13f-82c997d1f559",
+                    "immagine": "/dl/img/2024/11/24823541.png",
+                    "stagione": "2024",
+                    "durata": "00:03:12",
+                    "programma": "Sanremo Giovani",
+                    "titolo": "Cosmonauti borghesi cantano \"Aurora tropicale\" - 26/11/2024",
+                    "aria_label": "Stagione 2024 - Cosmonauti borghesi cantano \"Aurora tropicale\" - 26/11/2024  - Sanremo Giovani",
+                    "sommario": "Cosmonauti borghesi presentano \"Aurora tropicale\", brano in gara per Sanremo Giovani 2024. ",
+                    "url": "/video/2024/11/Sanremo-Giovani-2024---Cosmonauti-borghesi-cantano-Aurora-tropicale---26112024-7ae9d361-8a9e-4824-a13f-82c997d1f559.html",
+                    "path_id": "/video/2024/11/Sanremo-Giovani-2024---Cosmonauti-borghesi-cantano-Aurora-tropicale---26112024-7ae9d361-8a9e-4824-a13f-82c997d1f559.json",
+                    "info_url": "/video/info/7ae9d361-8a9e-4824-a13f-82c997d1f559.json",
+                    "parent_path_id": "https://www.raiplay.it/programmi/sanremogiovani.json",
+                    "rights_management": {
+                        "rights": {
+                            "offline": {
+                                "Smart Tv": true,
+                                "Web": true,
+                                "Tablet": true,
+                                "Smartphone": true
+                            }
+                        }
+                    },
+                    "duration_in_minutes": "3 min"
+                },
+                {
+                    "id": "ContentItem-13a73911-a94e-4401-9c97-fdeef0654aa4",
+                    "immagine": "/dl/img/2024/10/30/1730298553759_18.jpg",
+                    "stagione": "2024",
+                    "durata": "00:03:03",
+                    "programma": "Sanremo Giovani",
+                    "titolo": "Cosmonauti Borghesi - Aurora Tropicale",
+                    "aria_label": "Stagione 2024 - Cosmonauti Borghesi - Aurora Tropicale  - Sanremo Giovani",
+                    "sommario": "Cosmonauti Borghesi presentano \"Aurora tropicale\"",
+                    "url": "/video/2024/10/Sanremo-Giovani-2024---Cosmonauti-Borghesi---Aurora-tropicale-13a73911-a94e-4401-9c97-fdeef0654aa4.html",
+                    "path_id": "/video/2024/10/Sanremo-Giovani-2024---Cosmonauti-Borghesi---Aurora-tropicale-13a73911-a94e-4401-9c97-fdeef0654aa4.json",
+                    "info_url": "/video/info/13a73911-a94e-4401-9c97-fdeef0654aa4.json",
+                    "parent_path_id": "https://www.raiplay.it/programmi/sanremogiovani.json",
+                    "rights_management": {
+                        "rights": {
+                            "offline": {
+                                "Smart Tv": true,
+                                "Web": true,
+                                "Tablet": true,
+                                "Smartphone": true
+                            }
+                        }
+                    },
+                    "duration_in_minutes": "3 min"
+                },
+                {
+                    "id": "ContentItem-c86cdd0c-6128-4b73-9250-81c882084c44",
+                    "immagine": "/dl/img/2024/11/24823592.png",
+                    "stagione": "2024",
+                    "durata": "00:04:56",
+                    "programma": "Sanremo Giovani",
+                    "titolo": "Cosmonauti borghesi vs Bosnia: il verdetto finale - 26/11/2024",
+                    "aria_label": "Stagione 2024 - Cosmonauti borghesi vs Bosnia: il verdetto finale - 26/11/2024  - Sanremo Giovani",
+                    "sommario": "Il verdetto finale della sfida tra Cosmonauti borghesi e Bosnia. ",
+                    "url": "/video/2024/11/Sanremo-Giovani-2024---Cosmonauti-borghesi-vs-Bosnia-il-verdetto-finale---26112024-c86cdd0c-6128-4b73-9250-81c882084c44.html",
+                    "path_id": "/video/2024/11/Sanremo-Giovani-2024---Cosmonauti-borghesi-vs-Bosnia-il-verdetto-finale---26112024-c86cdd0c-6128-4b73-9250-81c882084c44.json",
+                    "info_url": "/video/info/c86cdd0c-6128-4b73-9250-81c882084c44.json",
+                    "parent_path_id": "https://www.raiplay.it/programmi/sanremogiovani.json",
+                    "rights_management": {
+                        "rights": {
+                            "offline": {
+                                "Smart Tv": true,
+                                "Web": true,
+                                "Tablet": true,
+                                "Smartphone": true
+                            }
+                        }
+                    },
+                    "duration_in_minutes": "4 min"
+                },
+                {
+                    "id": "ContentItem-a1e205f0-38bd-4703-9913-c5776162883c",
+                    "immagine": "/dl/img/2019/10/11108796.png",
+                    "stagione": "2019/20",
+                    "durata": "00:11:05",
+                    "programma": "Unomattina",
+                    "titolo": "Walter Villadei: una vita da cosmonauta - 03/10/2019",
+                    "aria_label": "Stagione 2019/20 - Walter Villadei: una vita da cosmonauta - 03/10/2019  - Unomattina",
+                    "sommario": "In studio il Ten. Col. Walter Villadei – Aeronautica Militare. ",
+                    "url": "/video/2019/10/Walter-Villadei-una-vita-da-cosmonauta---03102019-a1e205f0-38bd-4703-9913-c5776162883c.html",
+                    "path_id": "/video/2019/10/Walter-Villadei-una-vita-da-cosmonauta---03102019-a1e205f0-38bd-4703-9913-c5776162883c.json",
+                    "info_url": "/video/info/a1e205f0-38bd-4703-9913-c5776162883c.json",
+                    "parent_path_id": "https://www.raiplay.it/programmi/unomattina.json",
+                    "rights_management": {
+                        "rights": {}
+                    },
+                    "duration_in_minutes": "11 min"
+                }
+            ]
+        },
+        "titoli": {
+            "totale": 2,
+            "cards": [
+                {
+                    "id": "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb",
+                    "immagine": "/dl/img/2020/05/21/1590076283981_1536x2048_logo.jpg",
+                    "url": "/programmi/cosmonauta",
+                    "titolo": "Cosmonauta",
+                    "tipo": "Programma",
+                    "path_id": "/programmi/cosmonauta.json",
+                    "info_url": "/programmi/info/82cd1a16-ac45-44f1-aea6-d925d2c034cb.json",
+                    "rights_management": {
+                        "rights": {
+                            "geoprotection": {
+                                "europe": true,
+                                "italy": true
+                            },
+                            "offline": {
+                                "Smart Tv": true,
+                                "Web": true,
+                                "Tablet": true,
+                                "Smartphone": true
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "ContentItem-30a3f72f-6cf2-4685-a93d-c730845759f1",
+                    "immagine": "/dl/img/2020/02/25/1582643186626_MAGNANI_1536x2048logo.jpg",
+                    "url": "/programmi/annamagnanidallalunaconamore",
+                    "titolo": "Anna Magnani, dalla luna con amore",
+                    "tipo": "Programma",
+                    "path_id": "/programmi/annamagnanidallalunaconamore.json",
+                    "info_url": "/programmi/info/30a3f72f-6cf2-4685-a93d-c730845759f1.json",
+                    "rights_management": {
+                        "rights": {}
+                    }
+                }
+            ]
+        }
+    }
+}
