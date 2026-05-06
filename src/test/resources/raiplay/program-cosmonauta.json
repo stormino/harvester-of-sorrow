@@ -1,0 +1,261 @@
+{
+  "name": "Cosmonauta",
+  "id": "Page-3f1f280c-11c3-4529-9b2f-e99e2774bfbc",
+  "path_id": "/programmi/cosmonauta.json",
+  "first_item_path": "/video/2018/12/COSMONAUTA-f5cbe4fd-7eb2-490f-af5b-ff0cd2009973.json",
+  "first_item_duration": "01:23:20",
+  "first_item_play_label": "",
+  "related_contents": true,
+  "blocks": [
+    {
+      "name": "Cosmonauta",
+      "id": "PublishingBlock-66faf943-6102-4368-88eb-385bc36f2d74",
+      "type": "RaiPlay Multimedia Block",
+      "sets": [
+        {
+          "name": "Cosmonauta",
+          "id": "ContentSet-f890b1c0-6aa5-4b78-8b93-56163edaa788",
+          "type": "RaiPlay Multimedia Set",
+          "episode_size": {
+            "label": "1 video",
+            "number": 1
+          },
+          "path_id": "/programmi/cosmonauta/ContentSet-f890b1c0-6aa5-4b78-8b93-56163edaa788.json"
+        }
+      ]
+    }
+  ],
+  "additional_info": {
+    "version": "40",
+    "last_mod": 1777878221692
+  },
+  "program_info": {
+    "id": "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb",
+    "name": "Cosmonauta",
+    "type": "RaiPlay Programma Item",
+    "channel": "Rai 3",
+    "editor": "Rai Cinema",
+    "social": {
+      "sms": "",
+      "phone_number": "",
+      "whatsapp": "",
+      "email": ""
+    },
+    "layout": "single",
+    "onair_date": "",
+    "subtitle": "",
+    "website": "",
+    "year": "2009",
+    "direction": "Susanna Nicchiarelli",
+    "production": "",
+    "country": "Italia",
+    "actors": "Claudia Pandolfi, Sergio Rubini, Miriana Raschillà, Pietro Del Giudice, Michelangelo Ciminale",
+    "presenter": "",
+    "seasons_number": "",
+    "rating": "",
+    "description": "Arturo e Luciana sono due fratelli che crescono con gli ideali comunisti nell'Italia degli anni '60, lui vuole andare nello spazio ma è epilettico, lei è piuttosto sveglia con i ragazzi.",
+    "vanity": "Mentre i sovietici mandano la cagnetta Laika nello spazio Luciana è una giovane comunista nell'Italia degli anni '60",
+    "label": "Un'adolescenza militante",
+    "weblink": "/programmi/cosmonauta",
+    "info_url": "/programmi/info/82cd1a16-ac45-44f1-aea6-d925d2c034cb.json",
+    "path_id": "/programmi/cosmonauta.json",
+    "source": "program_cosmonauta",
+    "typology": "Film",
+    "typologies": [
+      {
+        "nome": "Film",
+        "name": "Film",
+        "id": "Category-ecd33d4e-829f-43a4-91ba-3dd9c9df7f6f"
+      }
+    ],
+    "genres": [
+      {
+        "principal": true,
+        "name": "Commedia",
+        "nome": "Commedia",
+        "id": "Category-PVFtTcZP-FcaRuSVO-sdGG-ufNM-QQrQ-JbaXOBozGwXk"
+      }
+    ],
+    "subgenres": [
+      {
+        "principal": true,
+        "name": "politico",
+        "nome": "politico",
+        "id": "Category-QeQdQbIi-YvRBNmJF-dSxG-nNYB-VJYj-yYRbtbQjdjGw"
+      },
+      {
+        "nome": "psicologico",
+        "name": "psicologico",
+        "id": "Category-joRZAwMs-xIHeCSXu-RTXD-piCW-rgmj-ovYOgcGrBqcr"
+      }
+    ],
+    "related": "Category:Film:Category-ecd33d4e-829f-43a4-91ba-3dd9c9df7f6f^Category:Commedia:Category-PVFtTcZP-FcaRuSVO-sdGG-ufNM-QQrQ-JbaXOBozGwXk^Category:politico:Category-QeQdQbIi-YvRBNmJF-dSxG-nNYB-VJYj-yYRbtbQjdjGw^Category:psicologico:Category-joRZAwMs-xIHeCSXu-RTXD-piCW-rgmj-ovYOgcGrBqcr",
+    "az": true,
+    "play_service_inverted": false,
+    "details": [
+      {
+        "type": "label",
+        "key": "year",
+        "value": "2009"
+      },
+      {
+        "type": "label",
+        "key": "country",
+        "value": "Italia"
+      },
+      {
+        "type": "label",
+        "key": "genre",
+        "value": "Commedia"
+      },
+      {
+        "type": "label",
+        "key": "duration_in_minutes",
+        "value": "83 min"
+      },
+      {
+        "type": "placeholder",
+        "key": "rating"
+      },
+      {
+        "type": "placeholder",
+        "key": "availability"
+      }
+    ],
+    "actions": [
+      {
+        "action": "play",
+        "label": "RIPRODUCI",
+        "aria_label": "Riproduci Cosmonauta",
+        "path_id": "/programmi/cosmonauta.json",
+        "sub_type": "RaiPlay Programma Item",
+        "label_keepwatching": "RIPRENDI",
+        "aria_label_keepwatching": "Riprendi Cosmonauta"
+      },
+      {
+        "action": "goto",
+        "label": "Info",
+        "aria_label": "Maggiori informazioni su Cosmonauta",
+        "path_id": "/programmi/cosmonauta.json",
+        "sub_type": "RaiPlay Programma Item",
+        "weblink": "/programmi/cosmonauta",
+        "style": "icon"
+      },
+      {
+        "action": "favourites",
+        "label": "Salva",
+        "aria_label": "Salva Cosmonauta",
+        "path_id": "/programmi/cosmonauta.json",
+        "id": "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb",
+        "label_active": "Salvato"
+      },
+      {
+        "action": "feedback",
+        "label": "Valuta",
+        "aria_label": "Valuta Cosmonauta",
+        "id": "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb"
+      },
+      {
+        "action": "share",
+        "label": "Condividi",
+        "aria_label": "Condividi Cosmonauta",
+        "weblink": "/programmi/cosmonauta"
+      }
+    ],
+    "images": {
+      "landscape": "/dl/img/2020/05/21/1590076678093_2048x1152.jpg",
+      "portrait": "/dl/img/2018/12/18/1545131453841_1152x2048.JPG",
+      "square": "/dl/img/2020/05/21/1590076699098_2048x2048.jpg",
+      "landscape43": "/dl/img/2020/05/21/1590076683841_2048x1536.jpg",
+      "portrait43": "/dl/img/2020/05/21/1590076691329_1536x2048.jpg",
+      "landscape_logo": "/dl/img/2020/05/21/1590076283981_2048x1152_logo.jpg",
+      "portrait_logo": "/dl/img/2020/05/21/1590076283981_1536x2048_logo.jpg"
+    },
+    "program_category": {
+      "id": "Category-551c6c41-dee5-4aee-b6fe-90384f4a34cd",
+      "name": "Cosmonauta"
+    },
+    "rights_management": {
+      "rights": {
+        "offline": {
+          "Web": true,
+          "Smartphone": true,
+          "Smart Tv": true,
+          "Tablet": true
+        },
+        "geoprotection": {
+          "italy": true,
+          "europe": true
+        }
+      }
+    },
+    "fmt": "",
+    "keyw": "",
+    "banner300x250": "",
+    "bannerUnicoLoc": "",
+    "dfp": {
+      "escaped_name": "Cosmonauta",
+      "label": "filmx",
+      "escaped_genres": [
+        {
+          "id": "Category-PVFtTcZP-FcaRuSVO-sdGG-ufNM-QQrQ-JbaXOBozGwXk",
+          "name": "Commedia"
+        }
+      ],
+      "escaped_typology": [
+        {
+          "id": "Category-ecd33d4e-829f-43a4-91ba-3dd9c9df7f6f",
+          "name": "Film"
+        }
+      ]
+    },
+    "adv": true,
+    "noroll": false,
+    "nofloorad": false
+  },
+  "track_info": {
+    "id": "Page-3f1f280c-11c3-4529-9b2f-e99e2774bfbc",
+    "domain": "raiplay",
+    "platform": "[platform]",
+    "media_type": "",
+    "page_type": "info programma",
+    "editor": "rai cinema",
+    "year": "2017",
+    "edit_year": "",
+    "section": "info programma",
+    "sub_section": "",
+    "content": "scheda programma",
+    "title": "",
+    "channel": "rai 3",
+    "channel_auditel": "",
+    "date": "2017-08-24",
+    "publication_date": "",
+    "emission_date": "",
+    "update_date": "",
+    "typology": "film",
+    "genres": [],
+    "sub_genres": [],
+    "program_title": "cosmonauta",
+    "program_typology": "film",
+    "program_genres": [
+      "commedia"
+    ],
+    "program_sub_genres": [
+      "politico",
+      "psicologico"
+    ],
+    "edition": "",
+    "season": "",
+    "episode_number": "",
+    "episode_title": "",
+    "form": "",
+    "listaDateMo": [],
+    "page_url": "/programmi/cosmonauta",
+    "nodmp": false,
+    "dfp": {
+
+    },
+    "origin": "",
+    "target": ""
+  }
+}
