@@ -45,6 +45,7 @@ public class VixSrcAvailabilityService {
     private final ObjectMapper objectMapper;
 
     private final ConcurrentHashMap<CacheKey, CachedList> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<CacheKey, Object>     fetchLocks = new ConcurrentHashMap<>();
 
     public VixSrcAvailabilityService(OkHttpClient httpClient,
                                      VixSrcProperties properties,
@@ -79,14 +80,26 @@ public class VixSrcAvailabilityService {
     private Set<Integer> getOrFetch(String type, String language) {
         CacheKey key = new CacheKey(type, language);
         CachedList cached = cache.get(key);
-        if (cached != null && Duration.between(cached.fetchedAt(), Instant.now()).compareTo(CACHE_TTL) < 0) {
+        if (cached != null && !isExpired(cached)) {
             return cached.tmdbIds();
         }
-        Set<Integer> fresh = fetch(type, language);
-        if (!fresh.isEmpty()) {
-            cache.put(key, new CachedList(fresh, Instant.now()));
+        // Per-key lock: if N threads race here simultaneously, only the first
+        // actually fetches; the rest wait, then find a fresh entry in the cache.
+        synchronized (fetchLocks.computeIfAbsent(key, k -> new Object())) {
+            cached = cache.get(key);
+            if (cached != null && !isExpired(cached)) {
+                return cached.tmdbIds();
+            }
+            Set<Integer> fresh = fetch(type, language);
+            if (!fresh.isEmpty()) {
+                cache.put(key, new CachedList(fresh, Instant.now()));
+            }
+            return fresh;
         }
-        return fresh;
+    }
+
+    private boolean isExpired(CachedList cached) {
+        return Duration.between(cached.fetchedAt(), Instant.now()).compareTo(CACHE_TTL) >= 0;
     }
 
     private Set<Integer> fetch(String type, String language) {
