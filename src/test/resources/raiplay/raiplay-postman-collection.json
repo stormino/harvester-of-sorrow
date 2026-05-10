@@ -1,0 +1,1144 @@
+{
+  "info": {
+    "_postman_id": "914121ec-4c97-40ca-a451-d1390917a8d7",
+    "name": "RaiPlay API",
+    "description": "Reverse-engineered RaiPlay.it private API.\n\n## Auth Flow\n1. **Auth / Login** → auto-saves `x_auth_token`, `refresh_token`, `ua`\n2. When JWT expires → **Auth / Token Check (Refresh)**\n\n## Environment Variables\n| Variable | Value | Notes |\n|---|---|---|\n| `base_url` | `https://www.raiplay.it` | |\n| `domain_api_key` | `arSgRtwasD324SaA` | Static frontend key |\n| `email` | your email | |\n| `password` | your password | |\n| `x_auth_token` | *(auto)* | Set by Login test script |\n| `refresh_token` | *(auto)* | Set by Login test script |\n| `ua` | *(auto)* | Set by Login test script |\n| `search_term` | e.g. `Rocco Schiavone` | |\n| `date_from` | e.g. `05-05-2026` | DD-MM-YYYY |\n| `date_to` | e.g. `06-05-2026` | DD-MM-YYYY |\n| `timestamp` | ISO timestamp | For activity log |\n\n## Microservices\n- `raisso-service` — auth/SSO\n- `token-service` — anonymous tokens & geolocation\n- `raiplay-search-service` — full-text search\n- `raiplay-su-service` — user profile, seeks, favourites, play state\n- `prediction-service` — personalisation, recommendations, expiry\n\n## Known quirks\n- `domainapikey` header must be **all lowercase** on authenticated endpoints\n- Login response uses `authorization` field (not `jwt`) for the JWT\n- msearch uses static `templateIn`/`templateOut` IDs — do not change them",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "🔑 Pre-Auth",
+      "description": "Anonymous session setup before login.",
+      "item": [
+        {
+          "name": "Anonymize Token (step 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/token-service/api/anonymize",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "token-service",
+                "api",
+                "anonymize"
+              ]
+            },
+            "description": "Get an anonymous session token. The 'key' is a static app key embedded in the frontend.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"key\": \"d0a5a58c2356f9b8f46262a206515222\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Anonymize Token (step 2 - with FID)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/token-service/api/anonymize",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "token-service",
+                "api",
+                "anonymize"
+              ]
+            },
+            "description": "Second anonymize call with generateFid=true.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"key\": \"d0a5a58c2356f9b8f46262a206515222\", \"generateFid\": true}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Geolocate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/token-service/api/geolocate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "token-service",
+                "api",
+                "geolocate"
+              ]
+            },
+            "description": "Returns country/region info for the caller's IP."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👤 Auth",
+      "description": "Login, token refresh, user profile.",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.authorization) {",
+                  "    pm.environment.set('x_auth_token', json.authorization);",
+                  "    console.log('x_auth_token saved');",
+                  "}",
+                  "if (json.refreshToken) {",
+                  "    pm.environment.set('refresh_token', json.refreshToken);",
+                  "    console.log('refresh_token saved');",
+                  "}",
+                  "if (json.ua) {",
+                  "    pm.environment.set('ua', json.ua);",
+                  "    console.log('ua saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "Origin",
+                "value": "https://www.raiplay.it"
+              },
+              {
+                "key": "Referer",
+                "value": "https://www.raiplay.it/"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "domainApiKey",
+                  "value": "{{domain_api_key}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "{{email}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/atomatic/raisso-service/login/site",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raisso-service",
+                "login",
+                "site"
+              ]
+            },
+            "description": "Authenticates the user.\n\nResponse fields:\n- `authorization`: JWT token → saved as `x_auth_token`\n- `refreshToken`: refresh token → saved as `refresh_token`\n- `ua`: user agent token → saved as `ua`\n\nThe test script auto-saves all three to environment variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Token Check (Refresh)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.authorization) {",
+                  "    pm.environment.set('x_auth_token', json.authorization);",
+                  "    console.log('x_auth_token refreshed');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "domainApiKey",
+                  "value": "{{domain_api_key}}",
+                  "type": "text"
+                },
+                {
+                  "key": "refreshToken",
+                  "value": "{{refresh_token}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/atomatic/raisso-service/token/check",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raisso-service",
+                "token",
+                "check"
+              ]
+            },
+            "description": "Refreshes the JWT using the refreshToken. Test script auto-saves the new `authorization` as `x_auth_token`."
+          },
+          "response": []
+        },
+        {
+          "name": "User Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raisso-service/user/infox",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raisso-service",
+                "user",
+                "infox"
+              ]
+            },
+            "description": "Returns detailed profile info for the authenticated user. Note: `domainapikey` must be lowercase."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏠 Homepage",
+      "description": "Menu, schedule, hero sections, continue watching.",
+      "item": [
+        {
+          "name": "Top Menu",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/menu/top.json",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "menu",
+                "top.json"
+              ]
+            },
+            "description": "Returns the top navigation menu (Film, Serie, Programmi, ecc.)."
+          },
+          "response": []
+        },
+        {
+          "name": "Explore Page",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/esplora.json",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "esplora.json"
+              ]
+            },
+            "description": "Returns the Esplora/catalog page structure."
+          },
+          "response": []
+        },
+        {
+          "name": "Live Schedule",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/palinsesto/light/{{date_from}}/{{date_to}}/canali.json",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "palinsesto",
+                "light",
+                "{{date_from}}",
+                "{{date_to}}",
+                "canali.json"
+              ]
+            },
+            "description": "TV schedule for the given date range. Format: DD-MM-YYYY/DD-MM-YYYY."
+          },
+          "response": []
+        },
+        {
+          "name": "Hero Section - Anonymous",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/prediction-service/page/section/hero/default",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "prediction-service",
+                "page",
+                "section",
+                "hero",
+                "default"
+              ]
+            },
+            "description": "Featured/hero content for anonymous users."
+          },
+          "response": []
+        },
+        {
+          "name": "Hero Section - Authenticated",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/prediction-service/page/section/hero/user",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "prediction-service",
+                "page",
+                "section",
+                "hero",
+                "user"
+              ]
+            },
+            "description": "Personalized featured/hero content for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Continue Watching (Seeks Lite)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-su-service/api/v2/seeks/lite",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-su-service",
+                "api",
+                "v2",
+                "seeks",
+                "lite"
+              ]
+            },
+            "description": "Returns the list of content the user has started watching with resume positions."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔍 Search",
+      "description": "Full-text search and activity tracking.",
+      "item": [
+        {
+          "name": "Multi-Search (msearch)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-search-service/api/v1/msearch",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-search-service",
+                "api",
+                "v1",
+                "msearch"
+              ]
+            },
+            "description": "Primary full-text search used by the UI.\n\nKey params:\n- `param`: the search query string\n- `templateIn` / `templateOut`: static template IDs that define the query/response shape (do not change)\n- `size`: max results (default 48)\n- `additionalSize`: extra results for carousels (default 27)\n- `onlyVideoQuery`: true to restrict to videos only\n- `onlyProgramsQuery`: true to restrict to programs/series only\n- `from`: pagination offset",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateIn\": \"6470a982e4e0301afe1f81f1\",\n  \"templateOut\": \"6516ac5d40da6c377b151642\",\n  \"params\": {\n    \"param\": \"{{search_term}}\",\n    \"from\": 0,\n    \"sort\": \"\",\n    \"size\": 48,\n    \"additionalSize\": 27,\n    \"onlyVideoQuery\": false,\n    \"onlyProgramsQuery\": false\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Search Term (v2/search)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-su-service/api/v2/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-su-service",
+                "api",
+                "v2",
+                "search"
+              ]
+            },
+            "description": "Saves the search term to the user's search history. Always called alongside msearch.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"term\": \"{{search_term}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Activity Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-su-service/api/activity/search",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-su-service",
+                "api",
+                "activity",
+                "search"
+              ]
+            },
+            "description": "Logs search activity for analytics/recommendation purposes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"activityType\": \"SEARCH\", \"query\": \"{{search_term}}\", \"timestamp\": \"{{timestamp}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📺 Rocco Schiavone (Serie TV)",
+      "description": "Episodes, play state, expiry, related content.",
+      "item": [
+        {
+          "name": "Episodes List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/programmi/roccoschiavone/PublishingBlock-43a4d6c4-719c-440c-9a70-265371014bb5/ContentSet-e248fdd9-215f-499d-adf8-fe0aba70fbaf/episodes.json",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "programmi",
+                "roccoschiavone",
+                "PublishingBlock-43a4d6c4-719c-440c-9a70-265371014bb5",
+                "ContentSet-e248fdd9-215f-499d-adf8-fe0aba70fbaf",
+                "episodes.json"
+              ]
+            },
+            "description": "Episode list for Rocco Schiavone. PublishingBlock and ContentSet IDs are static for this program."
+          },
+          "response": []
+        },
+        {
+          "name": "Program User Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-su-service/api/profiles/program-data/ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659/true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-su-service",
+                "api",
+                "profiles",
+                "program-data",
+                "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+                "true"
+              ]
+            },
+            "description": "User-specific data for a Rocco Schiavone episode: favourites, feedback, seek points."
+          },
+          "response": []
+        },
+        {
+          "name": "Play Info (resume + next episode)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-su-service/api/profiles/play",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-su-service",
+                "api",
+                "profiles",
+                "play"
+              ]
+            },
+            "description": "Returns play state for the series: next episode, seek position, keepwatching flag.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"url\": \"/programmi/roccoschiavone.json\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Episode Expiry Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/prediction-service/item/episode-expire/program//ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659/program_roccoschiavone/true/false/true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "prediction-service",
+                "item",
+                "episode-expire",
+                "program",
+                "",
+                "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+                "program_roccoschiavone",
+                "true",
+                "false",
+                "true"
+              ]
+            },
+            "description": "Availability/expiry data for the episode: firstExpiration, labelScadenza, levelScadenza."
+          },
+          "response": []
+        },
+        {
+          "name": "Related Content (Sidebar)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/prediction-service/sidebar/program/relatedfb/ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "prediction-service",
+                "sidebar",
+                "program",
+                "relatedfb",
+                "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659"
+              ]
+            },
+            "description": "Personalized related content suggestions shown in the sidebar."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎬 Cosmonauta (Film)",
+      "description": "Play state and expiry for a film.",
+      "item": [
+        {
+          "name": "Program User Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-su-service/api/profiles/program-data/ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb/true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-su-service",
+                "api",
+                "profiles",
+                "program-data",
+                "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb",
+                "true"
+              ]
+            },
+            "description": "User-specific data for Cosmonauta: favourites, feedback, seek points."
+          },
+          "response": []
+        },
+        {
+          "name": "Play Info (resume + next episode)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/raiplay-su-service/api/profiles/play",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "raiplay-su-service",
+                "api",
+                "profiles",
+                "play"
+              ]
+            },
+            "description": "Returns play state for the film.\n\nResponse includes:\n- `nextEpisode.id`: ContentItem ID\n- `nextEpisode.path_id`: video JSON path (use to fetch video metadata)\n- `nextEpisode.weblink`: browser URL\n- `nextEpisode.seek`: resume position in seconds\n- `nextEpisode.percVision`: watch percentage",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"url\": \"/programmi/cosmonauta.json\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Film Expiry Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-auth-token",
+                "value": "{{x_auth_token}}"
+              },
+              {
+                "key": "domainapikey",
+                "value": "{{domain_api_key}}"
+              },
+              {
+                "key": "x-caller",
+                "value": "web"
+              },
+              {
+                "key": "x-caller-version",
+                "value": "1.0"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/atomatic/prediction-service/item/episode-expire/program//ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb/program_cosmonauta/true/false/true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "atomatic",
+                "prediction-service",
+                "item",
+                "episode-expire",
+                "program",
+                "",
+                "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb",
+                "program_cosmonauta",
+                "true",
+                "false",
+                "true"
+              ]
+            },
+            "description": "Availability/expiry data for Cosmonauta."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://www.raiplay.it"
+    },
+    {
+      "key": "domain_api_key",
+      "value": "arSgRtwasD324SaA"
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "x_auth_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "ua",
+      "value": ""
+    },
+    {
+      "key": "search_term",
+      "value": "Rocco Schiavone"
+    },
+    {
+      "key": "date_from",
+      "value": "05-05-2026"
+    },
+    {
+      "key": "date_to",
+      "value": "06-05-2026"
+    },
+    {
+      "key": "timestamp",
+      "value": ""
+    }
+  ]
+}
