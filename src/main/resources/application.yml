@@ -29,9 +29,9 @@ raiplay:
   username: ${RAIPLAY_USERNAME:}
   password: ${RAIPLAY_PASSWORD:}
 
-  # Static key sent to /atomatic/token-service/api/anonymize to obtain the
-  # per-session domainApiKey.  Embedded in the RaiPlay JS; rotates rarely.
-  anonymize-key: ${RAIPLAY_ANONYMIZE_KEY:d0a5a58c2356f9b8f46262a206515222}
+  # Static frontend key sent as domainApiKey in all RaiSSO calls.
+  # Embedded in the RaiPlay JS; rotates rarely.
+  domain-api-key: ${RAIPLAY_DOMAIN_API_KEY:arSgRtwasD324SaA}
 
 app:
   version: '@project.version@'

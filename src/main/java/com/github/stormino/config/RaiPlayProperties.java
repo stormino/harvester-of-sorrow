@@ -34,9 +34,9 @@ public class RaiPlayProperties {
     private String password = "";
 
     /**
-     * Static key sent to {@code /atomatic/token-service/api/anonymize} to obtain a
-     * per-session {@code domainApiKey}. Public constant embedded in the RaiPlay JS;
-     * rotates rarely. Override via {@code RAIPLAY_ANONYMIZE_KEY} env var if needed.
+     * Static frontend key used as {@code domainApiKey} in all RaiSSO calls.
+     * Embedded in the RaiPlay website JS. Override via {@code RAIPLAY_DOMAIN_API_KEY}
+     * env var if it rotates.
      */
-    private String anonymizeKey = "d0a5a58c2356f9b8f46262a206515222";
+    private String domainApiKey = "arSgRtwasD324SaA";
 }
