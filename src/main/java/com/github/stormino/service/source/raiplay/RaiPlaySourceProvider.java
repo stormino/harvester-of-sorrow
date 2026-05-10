@@ -84,10 +84,26 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
                 ? apiClient.getProgramInfo(card.infoUrl())
                 : Optional.empty();
 
-        // Default to TV if info_url couldn't be fetched (better to expand than to silently
-        // miss; a movie misclassified as TV will resolve to a single-episode list later).
         boolean isTv = infoOpt.map(RaiPlayProgramInfo::isTvShow).orElse(false);
 
+        if (filter == ContentTypeFilter.MOVIES && isTv) return null;
+        if (filter == ContentTypeFilter.TV && !isTv) return null;
+
+        // Fetch the program page to filter out non-film, non-episodic content
+        // (documentaries, news programs, talk shows, etc.).
+        if (card.pathId() != null) {
+            Optional<RaiPlayProgramPage> pageOpt = apiClient.getProgramPage(card.pathId());
+            if (pageOpt.isPresent()) {
+                RaiPlayProgramPage page = pageOpt.get();
+                if (!page.isMovie() && page.episodesBlock().isEmpty()) {
+                    return null; // Not a film and not an episodic series
+                }
+                // Use program page as the authoritative movie/TV discriminator.
+                isTv = !page.isMovie();
+            }
+        }
+
+        // Re-apply content-type filter using the authoritative classification.
         if (filter == ContentTypeFilter.MOVIES && isTv) return null;
         if (filter == ContentTypeFilter.TV && !isTv) return null;
 
@@ -96,7 +112,9 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         ContentMetadata.ContentMetadataBuilder builder = ContentMetadata.builder()
                 .source(MediaSource.RAIPLAY)
                 .sourceMetadata(sourceMeta)
-                .title(card.titolo());
+                .title(card.titolo())
+                .year(infoOpt.flatMap(RaiPlayProgramInfo::extractYear).orElse(null))
+                .overview(infoOpt.map(RaiPlayProgramInfo::description).orElse(null));
 
         if (isTv) {
             int seasons = infoOpt.flatMap(RaiPlayProgramInfo::seasonCount).orElse(0);

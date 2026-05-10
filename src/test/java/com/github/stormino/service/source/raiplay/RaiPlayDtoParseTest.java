@@ -91,6 +91,8 @@ class RaiPlayDtoParseTest {
         assertEquals("/programmi/cosmonauta.json", info.pathId());
         assertFalse(info.isTvShow(), "Cosmonauta has no 'seasons' detail → movie");
         assertTrue(info.seasonCount().isEmpty());
+        assertNotNull(info.description(), "movie info must carry a description");
+        assertEquals(2009, info.extractYear().orElse(-1));
     }
 
     @Test
@@ -102,6 +104,8 @@ class RaiPlayDtoParseTest {
         assertEquals("/programmi/roccoschiavone.json", info.pathId());
         assertTrue(info.isTvShow());
         assertEquals(6, info.seasonCount().orElse(-1));
+        assertNotNull(info.description(), "TV show info must carry a description");
+        assertEquals(2016, info.extractYear().orElse(-1));
     }
 
     @Test

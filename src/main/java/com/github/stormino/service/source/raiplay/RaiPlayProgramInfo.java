@@ -19,6 +19,7 @@ import java.util.Optional;
 public record RaiPlayProgramInfo(
         String name,
         String id,
+        String description,
         @JsonProperty("path_id") String pathId,
         List<ProgramDetail> details
 ) {
@@ -47,6 +48,19 @@ public record RaiPlayProgramInfo(
                     } catch (NumberFormatException e) {
                         return null;
                     }
+                })
+                .filter(java.util.Objects::nonNull)
+                .findFirst();
+    }
+
+    /** Year extracted from a {@code {"key":"year","value":"2016"}} detail entry. */
+    public Optional<Integer> extractYear() {
+        if (details == null) return Optional.empty();
+        return details.stream()
+                .filter(d -> "year".equals(d.key()) && d.value() != null)
+                .map(d -> {
+                    try { return Integer.parseInt(d.value().trim()); }
+                    catch (NumberFormatException e) { return null; }
                 })
                 .filter(java.util.Objects::nonNull)
                 .findFirst();
