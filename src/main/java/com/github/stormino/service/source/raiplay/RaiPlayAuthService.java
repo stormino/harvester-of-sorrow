@@ -21,8 +21,11 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -76,8 +79,10 @@ public class RaiPlayAuthService {
                     "(3_[A-Za-z0-9_-]{50,80})")
     };
 
-    /** Gigya error code returned when the apiKey parameter is wrong/rotated. */
+    /** Gigya error code: the apiKey parameter is wrong or rotated. */
     private static final int GIGYA_ERR_INVALID_API_KEY = 400093;
+    /** Gigya error code: valid API key but the loginID is not registered in that site. */
+    private static final int GIGYA_ERR_INVALID_LOGIN_ID = 403042;
 
     private final ObjectMapper objectMapper;
     private final RaiPlayProperties properties;
@@ -131,10 +136,11 @@ public class RaiPlayAuthService {
         try {
             GigyaLoginResult login = gigyaLogin(activeApiKey);
 
-            // Detect a rotated API key and recover by scraping the current one
-            // from the RaiPlay homepage. Without this, the app needs a restart
-            // (and an env-var update) every time RaiPlay rotates their site key.
-            if (login.invalidApiKey()) {
+            // Detect a wrong/rotated API key and recover by scraping candidates
+            // from the RaiPlay pages and probing each one against Gigya.
+            // Trigger on both 400093 (key unknown to Gigya) and 403042 (valid Gigya
+            // key but user not registered in that site — wrong app key).
+            if (login.invalidApiKey() || login.wrongSite()) {
                 String discovered = discoverGigyaApiKey();
                 if (discovered != null && !discovered.equals(activeApiKey)) {
                     log.info("Configured Gigya API key was rejected; retrying with key discovered "
@@ -188,25 +194,35 @@ public class RaiPlayAuthService {
             GigyaLoginResponse parsed = objectMapper.readValue(rawBody, GigyaLoginResponse.class);
 
             if (parsed.errorCode() != 0) {
-                log.error("Gigya login error {} – {}", parsed.errorCode(), parsed.errorMessage());
-                return new GigyaLoginResult(null, parsed.errorCode() == GIGYA_ERR_INVALID_API_KEY);
+                log.error("Gigya login error {} – {} (apiKey prefix={})",
+                        parsed.errorCode(), parsed.errorMessage(),
+                        apiKey.substring(0, Math.min(12, apiKey.length())));
+                return new GigyaLoginResult(null,
+                        parsed.errorCode() == GIGYA_ERR_INVALID_API_KEY,
+                        parsed.errorCode() == GIGYA_ERR_INVALID_LOGIN_ID);
             }
             if (parsed.sessionInfo() == null) {
                 log.error("Gigya login returned no sessionInfo");
-                return new GigyaLoginResult(null, false);
+                return new GigyaLoginResult(null, false, false);
             }
             log.debug("Gigya login OK for UID={}", parsed.uid());
-            return new GigyaLoginResult(new GigyaSession(parsed.sessionInfo().sessionToken()), false);
+            return new GigyaLoginResult(new GigyaSession(parsed.sessionInfo().sessionToken()), false, false);
         }
     }
 
     /**
-     * Scrape the current Gigya site key from the RaiPlay login page (or
-     * homepage as fallback). Tries several patterns from most specific to
-     * least specific so we don't accidentally pick up an unrelated {@code 3_…}
-     * string from another embedded third-party SDK.
+     * Scrape candidate Gigya site keys from the RaiPlay login and home pages,
+     * then probe each one by attempting a login with the real credentials.
      *
-     * @return the discovered key, or {@code null} if nothing was found
+     * <p>Probe logic:
+     * <ul>
+     *   <li>400093 → wrong/invalid key for Gigya → discard</li>
+     *   <li>403042 → valid Gigya key but user not in this site → discard (wrong app)</li>
+     *   <li>403041 → correct site, credentials mismatch → accept (user config problem)</li>
+     *   <li>0      → success → accept</li>
+     * </ul>
+     *
+     * @return the first key that gets past Gigya's site-level check, or {@code null}
      */
     private String discoverGigyaApiKey() {
         String[] urlsToSearch = {
@@ -214,23 +230,57 @@ public class RaiPlayAuthService {
                 properties.getBaseUrl() + "/"
         };
 
+        // Collect all candidate keys from all pages, specific patterns first.
+        Set<String> candidates = new LinkedHashSet<>();
         for (String url : urlsToSearch) {
             String html = fetchPage(url);
             if (html == null) continue;
-
-            for (int i = 0; i < GIGYA_KEY_PATTERNS.length; i++) {
-                Matcher m = GIGYA_KEY_PATTERNS[i].matcher(html);
-                if (m.find()) {
-                    // Patterns 0 and 1 use capturing group 1; pattern 2 uses group 1 too.
-                    String key = m.group(1);
-                    log.info("Discovered Gigya API key via pattern#{} from {} "
-                                    + "(prefix={}, length={})",
-                            i, url, key.substring(0, Math.min(12, key.length())), key.length());
-                    return key;
+            log.debug("Gigya key discovery: scanning {} ({} bytes)", url, html.length());
+            for (Pattern p : GIGYA_KEY_PATTERNS) {
+                Matcher m = p.matcher(html);
+                while (m.find()) {
+                    candidates.add(m.group(1));
                 }
             }
-            log.warn("Gigya key discovery: no key found in {} ({} bytes)", url, html.length());
         }
+        candidates.remove(activeApiKey); // already tried above, don't retry
+
+        if (candidates.isEmpty()) {
+            log.warn("Gigya key discovery: no 3_… candidate keys found in HTML. "
+                    + "Set RAIPLAY_GIGYA_API_KEY manually: open DevTools on raiplay.it/login, "
+                    + "filter network requests to gigya.com, and copy the apiKey parameter.");
+            return null;
+        }
+
+        log.info("Gigya key discovery: found {} candidate(s), probing each", candidates.size());
+        for (String key : candidates) {
+            try {
+                GigyaLoginResult probe = gigyaLogin(key);
+                if (probe.invalidApiKey()) {
+                    log.debug("Gigya key candidate {} (prefix={}) → invalid API key, skipping",
+                            key.length(), key.substring(0, Math.min(12, key.length())));
+                    continue;
+                }
+                if (probe.wrongSite()) {
+                    log.debug("Gigya key candidate {} (prefix={}) → valid key but user not in this "
+                            + "site (403042), skipping",
+                            key.length(), key.substring(0, Math.min(12, key.length())));
+                    continue;
+                }
+                // errorCode 0 (success) or 403041 (valid site, bad password) → correct site key
+                log.info("Gigya key discovery: found working site key (prefix={}, length={})",
+                        key.substring(0, Math.min(12, key.length())), key.length());
+                return key;
+            } catch (IOException e) {
+                log.warn("Gigya key probe failed for candidate (prefix={}): {}",
+                        key.substring(0, Math.min(12, key.length())), e.getMessage());
+            }
+        }
+
+        log.warn("Gigya key discovery: none of the {} candidate(s) matched the RaiPlay login site. "
+                + "Set RAIPLAY_GIGYA_API_KEY manually: open DevTools on raiplay.it/login, "
+                + "filter network requests to gigya.com, and copy the apiKey parameter.",
+                candidates.size());
         return null;
     }
 
@@ -342,6 +392,12 @@ public class RaiPlayAuthService {
 
     record GigyaSession(String sessionToken) {}
 
-    /** Outcome of a {@link #gigyaLogin(String)} call. */
-    private record GigyaLoginResult(GigyaSession session, boolean invalidApiKey) {}
+    /**
+     * Outcome of a {@link #gigyaLogin(String)} call.
+     *
+     * @param session      non-null on success
+     * @param invalidApiKey  true when Gigya returned 400093 (key not recognised at all)
+     * @param wrongSite    true when Gigya returned 403042 (valid key but user not in this site)
+     */
+    private record GigyaLoginResult(GigyaSession session, boolean invalidApiKey, boolean wrongSite) {}
 }
