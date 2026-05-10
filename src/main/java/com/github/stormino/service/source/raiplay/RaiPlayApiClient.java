@@ -79,6 +79,42 @@ public class RaiPlayApiClient {
      * @param pathId leading-slash path like "/video/2018/12/COSMONAUTA-...json"
      */
     public Optional<RaiPlayContentDescriptor> getContentDescriptor(String pathId) {
+        return fetchJson(pathId, RaiPlayContentDescriptor.class, "descriptor");
+    }
+
+    /**
+     * Lightweight program metadata used at search time to classify a hit as
+     * movie vs TV without fetching the heavy program page.
+     * @param infoUrl path like "/programmi/info/{uuid}.json" (from a search card)
+     */
+    public Optional<RaiPlayProgramInfo> getProgramInfo(String infoUrl) {
+        return fetchJson(infoUrl, RaiPlayProgramInfo.class, "program-info");
+    }
+
+    /**
+     * Full program page used at download time to resolve {@code first_item_path}
+     * (movies) or to enumerate season ContentSets (TV).
+     * @param programPathId path like "/programmi/cosmonauta.json"
+     */
+    public Optional<RaiPlayProgramPage> getProgramPage(String programPathId) {
+        return fetchJson(programPathId, RaiPlayProgramPage.class, "program-page");
+    }
+
+    /**
+     * Episode list for a single season.
+     * @param programSlug       e.g. {@code "roccoschiavone"}
+     * @param publishingBlockId e.g. {@code "PublishingBlock-43a4d6c4-..."}
+     * @param contentSetId      e.g. {@code "ContentSet-e248fdd9-..."}
+     */
+    public Optional<RaiPlayEpisodesPage> getSeasonEpisodes(String programSlug,
+                                                           String publishingBlockId,
+                                                           String contentSetId) {
+        String relative = String.format("/programmi/%s/%s/%s/episodes.json",
+                programSlug, publishingBlockId, contentSetId);
+        return fetchJson(relative, RaiPlayEpisodesPage.class, "season-episodes");
+    }
+
+    private <T> Optional<T> fetchJson(String pathId, Class<T> type, String label) {
         String normalized = pathId.startsWith("/") ? pathId : "/" + pathId;
         String url = properties.getBaseUrl() + normalized;
 
@@ -90,12 +126,12 @@ public class RaiPlayApiClient {
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                log.warn("RaiPlay descriptor HTTP {} for pathId={}", response.code(), pathId);
+                log.warn("RaiPlay {} HTTP {} for pathId={}", label, response.code(), pathId);
                 return Optional.empty();
             }
-            return Optional.of(objectMapper.readValue(response.body().string(), RaiPlayContentDescriptor.class));
+            return Optional.of(objectMapper.readValue(response.body().string(), type));
         } catch (IOException e) {
-            log.error("RaiPlay descriptor fetch failed for pathId={}: {}", pathId, e.getMessage());
+            log.error("RaiPlay {} fetch failed for pathId={}: {}", label, pathId, e.getMessage());
             return Optional.empty();
         }
     }

@@ -59,4 +59,18 @@ public interface MediaSourceProvider {
      * to constrain the language picker. An empty set means "no restriction".
      */
     Set<String> supportedLanguages();
+
+    /**
+     * Enumerate every episode of a TV show.  Used by the download queue when
+     * the user requests "whole show" or "whole season" so per-episode tasks
+     * can be created without the queue having to know how a given source
+     * structures its catalogue (TMDB walks for VixSrc, program → contentset →
+     * episodes.json traversal for RaiPlay, etc.).
+     *
+     * <p>Returns an empty list for movies or when the show can't be expanded
+     * (e.g. metadata missing).  Default is empty so providers can opt in.
+     */
+    default List<EpisodeRef> listEpisodes(ContentMetadata show) {
+        return List.of();
+    }
 }

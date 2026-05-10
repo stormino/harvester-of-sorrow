@@ -10,6 +10,7 @@ import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ResolvedMedia;
 import com.github.stormino.model.source.RaiPlayMetadata;
 import com.github.stormino.service.HlsParserService;
+import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -40,28 +44,65 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         return MediaSource.RAIPLAY;
     }
 
+    // ─── search ──────────────────────────────────────────────────────────────
+
+    /**
+     * Search uses {@code agg.titoli.cards[]} (program-level results), not
+     * {@code agg.video.cards[]} (clips/individual videos).  Each program card
+     * is classified as movie vs TV by querying its lightweight {@code info_url}
+     * endpoint in parallel — a TV show advertises a {@code seasons} entry in
+     * its details array, a movie does not.
+     */
     @Override
     public List<ContentMetadata> search(String query, ContentTypeFilter filter) {
         Optional<RaiPlaySearchResponse> response = apiClient.search(query, properties.getSearchPageSize());
         if (response.isEmpty() || response.get().agg() == null) {
             return List.of();
         }
-        RaiPlaySearchResponse.Agg agg = response.get().agg();
-        if (agg.video() == null || agg.video().cards() == null) {
+        RaiPlaySearchResponse.TitoliBucket titoli = response.get().agg().titoli();
+        if (titoli == null || titoli.cards() == null || titoli.cards().isEmpty()) {
             return List.of();
         }
 
-        List<ContentMetadata> results = new ArrayList<>();
-        for (RaiPlaySearchResult card : agg.video().cards()) {
-            if (card.pathId() == null) continue;
-            boolean isEpisode = card.isEpisode();
-            if (filter == ContentTypeFilter.MOVIES && isEpisode) continue;
-            if (filter == ContentTypeFilter.TV && !isEpisode) continue;
+        List<CompletableFuture<ContentMetadata>> futures = titoli.cards().stream()
+                .filter(c -> c.pathId() != null)
+                .map(card -> CompletableFuture.supplyAsync(() -> classifyAndBuild(card, filter)))
+                .collect(Collectors.toList());
 
-            ContentMetadata cm = toContentMetadata(card);
-            if (cm != null) results.add(cm);
+        return futures.stream()
+                .map(f -> {
+                    try { return f.get(); }
+                    catch (Exception e) { return null; }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private ContentMetadata classifyAndBuild(RaiPlaySearchResponse.ProgramCard card,
+                                             ContentTypeFilter filter) {
+        Optional<RaiPlayProgramInfo> infoOpt = card.infoUrl() != null
+                ? apiClient.getProgramInfo(card.infoUrl())
+                : Optional.empty();
+
+        // Default to TV if info_url couldn't be fetched (better to expand than to silently
+        // miss; a movie misclassified as TV will resolve to a single-episode list later).
+        boolean isTv = infoOpt.map(RaiPlayProgramInfo::isTvShow).orElse(false);
+
+        if (filter == ContentTypeFilter.MOVIES && isTv) return null;
+        if (filter == ContentTypeFilter.TV && !isTv) return null;
+
+        RaiPlayMetadata sourceMeta = new RaiPlayMetadata(card.pathId(), card.id(), null, null, null);
+
+        ContentMetadata.ContentMetadataBuilder builder = ContentMetadata.builder()
+                .source(MediaSource.RAIPLAY)
+                .sourceMetadata(sourceMeta)
+                .title(card.titolo());
+
+        if (isTv) {
+            int seasons = infoOpt.flatMap(RaiPlayProgramInfo::seasonCount).orElse(0);
+            builder.numberOfSeasons(seasons);
         }
-        return results;
+        return builder.build();
     }
 
     @Override
@@ -72,31 +113,94 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
                 .build();
     }
 
+    // ─── playlist resolution ─────────────────────────────────────────────────
+
+    /**
+     * Resolves the HLS playlist for a download task.  The metadata's pathId may
+     * be either:
+     * <ul>
+     *   <li>A direct video descriptor ({@code /video/...json}) — e.g. items produced
+     *       by {@link #listEpisodes(ContentMetadata)}.  Existing flow.</li>
+     *   <li>A program page ({@code /programmi/{slug}.json}) — produced by
+     *       {@link #search(String, ContentTypeFilter)}.  Resolves to either
+     *       {@code first_item_path} (movie) or the appropriate episode's pathId
+     *       (TV) before falling through to the descriptor fetch.</li>
+     * </ul>
+     */
     @Override
     public Optional<PlaylistInfo> getPlaylist(DownloadTask task, String language) {
         RaiPlayMetadata meta = extractMeta(task);
         if (meta == null || meta.pathId() == null) return Optional.empty();
 
-        Optional<RaiPlayContentDescriptor> descriptorOpt = apiClient.getContentDescriptor(meta.pathId());
-        if (descriptorOpt.isEmpty()) {
-            log.warn("No content descriptor for pathId={}", meta.pathId());
+        String videoPathId = meta.pathId().startsWith("/video/")
+                ? meta.pathId()
+                : resolveVideoPathId(meta.pathId(), task).orElse(null);
+
+        if (videoPathId == null) {
+            log.warn("Could not resolve video pathId for task {} (program pathId={})",
+                    task.getId(), meta.pathId());
             return Optional.empty();
         }
 
+        Optional<RaiPlayContentDescriptor> descriptorOpt = apiClient.getContentDescriptor(videoPathId);
+        if (descriptorOpt.isEmpty()) {
+            log.warn("No content descriptor for pathId={}", videoPathId);
+            return Optional.empty();
+        }
         RaiPlayContentDescriptor descriptor = descriptorOpt.get();
         if (descriptor.contentUrl() == null) {
-            log.warn("Missing video.content_url in descriptor for pathId={}", meta.pathId());
+            log.warn("Missing video.content_url in descriptor for pathId={}", videoPathId);
             return Optional.empty();
         }
 
-        String referer = properties.getBaseUrl() + stripJsonSuffix(meta.pathId());
-
+        String referer = properties.getBaseUrl() + stripJsonSuffix(videoPathId);
         return Optional.of(PlaylistInfo.builder()
-                .url(Objects.requireNonNull(descriptor.contentUrl()))
+                .url(descriptor.contentUrl())
                 .language("it")
                 .referer(referer)
                 .verified(false)
                 .build());
+    }
+
+    private Optional<String> resolveVideoPathId(String programPathId, DownloadTask task) {
+        Optional<RaiPlayProgramPage> pageOpt = apiClient.getProgramPage(programPathId);
+        if (pageOpt.isEmpty()) return Optional.empty();
+        RaiPlayProgramPage page = pageOpt.get();
+
+        if (page.isMovie()) {
+            return Optional.ofNullable(page.firstItemPath());
+        }
+        return resolveEpisodePathId(page, task.getSeason(), task.getEpisode());
+    }
+
+    private Optional<String> resolveEpisodePathId(RaiPlayProgramPage page,
+                                                  Integer season, Integer episode) {
+        if (season == null || episode == null) return Optional.empty();
+
+        Optional<RaiPlayProgramPage.Block> blockOpt = page.episodesBlock();
+        if (blockOpt.isEmpty() || blockOpt.get().sets() == null) return Optional.empty();
+        RaiPlayProgramPage.Block block = blockOpt.get();
+
+        // Sets are ordered by season ("Stagione 1", "Stagione 2", ...). Index by season-1.
+        if (season < 1 || season > block.sets().size()) return Optional.empty();
+        RaiPlayProgramPage.ContentSet seasonSet = block.sets().get(season - 1);
+
+        String slug = extractSlug(page.pathId());
+        if (slug == null) return Optional.empty();
+
+        Optional<RaiPlayEpisodesPage> episodesOpt =
+                apiClient.getSeasonEpisodes(slug, block.id(), seasonSet.id());
+        if (episodesOpt.isEmpty()) return Optional.empty();
+
+        Optional<RaiPlayEpisodesPage.SeasonContentSet> contentSetOpt =
+                episodesOpt.get().episodiSeason();
+        if (contentSetOpt.isEmpty() || contentSetOpt.get().cards() == null) return Optional.empty();
+
+        return contentSetOpt.get().cards().stream()
+                .filter(c -> Objects.equals(c.parseEpisode(), episode))
+                .map(RaiPlayEpisodesPage.EpisodeCard::pathId)
+                .filter(Objects::nonNull)
+                .findFirst();
     }
 
     @Override
@@ -106,43 +210,68 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
                         .map(parsed -> new ResolvedMedia(playlist, parsed)));
     }
 
+    // ─── episode enumeration ─────────────────────────────────────────────────
+
+    /**
+     * Enumerates every episode of a TV show by traversing the program page →
+     * episodes blocks → per-season {@code episodes.json}.  Each returned
+     * {@link EpisodeRef} carries the video descriptor pathId in its
+     * {@link RaiPlayMetadata}, ready for {@link #getPlaylist}.
+     *
+     * <p>Returns empty for movies (callers should fall back to a single-task
+     * download using the show's own metadata).
+     */
+    @Override
+    public List<EpisodeRef> listEpisodes(ContentMetadata show) {
+        if (!(show.getSourceMetadata() instanceof RaiPlayMetadata meta) || meta.pathId() == null) {
+            return List.of();
+        }
+        Optional<RaiPlayProgramPage> pageOpt = apiClient.getProgramPage(meta.pathId());
+        if (pageOpt.isEmpty()) return List.of();
+        RaiPlayProgramPage page = pageOpt.get();
+        if (page.isMovie()) return List.of();
+
+        Optional<RaiPlayProgramPage.Block> blockOpt = page.episodesBlock();
+        if (blockOpt.isEmpty() || blockOpt.get().sets() == null) return List.of();
+        RaiPlayProgramPage.Block block = blockOpt.get();
+
+        String slug = extractSlug(page.pathId());
+        if (slug == null) return List.of();
+
+        // Fetch all seasons in parallel.
+        List<CompletableFuture<List<EpisodeRef>>> futures = block.sets().stream()
+                .map(set -> CompletableFuture.supplyAsync(() ->
+                        episodesForSeason(slug, block.id(), set.id())))
+                .collect(Collectors.toList());
+
+        List<EpisodeRef> all = new ArrayList<>();
+        for (CompletableFuture<List<EpisodeRef>> f : futures) {
+            try { all.addAll(f.get()); }
+            catch (Exception e) { log.warn("Season fetch failed for show {}: {}", slug, e.getMessage()); }
+        }
+        return all;
+    }
+
+    private List<EpisodeRef> episodesForSeason(String slug, String blockId, String setId) {
+        return apiClient.getSeasonEpisodes(slug, blockId, setId)
+                .flatMap(RaiPlayEpisodesPage::episodiSeason)
+                .map(cs -> cs.cards() == null ? Stream.<RaiPlayEpisodesPage.EpisodeCard>empty() : cs.cards().stream())
+                .orElseGet(Stream::empty)
+                .filter(c -> c.parseSeason() != null && c.parseEpisode() != null && c.pathId() != null)
+                .map(c -> new EpisodeRef(
+                        c.parseSeason(),
+                        c.parseEpisode(),
+                        c.episodeTitle(),
+                        new RaiPlayMetadata(c.pathId(), c.id(), null, c.season(), c.episode())))
+                .collect(Collectors.toList());
+    }
+
     @Override
     public Set<String> supportedLanguages() {
         return SUPPORTED_LANGUAGES;
     }
 
-    private ContentMetadata toContentMetadata(RaiPlaySearchResult card) {
-        boolean isEpisode = card.isEpisode();
-        String pathId = card.pathId().startsWith("/") ? card.pathId() : "/" + card.pathId();
-
-        RaiPlayMetadata sourceMeta = new RaiPlayMetadata(
-                pathId,
-                card.id(),
-                null,
-                isEpisode ? card.stagione() : null,
-                null
-        );
-
-        ContentMetadata.ContentMetadataBuilder builder = ContentMetadata.builder()
-                .source(MediaSource.RAIPLAY)
-                .sourceMetadata(sourceMeta)
-                .overview(card.sommario());
-
-        if (isEpisode) {
-            // For episodes the show name is `programma`; the episode title is `titolo`.
-            builder.title(card.programma() != null ? card.programma() : card.titolo());
-            builder.episodeName(card.titolo());
-            try { builder.season(Integer.parseInt(card.stagione())); } catch (NumberFormatException ignored) {}
-            try { builder.episode(Integer.parseInt(card.episodio())); } catch (NumberFormatException ignored) {}
-            // Mark as TV by setting numberOfSeasons to a non-null sentinel; real value
-            // is unknown from a single search card.
-            builder.numberOfSeasons(0);
-        } else {
-            builder.title(card.titolo());
-        }
-
-        return builder.build();
-    }
+    // ─── helpers ─────────────────────────────────────────────────────────────
 
     private RaiPlayMetadata extractMeta(DownloadTask task) {
         if (task.getSourceMetadata() instanceof RaiPlayMetadata meta) {
@@ -154,5 +283,13 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
 
     private static String stripJsonSuffix(String path) {
         return path.endsWith(".json") ? path.substring(0, path.length() - 5) : path;
+    }
+
+    /** Extracts {@code "roccoschiavone"} from {@code /programmi/roccoschiavone.json}. */
+    private static String extractSlug(String programPathId) {
+        if (programPathId == null) return null;
+        String stripped = stripJsonSuffix(programPathId);
+        int slash = stripped.lastIndexOf('/');
+        return (slash >= 0 && slash < stripped.length() - 1) ? stripped.substring(slash + 1) : null;
     }
 }

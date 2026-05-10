@@ -9,6 +9,7 @@ import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
 import com.github.stormino.model.source.VixSrcMetadata;
 import com.github.stormino.persistence.TaskPersistenceService;
+import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.util.DownloadConstants;
@@ -124,8 +125,50 @@ public class DownloadQueueService {
             return addDownload(content.getTmdbId(), contentType, season, episode,
                     languages, quality, includeAudioDescription);
         }
+        // TV batch (whole show / whole season) for non-TMDB sources: expand via the provider.
+        if (contentType == DownloadTask.ContentType.TV && episode == null) {
+            return addBatchSourceDownload(content, season, languages, quality, includeAudioDescription);
+        }
         return addSourceDownload(content, contentType, season, episode,
                 languages, quality, includeAudioDescription);
+    }
+
+    /**
+     * Expand a non-TMDB TV show into per-episode tasks via {@link MediaSourceProvider#listEpisodes}.
+     * If {@code season} is non-null only that season is queued; otherwise the entire show is queued.
+     */
+    private DownloadTask addBatchSourceDownload(ContentMetadata show, Integer season,
+                                                List<String> languages, String quality,
+                                                boolean includeAudioDescription) {
+        MediaSourceProvider provider = sourceRegistry.get(show.getSource());
+        List<EpisodeRef> episodes = provider.listEpisodes(show);
+        if (season != null) {
+            episodes = episodes.stream().filter(e -> e.season() == season).toList();
+        }
+        if (episodes.isEmpty()) {
+            log.warn("No episodes found for show '{}' (source={}, season={})",
+                    show.getTitle(), show.getSource(), season);
+            return null;
+        }
+        log.info("Expanding {} into {} episode task(s) (season={})",
+                show.getTitle(), episodes.size(), season != null ? season : "all");
+
+        DownloadTask first = null;
+        for (EpisodeRef ep : episodes) {
+            ContentMetadata episodeMeta = ContentMetadata.builder()
+                    .source(show.getSource())
+                    .sourceMetadata(ep.sourceMetadata())
+                    .title(show.getTitle())
+                    .episodeName(ep.name())
+                    .year(show.getYear())
+                    .season(ep.season())
+                    .episode(ep.episode())
+                    .build();
+            DownloadTask task = addSourceDownload(episodeMeta, DownloadTask.ContentType.TV,
+                    ep.season(), ep.episode(), languages, quality, includeAudioDescription);
+            if (first == null) first = task;
+        }
+        return first;
     }
 
     /**
