@@ -119,7 +119,11 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
                 .overview(infoOpt.map(RaiPlayProgramInfo::description).orElse(null));
 
         if (isTv) {
-            int seasons = infoOpt.flatMap(RaiPlayProgramInfo::seasonCount).orElse(0);
+            int seasons = infoOpt.flatMap(RaiPlayProgramInfo::seasonCount)
+                    .or(() -> pageOpt.flatMap(p -> p.episodesBlock()
+                            .filter(b -> b.sets() != null && !b.sets().isEmpty())
+                            .map(b -> b.sets().size())))
+                    .orElse(0);
             builder.numberOfSeasons(seasons);
             pageOpt.map(RaiPlaySourceProvider::totalEpisodes)
                    .filter(n -> n > 0)

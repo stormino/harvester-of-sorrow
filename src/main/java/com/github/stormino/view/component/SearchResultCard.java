@@ -124,7 +124,8 @@ public class SearchResultCard extends VerticalLayout {
         titleRow.add(sourceTag);
 
         // TV-specific info as badge
-        if (type == DownloadTask.ContentType.TV && content.getNumberOfSeasons() != null) {
+        if (type == DownloadTask.ContentType.TV && content.getNumberOfSeasons() != null
+                && content.getNumberOfSeasons() > 0) {
             Span badge = new Span(content.getNumberOfSeasons() + "S");
             badge.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
             badge.getStyle()
