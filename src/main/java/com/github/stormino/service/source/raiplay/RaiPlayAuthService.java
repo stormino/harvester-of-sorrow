@@ -23,6 +23,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Handles automatic RaiPlay session management via Gigya (SAP Customer Data Cloud).
@@ -51,6 +53,16 @@ public class RaiPlayAuthService {
     private static final String GIGYA_JWT_URL   = "https://accounts.eu1.gigya.com/accounts.getJWT";
     private static final MediaType JSON_TYPE     = MediaType.parse("application/json; charset=utf-8");
 
+    /**
+     * Gigya site key as embedded in the RaiPlay website JS — prefix {@code 3_}
+     * followed by 50–80 url-safe characters. Loose enough to survive minor
+     * format tweaks; specific enough to avoid false positives.
+     */
+    private static final Pattern GIGYA_KEY_PATTERN = Pattern.compile("3_[A-Za-z0-9_-]{50,80}");
+
+    /** Gigya error code returned when the apiKey parameter is wrong/rotated. */
+    private static final int GIGYA_ERR_INVALID_API_KEY = 400093;
+
     private final ObjectMapper objectMapper;
     private final RaiPlayProperties properties;
 
@@ -59,6 +71,15 @@ public class RaiPlayAuthService {
 
     private volatile String activeCookie = null;
     private volatile Instant cookieExpiry = Instant.EPOCH;
+
+    /**
+     * The Gigya site key we'll send with the next request. Starts as the value
+     * from configuration; replaced at runtime if the configured key is rejected
+     * and we successfully scrape a fresh one from the RaiPlay homepage. Lets
+     * the app survive RaiPlay rotating their public site key without an
+     * application restart or env-var update.
+     */
+    private volatile String activeApiKey;
 
     @PostConstruct
     public void init() {
@@ -69,6 +90,7 @@ public class RaiPlayAuthService {
                 .followRedirects(true)
                 .build();
 
+        activeApiKey = properties.getGigyaApiKey();
         log.info("RaiPlay auto-login enabled for user {}", properties.getUsername());
         refresh();
     }
@@ -91,10 +113,24 @@ public class RaiPlayAuthService {
 
     private synchronized void refresh() {
         try {
-            GigyaSession session = gigyaLogin();
-            if (session == null) return;
+            GigyaLoginResult login = gigyaLogin(activeApiKey);
 
-            String jwt = gigyaGetJwt(session);
+            // Detect a rotated API key and recover by scraping the current one
+            // from the RaiPlay homepage. Without this, the app needs a restart
+            // (and an env-var update) every time RaiPlay rotates their site key.
+            if (login.invalidApiKey()) {
+                String discovered = discoverGigyaApiKey();
+                if (discovered != null && !discovered.equals(activeApiKey)) {
+                    log.info("Configured Gigya API key was rejected; retrying with key discovered "
+                            + "from RaiPlay homepage");
+                    activeApiKey = discovered;
+                    login = gigyaLogin(activeApiKey);
+                }
+            }
+
+            if (login.session() == null) return;
+
+            String jwt = gigyaGetJwt(login.session());
             if (jwt == null) return;
 
             String cookie = exchangeForRaiPlayCookie(jwt);
@@ -117,11 +153,11 @@ public class RaiPlayAuthService {
     // Gigya API calls
     // -------------------------------------------------------------------------
 
-    private GigyaSession gigyaLogin() throws IOException {
+    private GigyaLoginResult gigyaLogin(String apiKey) throws IOException {
         RequestBody body = new FormBody.Builder()
                 .add("loginID", properties.getUsername())
                 .add("password", properties.getPassword())
-                .add("apiKey", properties.getGigyaApiKey())
+                .add("apiKey", apiKey)
                 .add("format", "json")
                 .add("include", "profile,data,loginIDs,sessionInfo")
                 .build();
@@ -137,20 +173,55 @@ public class RaiPlayAuthService {
 
             if (parsed.errorCode() != 0) {
                 log.error("Gigya login error {} – {}", parsed.errorCode(), parsed.errorMessage());
-                return null;
+                return new GigyaLoginResult(null, parsed.errorCode() == GIGYA_ERR_INVALID_API_KEY);
             }
             if (parsed.sessionInfo() == null) {
                 log.error("Gigya login returned no sessionInfo");
-                return null;
+                return new GigyaLoginResult(null, false);
             }
             log.debug("Gigya login OK for UID={}", parsed.uid());
-            return new GigyaSession(parsed.sessionInfo().sessionToken());
+            return new GigyaLoginResult(new GigyaSession(parsed.sessionInfo().sessionToken()), false);
+        }
+    }
+
+    /**
+     * Scrape the current Gigya site key from the RaiPlay homepage. The key is
+     * embedded as a {@code 3_…} string in inline JS / script src URLs. Returns
+     * {@code null} if the page can't be fetched or no key matches the pattern.
+     */
+    private String discoverGigyaApiKey() {
+        Request request = new Request.Builder()
+                .url(properties.getBaseUrl() + "/")
+                .header("User-Agent",
+                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                        + "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml")
+                .build();
+
+        try (Response response = authClient.newCall(request).execute()) {
+            if (!response.isSuccessful() || response.body() == null) {
+                log.warn("Gigya key discovery: HTTP {} from {}", response.code(), request.url());
+                return null;
+            }
+            String html = response.body().string();
+            Matcher m = GIGYA_KEY_PATTERN.matcher(html);
+            if (m.find()) {
+                String key = m.group();
+                log.info("Discovered Gigya API key from RaiPlay homepage (length={})", key.length());
+                return key;
+            }
+            log.warn("Gigya key discovery: no {} match in homepage HTML ({} bytes)",
+                    GIGYA_KEY_PATTERN.pattern(), html.length());
+            return null;
+        } catch (IOException e) {
+            log.warn("Gigya key discovery failed: {}", e.getMessage());
+            return null;
         }
     }
 
     private String gigyaGetJwt(GigyaSession session) throws IOException {
         RequestBody body = new FormBody.Builder()
-                .add("apiKey", properties.getGigyaApiKey())
+                .add("apiKey", activeApiKey)
                 .add("login_token", session.sessionToken())
                 .add("format", "json")
                 .add("expiration", "86400")
@@ -234,4 +305,7 @@ public class RaiPlayAuthService {
     ) {}
 
     record GigyaSession(String sessionToken) {}
+
+    /** Outcome of a {@link #gigyaLogin(String)} call. */
+    private record GigyaLoginResult(GigyaSession session, boolean invalidApiKey) {}
 }
