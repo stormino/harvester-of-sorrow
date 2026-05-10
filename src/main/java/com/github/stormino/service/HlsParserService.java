@@ -102,7 +102,10 @@ public class HlsParserService {
             String baseUrl = extractBaseUrl(fetch.finalUrl());
 
             // Detect playlist type
-            if (fetch.content().contains("#EXT-X-STREAM-INF") || fetch.content().contains("#EXT-X-MEDIA")) {
+            // "#EXT-X-MEDIA:" (with colon) only appears in master playlists for rendition
+            // declarations. "#EXT-X-MEDIA-SEQUENCE:" and "#EXT-X-MEDIA-INITIALIZATION"
+            // are media-playlist tags and must not trigger the master branch.
+            if (fetch.content().contains("#EXT-X-STREAM-INF") || fetch.content().contains("#EXT-X-MEDIA:")) {
                 // Master playlist
                 return Optional.of(parseMasterPlaylist(fetch.content(), baseUrl));
             } else if (fetch.content().contains("#EXTINF")) {
