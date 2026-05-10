@@ -236,12 +236,17 @@ public class SearchResultCard extends VerticalLayout {
         qualitySelector.setValue(defaultQualitySupplier.get());
         qualitySelector.setWidthFull();
 
-        // Audio-description checkbox — off by default
+        // Audio-description checkbox — off by default. Only meaningful for sources
+        // that expose an accessibility audio rendition; RaiPlay doesn't.
+        boolean showAudioDescription = content.getSource() == MediaSource.VIXSRC;
         Checkbox audioDescriptionCheckbox = new Checkbox("Include audio description");
         audioDescriptionCheckbox.getElement().setAttribute(
                 "title", "Adds the accessibility audio track if available in the playlist.");
 
-        layout.add(languageSelector, qualitySelector, audioDescriptionCheckbox);
+        layout.add(languageSelector, qualitySelector);
+        if (showAudioDescription) {
+            layout.add(audioDescriptionCheckbox);
+        }
 
         // Set default language after adding to layout, intersecting with supported set
         Set<String> defaultLanguages = defaultLanguagesSupplier.get();

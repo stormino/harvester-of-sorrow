@@ -9,10 +9,14 @@ import com.github.stormino.service.strategy.TrackDownloadStrategy;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -26,6 +30,7 @@ public class SubtitleTrackDownloadStrategy implements TrackDownloadStrategy {
 
     private final HlsParserService hlsParser;
     private final HlsSegmentDownloader segmentDownloader;
+    private final OkHttpClient httpClient;
 
     @Override
     public DownloadResult downloadTrack(TrackDownloadRequest request) {
@@ -62,6 +67,11 @@ public class SubtitleTrackDownloadStrategy implements TrackDownloadStrategy {
         log.debug("Starting subtitle track download for language: {}", language);
 
         try {
+            // Direct subtitle files (e.g. RaiPlay's *.srt) bypass HLS parsing.
+            if (isDirectSubtitleFile(playlistUrl)) {
+                return downloadDirectSubtitle(playlistUrl, referer, outputFile, language, subTask);
+            }
+
             // 1. Parse master playlist
             Optional<HlsParserService.HlsPlaylist> playlistOpt = hlsParser.parsePlaylist(playlistUrl, referer);
             if (playlistOpt.isEmpty()) {
@@ -189,6 +199,52 @@ public class SubtitleTrackDownloadStrategy implements TrackDownloadStrategy {
         // No match found
         log.warn("No subtitle track found for language: {}", language);
         return null;
+    }
+
+    /**
+     * Direct file URL (e.g. {@code .../foo.srt}) — no HLS segmentation,
+     * fetch in one shot.
+     */
+    private boolean isDirectSubtitleFile(String url) {
+        String lower = url.toLowerCase();
+        int q = lower.indexOf('?');
+        if (q >= 0) lower = lower.substring(0, q);
+        return lower.endsWith(".srt") || lower.endsWith(".vtt");
+    }
+
+    private DownloadResult downloadDirectSubtitle(String url, String referer, Path outputFile,
+                                                  String language, DownloadSubTask subTask) {
+        log.debug("Downloading direct subtitle for language {}: {}", language, url);
+        Request.Builder rb = new Request.Builder().url(url).addHeader("Accept", "*/*");
+        if (referer != null) rb.addHeader("Referer", referer);
+
+        try (Response response = httpClient.newCall(rb.build()).execute()) {
+            if (!response.isSuccessful() || response.body() == null) {
+                log.error("Direct subtitle fetch HTTP {} for {}", response.code(), url);
+                return DownloadResult.failure("Subtitle fetch failed: HTTP " + response.code());
+            }
+            String body = response.body().string();
+            String vtt  = url.toLowerCase().contains(".srt") ? srtToVtt(body) : body;
+            Files.createDirectories(outputFile.getParent());
+            Files.writeString(outputFile, vtt, StandardCharsets.UTF_8);
+            subTask.setProgress(100.0);
+            log.debug("Direct subtitle saved to {}", outputFile);
+            return DownloadResult.success();
+        } catch (IOException e) {
+            log.error("Direct subtitle download failed: {}", e.getMessage(), e);
+            return DownloadResult.failure("Subtitle download failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Minimal SRT → WebVTT: prepend the {@code WEBVTT} header and replace the
+     * comma separator in timestamps ({@code HH:MM:SS,mmm}) with a period.
+     */
+    static String srtToVtt(String srt) {
+        String normalized = srt.replaceAll(
+                "(\\d{2}:\\d{2}:\\d{2}),(\\d{3})", "$1.$2");
+        if (normalized.startsWith("WEBVTT")) return normalized;
+        return "WEBVTT\n\n" + normalized.stripLeading();
     }
 
     /**

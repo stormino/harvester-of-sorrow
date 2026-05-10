@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -243,9 +245,81 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
 
     @Override
     public Optional<ResolvedMedia> resolveMaster(DownloadTask task, String primaryLanguage) {
-        return getPlaylist(task, primaryLanguage)
-                .flatMap(playlist -> hlsParser.parsePlaylist(playlist.getUrl(), playlist.getReferer())
-                        .map(parsed -> new ResolvedMedia(playlist, parsed)));
+        RaiPlayMetadata meta = extractMeta(task);
+        if (meta == null || meta.pathId() == null) return Optional.empty();
+
+        String videoPathId = meta.pathId().startsWith("/video/")
+                ? meta.pathId()
+                : resolveVideoPathId(meta.pathId(), task).orElse(null);
+        if (videoPathId == null) return Optional.empty();
+
+        Optional<RaiPlayContentDescriptor> descriptorOpt = apiClient.getContentDescriptor(videoPathId);
+        if (descriptorOpt.isEmpty() || descriptorOpt.get().contentUrl() == null) {
+            return Optional.empty();
+        }
+        RaiPlayContentDescriptor descriptor = descriptorOpt.get();
+
+        String referer = properties.getBaseUrl() + stripJsonSuffix(videoPathId);
+        PlaylistInfo playlist = PlaylistInfo.builder()
+                .url(descriptor.contentUrl())
+                .language("it")
+                .referer(referer)
+                .verified(false)
+                .build();
+
+        Optional<HlsParserService.HlsPlaylist> parsedOpt =
+                hlsParser.parsePlaylist(playlist.getUrl(), playlist.getReferer());
+        if (parsedOpt.isEmpty()) return Optional.empty();
+
+        HlsParserService.HlsPlaylist parsed = parsedOpt.get();
+        mergeDescriptorSubtitles(parsed, descriptor);
+        return Optional.of(new ResolvedMedia(playlist, parsed));
+    }
+
+    /**
+     * RaiPlay does not embed subtitle renditions in its HLS masters. The
+     * content descriptor exposes them in {@code video.subtitlesArray} as direct
+     * .srt URLs (relative paths under {@code raiplay.it}). Merge them into the
+     * parsed master so the orchestrator picks them up as regular subtitle
+     * sub-tasks; {@link com.github.stormino.service.SubtitleTrackDownloadStrategy}
+     * handles direct-file URLs alongside HLS ones.
+     */
+    private void mergeDescriptorSubtitles(HlsParserService.HlsPlaylist parsed,
+                                          RaiPlayContentDescriptor descriptor) {
+        if (descriptor.video() == null || descriptor.video().subtitles() == null
+                || descriptor.video().subtitles().isEmpty()) {
+            return;
+        }
+        List<HlsParserService.SubtitleTrack> merged = new ArrayList<>(
+                parsed.getSubtitleTracks() != null ? parsed.getSubtitleTracks() : List.of());
+        for (RaiPlayContentDescriptor.Subtitle sub : descriptor.video().subtitles()) {
+            if (sub.url() == null || sub.url().isBlank()) continue;
+            merged.add(HlsParserService.SubtitleTrack.builder()
+                    .url(absoluteSubtitleUrl(sub.url()))
+                    .language(sub.language())
+                    .name(sub.label() != null ? sub.label()
+                            : "Subtitle - " + (sub.language() != null ? sub.language() : "und"))
+                    .build());
+        }
+        parsed.setSubtitleTracks(merged);
+    }
+
+    /**
+     * Subtitle URLs come back as absolute (rare) or as site-relative paths with
+     * unencoded spaces — e.g. {@code /dl/video/stl/PISTA NERA.srt}. Encode each
+     * segment so the eventual HTTP fetch succeeds.
+     */
+    private String absoluteSubtitleUrl(String urlOrPath) {
+        if (urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")) {
+            return urlOrPath;
+        }
+        String[] parts = urlOrPath.split("/", -1);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) sb.append('/');
+            sb.append(URLEncoder.encode(parts[i], StandardCharsets.UTF_8).replace("+", "%20"));
+        }
+        return properties.getBaseUrl() + sb;
     }
 
     // ─── episode enumeration ─────────────────────────────────────────────────
