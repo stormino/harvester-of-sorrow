@@ -94,20 +94,20 @@ public class HlsParserService {
      */
     public Optional<HlsPlaylist> parsePlaylist(String playlistUrl, String referer) {
         try {
-            String content = fetchPlaylistContent(playlistUrl, referer);
-            if (content == null) {
+            FetchResult fetch = fetchPlaylistContent(playlistUrl, referer);
+            if (fetch == null) {
                 return Optional.empty();
             }
 
-            String baseUrl = extractBaseUrl(playlistUrl);
+            String baseUrl = extractBaseUrl(fetch.finalUrl());
 
             // Detect playlist type
-            if (content.contains("#EXT-X-STREAM-INF") || content.contains("#EXT-X-MEDIA")) {
+            if (fetch.content().contains("#EXT-X-STREAM-INF") || fetch.content().contains("#EXT-X-MEDIA")) {
                 // Master playlist
-                return Optional.of(parseMasterPlaylist(content, baseUrl));
-            } else if (content.contains("#EXTINF")) {
+                return Optional.of(parseMasterPlaylist(fetch.content(), baseUrl));
+            } else if (fetch.content().contains("#EXTINF")) {
                 // Media playlist with segments
-                return Optional.of(parseMediaPlaylist(content, baseUrl));
+                return Optional.of(parseMediaPlaylist(fetch.content(), baseUrl));
             }
 
             log.warn("Unknown playlist format");
@@ -124,13 +124,13 @@ public class HlsParserService {
      */
     public Optional<List<String>> parseSegments(String mediaPlaylistUrl, String referer) {
         try {
-            String content = fetchPlaylistContent(mediaPlaylistUrl, referer);
-            if (content == null) {
+            FetchResult fetch = fetchPlaylistContent(mediaPlaylistUrl, referer);
+            if (fetch == null) {
                 return Optional.empty();
             }
 
-            String baseUrl = extractBaseUrl(mediaPlaylistUrl);
-            HlsPlaylist playlist = parseMediaPlaylist(content, baseUrl);
+            String baseUrl = extractBaseUrl(fetch.finalUrl());
+            HlsPlaylist playlist = parseMediaPlaylist(fetch.content(), baseUrl);
             return Optional.of(playlist.getSegments());
 
         } catch (Exception e) {
@@ -144,13 +144,13 @@ public class HlsParserService {
      */
     public Optional<MediaPlaylistInfo> parseMediaPlaylistInfo(String mediaPlaylistUrl, String referer) {
         try {
-            String content = fetchPlaylistContent(mediaPlaylistUrl, referer);
-            if (content == null) {
+            FetchResult fetch = fetchPlaylistContent(mediaPlaylistUrl, referer);
+            if (fetch == null) {
                 return Optional.empty();
             }
 
-            String baseUrl = extractBaseUrl(mediaPlaylistUrl);
-            return Optional.of(parseMediaPlaylistWithEncryption(content, baseUrl));
+            String baseUrl = extractBaseUrl(fetch.finalUrl());
+            return Optional.of(parseMediaPlaylistWithEncryption(fetch.content(), baseUrl));
 
         } catch (Exception e) {
             log.error("Failed to parse media playlist info: {}", e.getMessage(), e);
@@ -323,7 +323,9 @@ public class HlsParserService {
                 .build();
     }
 
-    private String fetchPlaylistContent(String url, String referer) {
+    private record FetchResult(String content, String finalUrl) {}
+
+    private FetchResult fetchPlaylistContent(String url, String referer) {
         try {
             Request.Builder requestBuilder = new Request.Builder()
                     .url(url)
@@ -338,7 +340,10 @@ public class HlsParserService {
                     log.error("Failed to fetch playlist: HTTP {}", response.code());
                     return null;
                 }
-                return response.body().string();
+                // Use the final URL after any redirects (e.g. relinker → real m3u8 location)
+                // so that relative variant URLs are resolved correctly.
+                String finalUrl = response.request().url().toString();
+                return new FetchResult(response.body().string(), finalUrl);
             }
 
         } catch (IOException e) {
