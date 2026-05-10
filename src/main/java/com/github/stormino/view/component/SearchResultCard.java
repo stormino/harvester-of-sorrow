@@ -17,6 +17,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
+import com.github.stormino.model.source.RaiPlayMetadata;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -190,13 +191,23 @@ public class SearchResultCard extends VerticalLayout {
 
         add(titleRow, metaRow, overview, downloadBtn);
 
-        // Make card clickable to open TMDB page (only for sources keyed off TMDB)
-        if (source == MediaSource.VIXSRC && content.getTmdbId() != null) {
-            String tmdbPath = type == DownloadTask.ContentType.MOVIE ? "movie" : "tv";
-            String tmdbUrl = "https://www.themoviedb.org/" + tmdbPath + "/" + content.getTmdbId();
+        // Make card clickable to open the source's public web page.
+        String externalUrl = externalUrlFor(source);
+        if (externalUrl != null) {
             getElement().addEventListener("click", e ->
-                    getElement().executeJs("window.open($0, '_blank')", tmdbUrl));
+                    getElement().executeJs("window.open($0, '_blank')", externalUrl));
         }
+    }
+
+    private String externalUrlFor(MediaSource source) {
+        return switch (source) {
+            case VIXSRC -> content.getTmdbId() == null ? null
+                    : "https://www.themoviedb.org/"
+                            + (type == DownloadTask.ContentType.MOVIE ? "movie" : "tv")
+                            + "/" + content.getTmdbId();
+            case RAIPLAY -> content.getSourceMetadata() instanceof RaiPlayMetadata m
+                    ? m.webUrl() : null;
+        };
     }
     
     private void openDownloadDialog() {

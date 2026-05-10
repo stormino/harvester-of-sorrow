@@ -91,16 +91,16 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
 
         // Fetch the program page to filter out non-film, non-episodic content
         // (documentaries, news programs, talk shows, etc.).
-        if (card.pathId() != null) {
-            Optional<RaiPlayProgramPage> pageOpt = apiClient.getProgramPage(card.pathId());
-            if (pageOpt.isPresent()) {
-                RaiPlayProgramPage page = pageOpt.get();
-                if (!page.isMovie() && page.episodesBlock().isEmpty()) {
-                    return null; // Not a film and not an episodic series
-                }
-                // Use program page as the authoritative movie/TV discriminator.
-                isTv = !page.isMovie();
+        Optional<RaiPlayProgramPage> pageOpt = card.pathId() != null
+                ? apiClient.getProgramPage(card.pathId())
+                : Optional.empty();
+        if (pageOpt.isPresent()) {
+            RaiPlayProgramPage page = pageOpt.get();
+            if (!page.isMovie() && page.episodesBlock().isEmpty()) {
+                return null; // Not a film and not an episodic series
             }
+            // Use program page as the authoritative movie/TV discriminator.
+            isTv = !page.isMovie();
         }
 
         // Re-apply content-type filter using the authoritative classification.
@@ -119,8 +119,28 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         if (isTv) {
             int seasons = infoOpt.flatMap(RaiPlayProgramInfo::seasonCount).orElse(0);
             builder.numberOfSeasons(seasons);
+            pageOpt.map(RaiPlaySourceProvider::totalEpisodes)
+                   .filter(n -> n > 0)
+                   .ifPresent(builder::totalEpisodes);
         }
         return builder.build();
+    }
+
+    /**
+     * Sums {@code episode_size.number} across all season sets in the episodes
+     * block. The program page reports this per season ("12 episodi"), so
+     * totalling them gives the show-wide episode count.
+     */
+    private static int totalEpisodes(RaiPlayProgramPage page) {
+        return page.episodesBlock()
+                .map(b -> b.sets() == null ? 0 : b.sets().stream()
+                        .map(RaiPlayProgramPage.ContentSet::episodeSize)
+                        .filter(Objects::nonNull)
+                        .map(RaiPlayProgramPage.EpisodeSize::number)
+                        .filter(Objects::nonNull)
+                        .mapToInt(Integer::intValue)
+                        .sum())
+                .orElse(0);
     }
 
     @Override
