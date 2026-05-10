@@ -54,11 +54,27 @@ public class RaiPlayAuthService {
     private static final MediaType JSON_TYPE     = MediaType.parse("application/json; charset=utf-8");
 
     /**
-     * Gigya site key as embedded in the RaiPlay website JS — prefix {@code 3_}
-     * followed by 50–80 url-safe characters. Loose enough to survive minor
-     * format tweaks; specific enough to avoid false positives.
+     * Ordered patterns used to discover the Gigya site key from RaiPlay's HTML.
+     * Tried in order; the first match wins. More specific patterns first avoids
+     * picking up unrelated {@code 3_…} strings from other embedded SDKs.
+     *
+     * <p>Pattern 1 – Gigya CDN script URL (most reliable):
+     *   {@code <script src="https://cdns.eu1.gigya.com/JS/gigya.js?apikey=3_...">}
+     * <p>Pattern 2 – JSON config object (common for SPA bundles):
+     *   {@code "apiKey":"3_..."} or {@code "apiKey": "3_..."}
+     * <p>Pattern 3 – generic fallback (last resort, may match unrelated keys):
+     *   any bare {@code 3_[A-Za-z0-9_-]{50,80}} string
      */
-    private static final Pattern GIGYA_KEY_PATTERN = Pattern.compile("3_[A-Za-z0-9_-]{50,80}");
+    private static final Pattern[] GIGYA_KEY_PATTERNS = {
+            Pattern.compile(
+                    "cdns?\\.eu1\\.gigya\\.com/[^\"']*[?&]apikey=(3_[A-Za-z0-9_-]{40,})",
+                    Pattern.CASE_INSENSITIVE),
+            Pattern.compile(
+                    "\"apiKey\"\\s*:\\s*\"(3_[A-Za-z0-9_-]{40,})\"",
+                    Pattern.CASE_INSENSITIVE),
+            Pattern.compile(
+                    "(3_[A-Za-z0-9_-]{50,80})")
+    };
 
     /** Gigya error code returned when the apiKey parameter is wrong/rotated. */
     private static final int GIGYA_ERR_INVALID_API_KEY = 400093;
@@ -185,36 +201,56 @@ public class RaiPlayAuthService {
     }
 
     /**
-     * Scrape the current Gigya site key from the RaiPlay homepage. The key is
-     * embedded as a {@code 3_…} string in inline JS / script src URLs. Returns
-     * {@code null} if the page can't be fetched or no key matches the pattern.
+     * Scrape the current Gigya site key from the RaiPlay login page (or
+     * homepage as fallback). Tries several patterns from most specific to
+     * least specific so we don't accidentally pick up an unrelated {@code 3_…}
+     * string from another embedded third-party SDK.
+     *
+     * @return the discovered key, or {@code null} if nothing was found
      */
     private String discoverGigyaApiKey() {
+        String[] urlsToSearch = {
+                properties.getBaseUrl() + "/login",
+                properties.getBaseUrl() + "/"
+        };
+
+        for (String url : urlsToSearch) {
+            String html = fetchPage(url);
+            if (html == null) continue;
+
+            for (int i = 0; i < GIGYA_KEY_PATTERNS.length; i++) {
+                Matcher m = GIGYA_KEY_PATTERNS[i].matcher(html);
+                if (m.find()) {
+                    // Patterns 0 and 1 use capturing group 1; pattern 2 uses group 1 too.
+                    String key = m.group(1);
+                    log.info("Discovered Gigya API key via pattern#{} from {} "
+                                    + "(prefix={}, length={})",
+                            i, url, key.substring(0, Math.min(12, key.length())), key.length());
+                    return key;
+                }
+            }
+            log.warn("Gigya key discovery: no key found in {} ({} bytes)", url, html.length());
+        }
+        return null;
+    }
+
+    private String fetchPage(String url) {
         Request request = new Request.Builder()
-                .url(properties.getBaseUrl() + "/")
+                .url(url)
                 .header("User-Agent",
                         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                        + "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml")
+                        + "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "it-IT,it;q=0.9")
                 .build();
-
         try (Response response = authClient.newCall(request).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
-                log.warn("Gigya key discovery: HTTP {} from {}", response.code(), request.url());
+                log.warn("Gigya key discovery: HTTP {} from {}", response.code(), url);
                 return null;
             }
-            String html = response.body().string();
-            Matcher m = GIGYA_KEY_PATTERN.matcher(html);
-            if (m.find()) {
-                String key = m.group();
-                log.info("Discovered Gigya API key from RaiPlay homepage (length={})", key.length());
-                return key;
-            }
-            log.warn("Gigya key discovery: no {} match in homepage HTML ({} bytes)",
-                    GIGYA_KEY_PATTERN.pattern(), html.length());
-            return null;
+            return response.body().string();
         } catch (IOException e) {
-            log.warn("Gigya key discovery failed: {}", e.getMessage());
+            log.warn("Gigya key discovery: fetch failed for {}: {}", url, e.getMessage());
             return null;
         }
     }
