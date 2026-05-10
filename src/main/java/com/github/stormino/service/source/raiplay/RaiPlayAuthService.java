@@ -21,27 +21,29 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * Handles automatic RaiPlay session management via Gigya (SAP Customer Data Cloud).
+ * Handles automatic RaiPlay session management via RaiSSO (Rai's own auth service,
+ * not Gigya/SAP CDC).
  *
- * <p>Flow:
+ * <p>Three-step flow, all under {@code https://www.raiplay.it/atomatic/...}:
  * <ol>
- *   <li>POST {@code accounts.login} to Gigya with email + password → session token</li>
- *   <li>POST {@code accounts.getJWT} to Gigya with the session token → ID token (JWT)</li>
- *   <li>POST the JWT to the RaiPlay social-login endpoint → {@code Set-Cookie} headers</li>
+ *   <li>POST {@code /token-service/api/anonymize} with the static anonymize key
+ *       → returns a per-session {@code domainApiKey}</li>
+ *   <li>POST {@code /raisso-service/login/site} with {@code domainApiKey} +
+ *       email + password → returns {@code authorization} (JWT) and {@code refreshToken}</li>
+ *   <li>POST {@code /raisso-service/token/check} with header {@code x-auth-token}
+ *       and the {@code refreshToken} → rotates the JWT</li>
  * </ol>
  *
- * <p>Uses its own internal {@link OkHttpClient} to avoid a circular Spring bean dependency
- * (the application's shared client depends on {@link RaiPlayCookieInterceptor}, which reads
- * the cookie produced here).
+ * <p>Authenticated requests inject the JWT and the {@code domainApiKey} via
+ * {@link RaiPlayAuthInterceptor} as headers ({@code x-auth-token} +
+ * {@code domainapikey}); cookies are not used.
+ *
+ * <p>Uses an internal {@link OkHttpClient} to avoid a circular Spring bean dependency
+ * (the application's shared client depends on {@link RaiPlayAuthInterceptor}, which
+ * reads the tokens produced here).
  *
  * <p>Only instantiated when {@code raiplay.username} and {@code raiplay.password} are both set.
  */
@@ -52,55 +54,17 @@ import java.util.regex.Pattern;
         "!'${raiplay.username:}'.isEmpty() && !'${raiplay.password:}'.isEmpty()")
 public class RaiPlayAuthService {
 
-    private static final String GIGYA_LOGIN_URL = "https://accounts.eu1.gigya.com/accounts.login";
-    private static final String GIGYA_JWT_URL   = "https://accounts.eu1.gigya.com/accounts.getJWT";
-    private static final MediaType JSON_TYPE     = MediaType.parse("application/json; charset=utf-8");
-
-    /**
-     * Ordered patterns used to discover the Gigya site key from RaiPlay's HTML.
-     * Tried in order; the first match wins. More specific patterns first avoids
-     * picking up unrelated {@code 3_…} strings from other embedded SDKs.
-     *
-     * <p>Pattern 1 – Gigya CDN script URL (most reliable):
-     *   {@code <script src="https://cdns.eu1.gigya.com/JS/gigya.js?apikey=3_...">}
-     * <p>Pattern 2 – JSON config object (common for SPA bundles):
-     *   {@code "apiKey":"3_..."} or {@code "apiKey": "3_..."}
-     * <p>Pattern 3 – generic fallback (last resort, may match unrelated keys):
-     *   any bare {@code 3_[A-Za-z0-9_-]{50,80}} string
-     */
-    private static final Pattern[] GIGYA_KEY_PATTERNS = {
-            Pattern.compile(
-                    "cdns?\\.eu1\\.gigya\\.com/[^\"']*[?&]apikey=(3_[A-Za-z0-9_-]{40,})",
-                    Pattern.CASE_INSENSITIVE),
-            Pattern.compile(
-                    "\"apiKey\"\\s*:\\s*\"(3_[A-Za-z0-9_-]{40,})\"",
-                    Pattern.CASE_INSENSITIVE),
-            Pattern.compile(
-                    "(3_[A-Za-z0-9_-]{50,80})")
-    };
-
-    /** Gigya error code: the apiKey parameter is wrong or rotated. */
-    private static final int GIGYA_ERR_INVALID_API_KEY = 400093;
-    /** Gigya error code: valid API key but the loginID is not registered in that site. */
-    private static final int GIGYA_ERR_INVALID_LOGIN_ID = 403042;
+    private static final MediaType JSON_TYPE = MediaType.parse("application/json; charset=utf-8");
 
     private final ObjectMapper objectMapper;
     private final RaiPlayProperties properties;
 
-    // Internal client: no circular dependency with the application OkHttpClient bean.
     private OkHttpClient authClient;
 
-    private volatile String activeCookie = null;
-    private volatile Instant cookieExpiry = Instant.EPOCH;
-
-    /**
-     * The Gigya site key we'll send with the next request. Starts as the value
-     * from configuration; replaced at runtime if the configured key is rejected
-     * and we successfully scrape a fresh one from the RaiPlay homepage. Lets
-     * the app survive RaiPlay rotating their public site key without an
-     * application restart or env-var update.
-     */
-    private volatile String activeApiKey;
+    private volatile String authToken    = null;
+    private volatile String domainApiKey = null;
+    private volatile String refreshToken = null;
+    private volatile Instant tokenExpiry = Instant.EPOCH;
 
     @PostConstruct
     public void init() {
@@ -111,21 +75,26 @@ public class RaiPlayAuthService {
                 .followRedirects(true)
                 .build();
 
-        activeApiKey = properties.getGigyaApiKey();
         log.info("RaiPlay auto-login enabled for user {}", properties.getUsername());
         refresh();
     }
 
-    /** Returns the active auto-obtained cookie, or {@code null} if login failed. */
-    public String getCookie() {
-        if (activeCookie != null && Instant.now().isBefore(cookieExpiry.minus(1, ChronoUnit.HOURS))) {
-            return activeCookie;
+    /** JWT to send as {@code x-auth-token}, refreshing if close to expiry. */
+    public String getAuthToken() {
+        if (authToken != null && Instant.now().isBefore(tokenExpiry.minus(1, ChronoUnit.HOURS))) {
+            return authToken;
         }
         refresh();
-        return activeCookie;
+        return authToken;
     }
 
-    /** Proactively refresh 1 hour before expiry (checked every 23 h). */
+    /** Per-session domain key to send as {@code domainapikey}. */
+    public String getDomainApiKey() {
+        if (domainApiKey == null) refresh();
+        return domainApiKey;
+    }
+
+    /** Proactively refresh ahead of expiry. */
     @Scheduled(fixedDelayString = "PT23H")
     public void scheduledRefresh() {
         log.debug("RaiPlay scheduled session refresh");
@@ -134,270 +103,143 @@ public class RaiPlayAuthService {
 
     private synchronized void refresh() {
         try {
-            GigyaLoginResult login = gigyaLogin(activeApiKey);
-
-            // Detect a wrong/rotated API key and recover by scraping candidates
-            // from the RaiPlay pages and probing each one against Gigya.
-            // Trigger on both 400093 (key unknown to Gigya) and 403042 (valid Gigya
-            // key but user not registered in that site — wrong app key).
-            if (login.invalidApiKey() || login.wrongSite()) {
-                String discovered = discoverGigyaApiKey();
-                if (discovered != null && !discovered.equals(activeApiKey)) {
-                    log.info("Configured Gigya API key was rejected; retrying with key discovered "
-                            + "from RaiPlay homepage");
-                    activeApiKey = discovered;
-                    login = gigyaLogin(activeApiKey);
-                }
+            // If we already have a refresh token, try the cheap path first.
+            if (authToken != null && refreshToken != null && tokenCheck()) {
+                log.info("RaiPlay session refreshed via token/check");
+                return;
             }
 
-            if (login.session() == null) return;
+            String dak = anonymize();
+            if (dak == null) return;
+            domainApiKey = dak;
 
-            String jwt = gigyaGetJwt(login.session());
-            if (jwt == null) return;
+            LoginResponse login = login(dak);
+            if (login == null || login.authorization() == null) return;
 
-            String cookie = exchangeForRaiPlayCookie(jwt);
-            if (cookie != null) {
-                activeCookie = cookie;
-                // Gigya default session expiry is 30 days; we refresh 23 h before that.
-                cookieExpiry = Instant.now().plus(29, ChronoUnit.DAYS);
-                log.info("RaiPlay session refreshed successfully");
-            } else {
-                log.warn("RaiPlay JWT exchange returned no cookies. "
-                        + "If auto-login keeps failing, check raiplay.gigya-exchange-url in application.yml "
-                        + "by inspecting the POST request made to raiplay.it during browser login.");
-            }
+            authToken    = login.authorization();
+            refreshToken = login.refreshToken();
+            tokenExpiry  = Instant.now().plus(20, ChronoUnit.HOURS);
+            log.info("RaiPlay session established successfully");
         } catch (Exception e) {
             log.error("RaiPlay auto-auth failed: {}", e.getMessage(), e);
         }
     }
 
     // -------------------------------------------------------------------------
-    // Gigya API calls
+    // RaiSSO API calls
     // -------------------------------------------------------------------------
 
-    private GigyaLoginResult gigyaLogin(String apiKey) throws IOException {
-        RequestBody body = new FormBody.Builder()
-                .add("loginID", properties.getUsername())
-                .add("password", properties.getPassword())
-                .add("apiKey", apiKey)
-                .add("format", "json")
-                .add("include", "profile,data,loginIDs,sessionInfo")
-                .build();
-
+    /** Step 1: exchange the static anonymize key for a per-session domainApiKey. */
+    private String anonymize() throws IOException {
+        String json = objectMapper.writeValueAsString(Map.of("key", properties.getAnonymizeKey()));
         Request request = new Request.Builder()
-                .url(GIGYA_LOGIN_URL)
-                .post(body)
-                .build();
-
-        try (Response response = authClient.newCall(request).execute()) {
-            String rawBody = response.body() != null ? response.body().string() : "{}";
-            GigyaLoginResponse parsed = objectMapper.readValue(rawBody, GigyaLoginResponse.class);
-
-            if (parsed.errorCode() != 0) {
-                log.error("Gigya login error {} – {} (apiKey prefix={})",
-                        parsed.errorCode(), parsed.errorMessage(),
-                        apiKey.substring(0, Math.min(12, apiKey.length())));
-                return new GigyaLoginResult(null,
-                        parsed.errorCode() == GIGYA_ERR_INVALID_API_KEY,
-                        parsed.errorCode() == GIGYA_ERR_INVALID_LOGIN_ID);
-            }
-            if (parsed.sessionInfo() == null) {
-                log.error("Gigya login returned no sessionInfo");
-                return new GigyaLoginResult(null, false, false);
-            }
-            log.debug("Gigya login OK for UID={}", parsed.uid());
-            return new GigyaLoginResult(new GigyaSession(parsed.sessionInfo().sessionToken()), false, false);
-        }
-    }
-
-    /**
-     * Scrape candidate Gigya site keys from the RaiPlay login and home pages,
-     * then probe each one by attempting a login with the real credentials.
-     *
-     * <p>Probe logic:
-     * <ul>
-     *   <li>400093 → wrong/invalid key for Gigya → discard</li>
-     *   <li>403042 → valid Gigya key but user not in this site → discard (wrong app)</li>
-     *   <li>403041 → correct site, credentials mismatch → accept (user config problem)</li>
-     *   <li>0      → success → accept</li>
-     * </ul>
-     *
-     * @return the first key that gets past Gigya's site-level check, or {@code null}
-     */
-    private String discoverGigyaApiKey() {
-        String[] urlsToSearch = {
-                properties.getBaseUrl() + "/login",
-                properties.getBaseUrl() + "/"
-        };
-
-        // Collect all candidate keys from all pages, specific patterns first.
-        Set<String> candidates = new LinkedHashSet<>();
-        for (String url : urlsToSearch) {
-            String html = fetchPage(url);
-            if (html == null) continue;
-            log.debug("Gigya key discovery: scanning {} ({} bytes)", url, html.length());
-            for (Pattern p : GIGYA_KEY_PATTERNS) {
-                Matcher m = p.matcher(html);
-                while (m.find()) {
-                    candidates.add(m.group(1));
-                }
-            }
-        }
-        candidates.remove(activeApiKey); // already tried above, don't retry
-
-        if (candidates.isEmpty()) {
-            log.warn("Gigya key discovery: no 3_… candidate keys found in HTML. "
-                    + "Set RAIPLAY_GIGYA_API_KEY manually: open DevTools on raiplay.it/login, "
-                    + "filter network requests to gigya.com, and copy the apiKey parameter.");
-            return null;
-        }
-
-        log.info("Gigya key discovery: found {} candidate(s), probing each", candidates.size());
-        for (String key : candidates) {
-            try {
-                GigyaLoginResult probe = gigyaLogin(key);
-                if (probe.invalidApiKey()) {
-                    log.debug("Gigya key candidate {} (prefix={}) → invalid API key, skipping",
-                            key.length(), key.substring(0, Math.min(12, key.length())));
-                    continue;
-                }
-                if (probe.wrongSite()) {
-                    log.debug("Gigya key candidate {} (prefix={}) → valid key but user not in this "
-                            + "site (403042), skipping",
-                            key.length(), key.substring(0, Math.min(12, key.length())));
-                    continue;
-                }
-                // errorCode 0 (success) or 403041 (valid site, bad password) → correct site key
-                log.info("Gigya key discovery: found working site key (prefix={}, length={})",
-                        key.substring(0, Math.min(12, key.length())), key.length());
-                return key;
-            } catch (IOException e) {
-                log.warn("Gigya key probe failed for candidate (prefix={}): {}",
-                        key.substring(0, Math.min(12, key.length())), e.getMessage());
-            }
-        }
-
-        log.warn("Gigya key discovery: none of the {} candidate(s) matched the RaiPlay login site. "
-                + "Set RAIPLAY_GIGYA_API_KEY manually: open DevTools on raiplay.it/login, "
-                + "filter network requests to gigya.com, and copy the apiKey parameter.",
-                candidates.size());
-        return null;
-    }
-
-    private String fetchPage(String url) {
-        Request request = new Request.Builder()
-                .url(url)
-                .header("User-Agent",
-                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                        + "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
-                .header("Accept-Language", "it-IT,it;q=0.9")
-                .build();
-        try (Response response = authClient.newCall(request).execute()) {
-            if (!response.isSuccessful() || response.body() == null) {
-                log.warn("Gigya key discovery: HTTP {} from {}", response.code(), url);
-                return null;
-            }
-            return response.body().string();
-        } catch (IOException e) {
-            log.warn("Gigya key discovery: fetch failed for {}: {}", url, e.getMessage());
-            return null;
-        }
-    }
-
-    private String gigyaGetJwt(GigyaSession session) throws IOException {
-        RequestBody body = new FormBody.Builder()
-                .add("apiKey", activeApiKey)
-                .add("login_token", session.sessionToken())
-                .add("format", "json")
-                .add("expiration", "86400")
-                .build();
-
-        Request request = new Request.Builder()
-                .url(GIGYA_JWT_URL)
-                .post(body)
-                .build();
-
-        try (Response response = authClient.newCall(request).execute()) {
-            String rawBody = response.body() != null ? response.body().string() : "{}";
-            GigyaJwtResponse parsed = objectMapper.readValue(rawBody, GigyaJwtResponse.class);
-
-            if (parsed.errorCode() != 0) {
-                log.error("Gigya getJWT error {} – {}", parsed.errorCode(), parsed.errorMessage());
-                return null;
-            }
-            log.debug("Gigya JWT obtained successfully");
-            return parsed.idToken();
-        }
-    }
-
-    /**
-     * POSTs the Gigya JWT to RaiPlay's social-login endpoint and collects the
-     * resulting session cookies as a single {@code Cookie:} header value.
-     */
-    private String exchangeForRaiPlayCookie(String jwt) throws IOException {
-        String exchangeUrl = properties.getGigyaExchangeUrl();
-        String requestJson  = objectMapper.writeValueAsString(Map.of("idToken", jwt));
-
-        Request request = new Request.Builder()
-                .url(exchangeUrl)
-                .post(RequestBody.create(requestJson, JSON_TYPE))
-                .addHeader("Accept", "application/json")
+                .url(properties.getBaseUrl() + "/atomatic/token-service/api/anonymize")
+                .post(RequestBody.create(json, JSON_TYPE))
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Accept", "application/json")
+                .addHeader("x-caller", "web")
+                .addHeader("x-caller-version", "1.0")
                 .addHeader("Origin", properties.getBaseUrl())
                 .addHeader("Referer", properties.getBaseUrl() + "/")
                 .build();
 
         try (Response response = authClient.newCall(request).execute()) {
-            log.debug("RaiPlay JWT exchange returned HTTP {}", response.code());
-
-            List<String> setCookies = response.headers("Set-Cookie");
-            if (setCookies.isEmpty()) {
-                log.warn("RaiPlay JWT exchange (HTTP {}) returned no Set-Cookie headers", response.code());
+            String body = response.body() != null ? response.body().string() : "{}";
+            if (!response.isSuccessful()) {
+                log.error("RaiPlay anonymize HTTP {}: {}", response.code(), body);
                 return null;
             }
-
-            // Build a "Cookie:" header value from all Set-Cookie entries.
-            StringBuilder cookieHeader = new StringBuilder();
-            for (String sc : setCookies) {
-                String nameValue = sc.split(";")[0]; // "name=value" before any cookie attributes
-                if (!cookieHeader.isEmpty()) cookieHeader.append("; ");
-                cookieHeader.append(nameValue);
+            AnonymizeResponse parsed = objectMapper.readValue(body, AnonymizeResponse.class);
+            if (parsed.domainApiKey() == null) {
+                log.error("RaiPlay anonymize returned no domainApiKey: {}", body);
+                return null;
             }
-            return cookieHeader.toString();
+            return parsed.domainApiKey();
+        }
+    }
+
+    /** Step 2: log in with the freshly minted domainApiKey + email + password. */
+    private LoginResponse login(String dak) throws IOException {
+        RequestBody body = new FormBody.Builder()
+                .add("domainApiKey", dak)
+                .add("email", properties.getUsername())
+                .add("password", properties.getPassword())
+                .build();
+
+        Request request = new Request.Builder()
+                .url(properties.getBaseUrl() + "/atomatic/raisso-service/login/site")
+                .post(body)
+                .addHeader("Accept", "application/json")
+                .addHeader("x-caller", "web")
+                .addHeader("x-caller-version", "1.0")
+                .addHeader("Origin", properties.getBaseUrl())
+                .addHeader("Referer", properties.getBaseUrl() + "/")
+                .build();
+
+        try (Response response = authClient.newCall(request).execute()) {
+            String raw = response.body() != null ? response.body().string() : "{}";
+            if (!response.isSuccessful()) {
+                log.error("RaiPlay login HTTP {}: {}", response.code(), raw);
+                return null;
+            }
+            LoginResponse parsed = objectMapper.readValue(raw, LoginResponse.class);
+            if (parsed.authorization() == null) {
+                log.error("RaiPlay login returned no authorization JWT: {}", raw);
+                return null;
+            }
+            return parsed;
+        }
+    }
+
+    /** Step 3: rotate the JWT using the refreshToken. */
+    private boolean tokenCheck() {
+        if (domainApiKey == null || refreshToken == null) return false;
+        RequestBody body = new FormBody.Builder()
+                .add("domainApiKey", domainApiKey)
+                .add("refreshToken", refreshToken)
+                .build();
+
+        Request request = new Request.Builder()
+                .url(properties.getBaseUrl() + "/atomatic/raisso-service/token/check")
+                .post(body)
+                .addHeader("Accept", "application/json")
+                .addHeader("x-auth-token", authToken)
+                .addHeader("x-caller", "web")
+                .addHeader("x-caller-version", "1.0")
+                .addHeader("Origin", properties.getBaseUrl())
+                .addHeader("Referer", properties.getBaseUrl() + "/")
+                .build();
+
+        try (Response response = authClient.newCall(request).execute()) {
+            String raw = response.body() != null ? response.body().string() : "{}";
+            if (!response.isSuccessful()) {
+                log.warn("RaiPlay token/check HTTP {}: {} – falling back to full login",
+                        response.code(), raw);
+                return false;
+            }
+            LoginResponse parsed = objectMapper.readValue(raw, LoginResponse.class);
+            if (parsed.authorization() == null) return false;
+            authToken = parsed.authorization();
+            if (parsed.refreshToken() != null) refreshToken = parsed.refreshToken();
+            tokenExpiry = Instant.now().plus(20, ChronoUnit.HOURS);
+            return true;
+        } catch (IOException e) {
+            log.warn("RaiPlay token/check failed: {} – falling back to full login", e.getMessage());
+            return false;
         }
     }
 
     // -------------------------------------------------------------------------
-    // Gigya response DTOs (internal to this service)
+    // Response DTOs
     // -------------------------------------------------------------------------
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record GigyaLoginResponse(
-            @JsonProperty("errorCode")    int errorCode,
-            @JsonProperty("errorMessage") String errorMessage,
-            @JsonProperty("UID")          String uid,
-            @JsonProperty("sessionInfo")  SessionInfo sessionInfo
-    ) {
-        @JsonIgnoreProperties(ignoreUnknown = true)
-        record SessionInfo(@JsonProperty("sessionToken") String sessionToken) {}
-    }
+    record AnonymizeResponse(@JsonProperty("domainApiKey") String domainApiKey) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record GigyaJwtResponse(
-            @JsonProperty("errorCode")    int errorCode,
-            @JsonProperty("errorMessage") String errorMessage,
-            @JsonProperty("id_token")     String idToken
+    record LoginResponse(
+            @JsonProperty("authorization") String authorization,
+            @JsonProperty("refreshToken")  String refreshToken,
+            @JsonProperty("ua")            String ua
     ) {}
-
-    record GigyaSession(String sessionToken) {}
-
-    /**
-     * Outcome of a {@link #gigyaLogin(String)} call.
-     *
-     * @param session      non-null on success
-     * @param invalidApiKey  true when Gigya returned 400093 (key not recognised at all)
-     * @param wrongSite    true when Gigya returned 403042 (valid key but user not in this site)
-     */
-    private record GigyaLoginResult(GigyaSession session, boolean invalidApiKey, boolean wrongSite) {}
 }

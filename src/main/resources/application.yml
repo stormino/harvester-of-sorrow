@@ -22,20 +22,16 @@ raiplay:
   search-page-size: ${RAIPLAY_SEARCH_PAGE_SIZE:48}
 
   # Set RAIPLAY_USERNAME + RAIPLAY_PASSWORD to enable RaiPlay.  The app logs in
-  # via Gigya on startup and refreshes the session every 23 h.  If either is
-  # blank, all RaiPlay components (provider, API client, auth service, cookie
+  # via RaiSSO on startup and refreshes the session every 23 h.  If either is
+  # blank, all RaiPlay components (provider, API client, auth service, auth
   # interceptor) are skipped entirely – no requests are made and the source
   # does not appear in search results.
   username: ${RAIPLAY_USERNAME:}
   password: ${RAIPLAY_PASSWORD:}
 
-  # Gigya (SAP CDC) site key embedded in the RaiPlay website JS.
-  # Verify via DevTools: any request to accounts.eu1.gigya.com → apiKey param.
-  gigya-api-key: ${RAIPLAY_GIGYA_API_KEY:3_zEiEMnMEqZDFtEUvLMbJbMQq82GXvOBkE8MBG4gFqIjI7LyKVBJJXHjXoWgHJBm}
-
-  # RaiPlay endpoint that accepts {"idToken":"<gigya-jwt>"} and returns session cookies.
-  # If auto-login fails, check app logs and find the correct URL in DevTools during login.
-  gigya-exchange-url: ${RAIPLAY_GIGYA_EXCHANGE_URL:https://www.raiplay.it/login/social}
+  # Static key sent to /atomatic/token-service/api/anonymize to obtain the
+  # per-session domainApiKey.  Embedded in the RaiPlay JS; rotates rarely.
+  anonymize-key: ${RAIPLAY_ANONYMIZE_KEY:d0a5a58c2356f9b8f46262a206515222}
 
 app:
   version: '@project.version@'

@@ -34,22 +34,9 @@ public class RaiPlayProperties {
     private String password = "";
 
     /**
-     * Gigya (SAP CDC) site / API key used by RaiPlay.
-     * This is a public constant embedded in the RaiPlay website JS.
-     * To verify: open DevTools → Network, filter by {@code accounts.eu1.gigya.com},
-     * and copy the {@code apiKey} query parameter from any request.
-     * Override via {@code RAIPLAY_GIGYA_API_KEY} env var.
+     * Static key sent to {@code /atomatic/token-service/api/anonymize} to obtain a
+     * per-session {@code domainApiKey}. Public constant embedded in the RaiPlay JS;
+     * rotates rarely. Override via {@code RAIPLAY_ANONYMIZE_KEY} env var if needed.
      */
-    private String gigyaApiKey = "3_zEiEMnMEqZDFtEUvLMbJbMQq82GXvOBkE8MBG4gFqIjI7LyKVBJJXHjXoWgHJBm";
-
-    /**
-     * RaiPlay endpoint that accepts a Gigya JWT ({@code {"idToken":"..."}}) and
-     * returns session cookies via {@code Set-Cookie} headers.
-     *
-     * <p>If the default doesn't work, open DevTools → Network during a browser
-     * login, filter requests to {@code raiplay.it}, and look for the POST that
-     * carries an {@code idToken} in its body.
-     * Override via {@code RAIPLAY_GIGYA_EXCHANGE_URL} env var.
-     */
-    private String gigyaExchangeUrl = "https://www.raiplay.it/login/social";
+    private String anonymizeKey = "d0a5a58c2356f9b8f46262a206515222";
 }

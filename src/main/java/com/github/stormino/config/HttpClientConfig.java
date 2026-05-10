@@ -1,7 +1,7 @@
 package com.github.stormino.config;
 
+import com.github.stormino.service.source.raiplay.RaiPlayAuthInterceptor;
 import com.github.stormino.service.source.raiplay.RaiPlayAuthService;
-import com.github.stormino.service.source.raiplay.RaiPlayCookieInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Cookie;
@@ -36,10 +36,10 @@ public class HttpClientConfig {
                 .writeTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
                 .addInterceptor(new CloudflareInterceptor());
 
-        // Only register the RaiPlay cookie interceptor when auto-login is enabled.
+        // Only register the RaiPlay auth interceptor when auto-login is enabled.
         RaiPlayAuthService auth = raiPlayAuthService.getIfAvailable();
         if (auth != null) {
-            builder.addInterceptor(new RaiPlayCookieInterceptor(auth));
+            builder.addInterceptor(new RaiPlayAuthInterceptor(auth));
         }
 
         return builder
