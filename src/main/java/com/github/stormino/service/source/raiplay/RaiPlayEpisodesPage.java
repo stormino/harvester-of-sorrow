@@ -70,15 +70,20 @@ public record RaiPlayEpisodesPage(
     }
 
     /**
-     * Returns the season's ContentSet from the {@code "Episodi"} block.
-     * {@code "Extra"} and similar non-episode blocks are ignored.
+     * Returns the {@code "Episodi"} block's ContentSet whose id matches the
+     * one requested in the URL. The response always lists every season's set
+     * under {@code seasons[0].episodes[]} for cache/routing context, but
+     * populates {@code cards[]} only on the requested set — picking
+     * {@code episodes.get(0)} blindly therefore only worked for the first
+     * season (see the rocco-schiavone fixture).
      */
-    public Optional<SeasonContentSet> episodiSeason() {
+    public Optional<SeasonContentSet> episodiSeason(String setId) {
         if (seasons == null) return Optional.empty();
         return seasons.stream()
                 .filter(s -> "Episodi".equals(s.label()))
-                .filter(s -> s.episodes() != null && !s.episodes().isEmpty())
-                .map(s -> s.episodes().get(0))
+                .filter(s -> s.episodes() != null)
+                .flatMap(s -> s.episodes().stream())
+                .filter(e -> setId == null || setId.equals(e.id()))
                 .findFirst();
     }
 }

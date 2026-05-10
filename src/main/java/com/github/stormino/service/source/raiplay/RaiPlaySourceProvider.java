@@ -233,7 +233,7 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         if (episodesOpt.isEmpty()) return Optional.empty();
 
         Optional<RaiPlayEpisodesPage.SeasonContentSet> contentSetOpt =
-                episodesOpt.get().episodiSeason();
+                episodesOpt.get().episodiSeason(seasonSet.id());
         if (contentSetOpt.isEmpty() || contentSetOpt.get().cards() == null) return Optional.empty();
 
         return contentSetOpt.get().cards().stream()
@@ -366,7 +366,7 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
 
     private List<EpisodeRef> episodesForSeason(String slug, String blockId, String setId) {
         return apiClient.getSeasonEpisodes(slug, blockId, setId)
-                .flatMap(RaiPlayEpisodesPage::episodiSeason)
+                .flatMap(p -> p.episodiSeason(setId))
                 .map(cs -> cs.cards() == null ? Stream.<RaiPlayEpisodesPage.EpisodeCard>empty() : cs.cards().stream())
                 .orElseGet(Stream::empty)
                 .filter(c -> c.parseSeason() != null && c.parseEpisode() != null && c.pathId() != null)

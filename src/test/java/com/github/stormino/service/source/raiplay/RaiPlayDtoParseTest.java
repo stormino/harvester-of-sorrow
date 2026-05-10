@@ -155,7 +155,8 @@ class RaiPlayDtoParseTest {
         assertEquals(2, page.seasons().size(),
                 "response includes both Episodi and Extra blocks");
 
-        RaiPlayEpisodesPage.SeasonContentSet s1 = page.episodiSeason().orElseThrow();
+        RaiPlayEpisodesPage.SeasonContentSet s1 = page.episodiSeason(
+                "ContentSet-e248fdd9-215f-499d-adf8-fe0aba70fbaf").orElseThrow();
         assertEquals("Stagione 1", s1.label());
         assertEquals(6, s1.cards().size());
 
@@ -173,6 +174,19 @@ class RaiPlayDtoParseTest {
         assertEquals(1, e6.parseSeason());
         assertEquals(6, e6.parseEpisode());
         assertEquals("Pulizie di primavera", e6.episodeTitle());
+    }
+
+    @Test
+    void episodiSeason_picksRequestedSetIdNotFirst() throws Exception {
+        // The episodes.json response always lists every season's ContentSet
+        // shell (only the requested season has populated cards). The selector
+        // must match by setId, not just take episodes[0].
+        RaiPlayEpisodesPage page = readFixture(
+                "raiplay/episode-schiavone-s1.json", RaiPlayEpisodesPage.class);
+
+        RaiPlayEpisodesPage.SeasonContentSet s2 = page.episodiSeason(
+                "ContentSet-c03544b3-c284-41b4-bb0f-09a247305309").orElseThrow();
+        assertEquals("Stagione 2", s2.label());
     }
 
     private <T> T readFixture(String resourcePath, Class<T> type) throws Exception {
