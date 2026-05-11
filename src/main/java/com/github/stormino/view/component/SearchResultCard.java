@@ -61,6 +61,14 @@ public class SearchResultCard extends VerticalLayout {
     }
     
     private void createCard() {
+        getElement().setAttribute("data-testid", "result-card");
+        MediaSource cardSource = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
+        getElement().setAttribute("data-source", cardSource.name().toLowerCase());
+        getElement().setAttribute("data-type", type.name());
+        if (content.getTitle() != null) {
+            getElement().setAttribute("data-title", content.getTitle());
+        }
+
         addClassNames(
                 LumoUtility.BorderRadius.MEDIUM,
                 LumoUtility.Padding.SMALL,
@@ -184,6 +192,9 @@ public class SearchResultCard extends VerticalLayout {
         // Download button
         Button downloadBtn = new Button("Download", VaadinIcon.DOWNLOAD.create());
         downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        if (content.getTmdbId() != null) {
+            downloadBtn.setId("result-card-download-" + content.getTmdbId());
+        }
         downloadBtn.addClickListener(e -> openDownloadDialog());
         downloadBtn.getStyle().set("margin-top", "0.25rem");
         downloadBtn.getElement().addEventListener("click", e -> {}).addEventData("event.stopPropagation()");
@@ -220,6 +231,7 @@ public class SearchResultCard extends VerticalLayout {
         
         // Language selector — restricted to languages this source actually serves
         MultiSelectComboBox<String> languageSelector = new MultiSelectComboBox<>("Languages");
+        languageSelector.setId("dialog-language-selector");
         List<String> languageItems = ALL_LANGUAGES.stream()
                 .filter(lang -> supportedLanguages == null
                         || supportedLanguages.isEmpty()
@@ -230,6 +242,7 @@ public class SearchResultCard extends VerticalLayout {
 
         // Quality selector
         Select<String> qualitySelector = new Select<>();
+        qualitySelector.setId("dialog-quality-selector");
         qualitySelector.setLabel("Quality");
         qualitySelector.setItems("best", "1080", "720", "worst");
         qualitySelector.setValue(defaultQualitySupplier.get());
@@ -254,6 +267,7 @@ public class SearchResultCard extends VerticalLayout {
         // TV-specific: Season/Episode selectors
         if (type == DownloadTask.ContentType.TV) {
             IntegerField seasonField = new IntegerField("Season");
+            seasonField.setId("dialog-season-field");
             seasonField.setPlaceholder("All seasons");
             seasonField.setHelperText("Leave blank to download all seasons");
             seasonField.setMin(1);
@@ -262,6 +276,7 @@ public class SearchResultCard extends VerticalLayout {
             seasonField.setWidthFull();
 
             IntegerField episodeField = new IntegerField("Episode");
+            episodeField.setId("dialog-episode-field");
             episodeField.setPlaceholder("All episodes");
             episodeField.setHelperText("Leave blank to download all episodes in season");
             episodeField.setMin(1);
@@ -270,7 +285,7 @@ public class SearchResultCard extends VerticalLayout {
             episodeField.setWidthFull();
 
             layout.add(seasonField, episodeField);
-            
+
             // Download button
             Button downloadBtn = new Button("Add to Queue", e -> {
                 downloadHandler.onDownload(
@@ -283,6 +298,7 @@ public class SearchResultCard extends VerticalLayout {
                 );
                 dialog.close();
             });
+            downloadBtn.setId("dialog-confirm-download");
             downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
             dialog.getFooter().add(downloadBtn);
@@ -300,6 +316,7 @@ public class SearchResultCard extends VerticalLayout {
                 );
                 dialog.close();
             });
+            downloadBtn.setId("dialog-confirm-download");
             downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
             dialog.getFooter().add(downloadBtn);

@@ -435,6 +435,35 @@ See `k8s/` directory for deployment manifests (coming soon).
 - [ ] Dark mode
 - [ ] Download history view
 
+## Running E2E tests
+
+Local-only suite that drives the real UI against the real backend.
+Takes ~15 minutes and downloads ~2 GB of video at lowest quality.
+
+**Prerequisites:** Node 20+, Java 21, Maven, ffmpeg/ffprobe, rsync, a valid TMDB API key.
+
+```bash
+# 1. Install Node dependencies and Playwright's Chromium
+cd e2e && npm install && npx playwright install chromium
+
+# 2. Create env file and fill in secrets
+cp .env.e2e.example .env.e2e
+# Required: TMDB_API_KEY
+# Optional: RAIPLAY_USERNAME + RAIPLAY_PASSWORD (RaiPlay scenarios skip if absent)
+
+# 3. Run the suite
+npm test
+```
+
+Traces, screenshots, and the app log on failure are written to
+`e2e/test-results/`. Set `KEEP_E2E_ARTIFACTS=1` to also preserve
+`target/e2e/` (downloads + SQLite DB) for post-run debugging.
+
+For headed debugging: `npm run test:headed`
+For interactive UI mode: `npm run test:ui`
+
+---
+
 ## License
 
 This project is for educational purposes only. Respect copyright laws and terms of service.

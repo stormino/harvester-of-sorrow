@@ -1,0 +1,6 @@
+{
+  "vixsrcMovie":  { "query": "fight club",       "source": "vixsrc",  "type": "MOVIE", "titleHint": "Fight Club" },
+  "vixsrcTv":     { "query": "rick and morty",   "source": "vixsrc",  "type": "TV",    "titleHint": "Rick and Morty",  "season": 1, "episode": 1 },
+  "raiplayMovie": { "query": "cosmonauta",        "source": "raiplay", "type": "MOVIE", "titleHint": "Cosmonauta" },
+  "raiplayTv":    { "query": "rocco schiavone",  "source": "raiplay", "type": "TV",    "titleHint": "Rocco Schiavone", "season": 1, "episode": 1 }
+}
