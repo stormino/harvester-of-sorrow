@@ -2,7 +2,6 @@ package com.github.stormino.view.component;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H3;
@@ -42,8 +41,7 @@ public class SearchResultCard extends VerticalLayout {
     public interface DownloadHandler {
         void onDownload(ContentMetadata content, DownloadTask.ContentType type,
                        Integer season, Integer episode,
-                       Set<String> languages, String quality,
-                       boolean includeAudioDescription);
+                       Set<String> languages, String quality);
     }
 
     public SearchResultCard(ContentMetadata content,
@@ -237,17 +235,7 @@ public class SearchResultCard extends VerticalLayout {
         qualitySelector.setValue(defaultQualitySupplier.get());
         qualitySelector.setWidthFull();
 
-        // Audio-description checkbox — off by default. Only meaningful for sources
-        // that expose an accessibility audio rendition; RaiPlay doesn't.
-        boolean showAudioDescription = content.getSource() == MediaSource.VIXSRC;
-        Checkbox audioDescriptionCheckbox = new Checkbox("Include audio description");
-        audioDescriptionCheckbox.getElement().setAttribute(
-                "title", "Adds the accessibility audio track if available in the playlist.");
-
         layout.add(languageSelector, qualitySelector);
-        if (showAudioDescription) {
-            layout.add(audioDescriptionCheckbox);
-        }
 
         // Set default language after adding to layout, intersecting with supported set
         Set<String> defaultLanguages = defaultLanguagesSupplier.get();
@@ -291,8 +279,7 @@ public class SearchResultCard extends VerticalLayout {
                         seasonField.getValue(),
                         episodeField.getValue(),
                         languageSelector.getValue(),
-                        qualitySelector.getValue(),
-                        audioDescriptionCheckbox.getValue()
+                        qualitySelector.getValue()
                 );
                 dialog.close();
             });
@@ -309,8 +296,7 @@ public class SearchResultCard extends VerticalLayout {
                         null,
                         null,
                         languageSelector.getValue(),
-                        qualitySelector.getValue(),
-                        audioDescriptionCheckbox.getValue()
+                        qualitySelector.getValue()
                 );
                 dialog.close();
             });

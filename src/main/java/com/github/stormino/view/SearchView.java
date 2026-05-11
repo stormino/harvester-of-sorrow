@@ -188,8 +188,7 @@ public class SearchView extends VerticalLayout {
 
     private void handleDownload(ContentMetadata content, DownloadTask.ContentType type,
                                 Integer season, Integer episode,
-                                Set<String> languages, String quality,
-                                boolean includeAudioDescription) {
+                                Set<String> languages, String quality) {
         String feedbackMessage = buildQueueMessage(type, season, episode);
         Notification.show(feedbackMessage, 2000, Notification.Position.BOTTOM_END);
 
@@ -198,7 +197,7 @@ public class SearchView extends VerticalLayout {
         CompletableFuture.supplyAsync(() ->
                 downloadQueueService.addDownload(
                         content, type, season, episode,
-                        List.copyOf(languages), quality, includeAudioDescription)
+                        List.copyOf(languages), quality)
         ).thenAccept(task -> getUI().ifPresent(ui -> ui.access(() -> {
             int added = downloadQueueService.getAllTasks().size() - taskCountBefore;
             String message = added > 1

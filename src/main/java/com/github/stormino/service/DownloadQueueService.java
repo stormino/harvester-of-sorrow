@@ -102,13 +102,17 @@ public class DownloadQueueService {
         }
     }
     
-    /**
-     * Add a new download task (audio description disabled by default).
-     */
     public DownloadTask addDownload(int tmdbId, DownloadTask.ContentType contentType,
                                    Integer season, Integer episode,
                                    List<String> languages, String quality) {
-        return addDownload(tmdbId, contentType, season, episode, languages, quality, false);
+        if (contentType == DownloadTask.ContentType.TV) {
+            if (season == null && episode == null) {
+                return addEntireShowDownload(tmdbId, languages, quality);
+            } else if (season != null && episode == null) {
+                return addEntireSeasonDownload(tmdbId, season, languages, quality);
+            }
+        }
+        return addSingleDownload(tmdbId, contentType, season, episode, languages, quality);
     }
 
     /**
@@ -119,18 +123,15 @@ public class DownloadQueueService {
      */
     public DownloadTask addDownload(ContentMetadata content, DownloadTask.ContentType contentType,
                                    Integer season, Integer episode,
-                                   List<String> languages, String quality,
-                                   boolean includeAudioDescription) {
+                                   List<String> languages, String quality) {
         if (content.getSource() == MediaSource.VIXSRC && content.getTmdbId() != null) {
-            return addDownload(content.getTmdbId(), contentType, season, episode,
-                    languages, quality, includeAudioDescription);
+            return addDownload(content.getTmdbId(), contentType, season, episode, languages, quality);
         }
         // TV batch (whole show / whole season) for non-TMDB sources: expand via the provider.
         if (contentType == DownloadTask.ContentType.TV && episode == null) {
-            return addBatchSourceDownload(content, season, languages, quality, includeAudioDescription);
+            return addBatchSourceDownload(content, season, languages, quality);
         }
-        return addSourceDownload(content, contentType, season, episode,
-                languages, quality, includeAudioDescription);
+        return addSourceDownload(content, contentType, season, episode, languages, quality);
     }
 
     /**
@@ -138,8 +139,7 @@ public class DownloadQueueService {
      * If {@code season} is non-null only that season is queued; otherwise the entire show is queued.
      */
     private DownloadTask addBatchSourceDownload(ContentMetadata show, Integer season,
-                                                List<String> languages, String quality,
-                                                boolean includeAudioDescription) {
+                                                List<String> languages, String quality) {
         MediaSourceProvider provider = sourceRegistry.get(show.getSource());
         List<EpisodeRef> episodes = provider.listEpisodes(show);
         if (season != null) {
@@ -165,7 +165,7 @@ public class DownloadQueueService {
                     .episode(ep.episode())
                     .build();
             DownloadTask task = addSourceDownload(episodeMeta, DownloadTask.ContentType.TV,
-                    ep.season(), ep.episode(), languages, quality, includeAudioDescription);
+                    ep.season(), ep.episode(), languages, quality);
             if (first == null) first = task;
         }
         return first;
@@ -177,8 +177,7 @@ public class DownloadQueueService {
      */
     private DownloadTask addSourceDownload(ContentMetadata content, DownloadTask.ContentType contentType,
                                            Integer season, Integer episode,
-                                           List<String> languages, String quality,
-                                           boolean includeAudioDescription) {
+                                           List<String> languages, String quality) {
         DownloadTask task = DownloadTask.builder()
                 .source(content.getSource() != null ? content.getSource() : MediaSource.VIXSRC)
                 .sourceMetadata(content.getSourceMetadata())
@@ -191,7 +190,6 @@ public class DownloadQueueService {
                 .year(content.getYear())
                 .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
                 .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
-                .includeAudioDescription(includeAudioDescription)
                 .build();
 
         task.setOutputPath(generateOutputPath(task, content));
@@ -206,35 +204,11 @@ public class DownloadQueueService {
     }
 
     /**
-     * Add a new download task with explicit audio-description preference.
-     */
-    public DownloadTask addDownload(int tmdbId, DownloadTask.ContentType contentType,
-                                   Integer season, Integer episode,
-                                   List<String> languages, String quality,
-                                   boolean includeAudioDescription) {
-
-        // Handle batch downloads for TV shows
-        if (contentType == DownloadTask.ContentType.TV) {
-            if (season == null && episode == null) {
-                // Download entire show
-                return addEntireShowDownload(tmdbId, languages, quality, includeAudioDescription);
-            } else if (season != null && episode == null) {
-                // Download entire season
-                return addEntireSeasonDownload(tmdbId, season, languages, quality, includeAudioDescription);
-            }
-        }
-
-        // Single episode or movie download
-        return addSingleDownload(tmdbId, contentType, season, episode, languages, quality, includeAudioDescription);
-    }
-
-    /**
      * Add a single download task (movie or specific TV episode)
      */
     private DownloadTask addSingleDownload(int tmdbId, DownloadTask.ContentType contentType,
                                           Integer season, Integer episode,
-                                          List<String> languages, String quality,
-                                          boolean includeAudioDescription) {
+                                          List<String> languages, String quality) {
 
         // Fetch metadata
         ContentMetadata metadata = null;
@@ -253,8 +227,7 @@ public class DownloadQueueService {
                 .season(season)
                 .episode(episode)
                 .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
-                .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
-                .includeAudioDescription(includeAudioDescription);
+                .quality(quality != null ? quality : properties.getDownload().getDefaultQuality());
 
         if (metadata != null) {
             taskBuilder
@@ -284,8 +257,7 @@ public class DownloadQueueService {
     /**
      * Add download tasks for entire show (all seasons and episodes)
      */
-    private DownloadTask addEntireShowDownload(int tmdbId, List<String> languages, String quality,
-                                               boolean includeAudioDescription) {
+    private DownloadTask addEntireShowDownload(int tmdbId, List<String> languages, String quality) {
         log.info("Queueing entire show download for TMDB ID: {}", tmdbId);
 
         // Fetch show metadata once
@@ -303,7 +275,7 @@ public class DownloadQueueService {
             for (var episode : episodes) {
                 DownloadTask task = createTaskWithoutMetadataFetch(
                     tmdbId, season.season_number, episode.episode_number,
-                    showTitle, episode.name, year, languages, quality, includeAudioDescription);
+                    showTitle, episode.name, year, languages, quality);
                 if (firstTask == null) {
                     firstTask = task;
                 }
@@ -332,8 +304,7 @@ public class DownloadQueueService {
     /**
      * Add download tasks for entire season
      */
-    private DownloadTask addEntireSeasonDownload(int tmdbId, int season, List<String> languages, String quality,
-                                                 boolean includeAudioDescription) {
+    private DownloadTask addEntireSeasonDownload(int tmdbId, int season, List<String> languages, String quality) {
         log.info("Queueing entire season download for TMDB ID: {}, Season: {}", tmdbId, season);
 
         // Fetch show metadata once
@@ -349,7 +320,7 @@ public class DownloadQueueService {
         for (var episode : episodes) {
             DownloadTask task = createTaskWithoutMetadataFetch(
                 tmdbId, season, episode.episode_number,
-                showTitle, episode.name, year, languages, quality, includeAudioDescription);
+                showTitle, episode.name, year, languages, quality);
             if (firstTask == null) {
                 firstTask = task;
             }
@@ -391,8 +362,7 @@ public class DownloadQueueService {
      */
     private DownloadTask createTaskWithoutMetadataFetch(int tmdbId, int season, int episode,
                                                         String title, String episodeName, Integer year,
-                                                        List<String> languages, String quality,
-                                                        boolean includeAudioDescription) {
+                                                        List<String> languages, String quality) {
         // Build task
         DownloadTask task = DownloadTask.builder()
                 .source(MediaSource.VIXSRC)
@@ -406,7 +376,6 @@ public class DownloadQueueService {
                 .year(year)
                 .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
                 .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
-                .includeAudioDescription(includeAudioDescription)
                 .build();
 
         // Generate output path

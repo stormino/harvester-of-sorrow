@@ -208,13 +208,9 @@ public class TrackDownloadOrchestrator {
                 .build());
 
         // Audio sub-tasks from actual renditions, filtered by requested languages.
-        // Audio-description tracks are skipped unless the user opted in.
         List<HlsParserService.AudioTrack> audioTracks = parsed.getAudioTracks();
         if (audioTracks != null) {
             for (HlsParserService.AudioTrack track : audioTracks) {
-                if (track.isAudioDescription() && !task.isIncludeAudioDescription()) {
-                    continue;
-                }
                 if (languages.isEmpty() || languageMatchesAny(track.getLanguage(), languages)) {
                     subTasks.add(DownloadSubTask.builder()
                             .parentTaskId(task.getId())

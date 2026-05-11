@@ -52,12 +52,6 @@ public class HlsParserService {
         private String language;
         private String name;
         private String groupId;
-        private String characteristics;
-
-        public boolean isAudioDescription() {
-            return characteristics != null
-                    && characteristics.contains("public.accessibility.describes-video");
-        }
     }
 
     @Data
@@ -172,25 +166,21 @@ public class HlsParserService {
         Pattern audioUriPattern = Pattern.compile("URI=\"([^\"]+)\"");
         Pattern audioLangPattern = Pattern.compile("LANGUAGE=\"([^\"]+)\"");
         Pattern audioNamePattern = Pattern.compile("(?:^|,)NAME=\"([^\"]+)\"");
-        Pattern audioCharPattern = Pattern.compile("CHARACTERISTICS=\"([^\"]+)\"");
         for (String line : lines) {
             if (line.contains("#EXT-X-MEDIA:TYPE=AUDIO")) {
                 Matcher uriMatcher = audioUriPattern.matcher(line);
                 Matcher langMatcher = audioLangPattern.matcher(line);
                 Matcher nameMatcher = audioNamePattern.matcher(line);
-                Matcher charMatcher = audioCharPattern.matcher(line);
 
                 if (uriMatcher.find() && langMatcher.find()) {
                     String url = resolveUrl(baseUrl, uriMatcher.group(1));
                     String language = langMatcher.group(1);
                     String name = nameMatcher.find() ? nameMatcher.group(1) : "Audio - " + language.toUpperCase();
-                    String characteristics = charMatcher.find() ? charMatcher.group(1) : null;
 
                     audioTracks.add(AudioTrack.builder()
                             .url(url)
                             .language(language)
                             .name(name)
-                            .characteristics(characteristics)
                             .build());
                 }
             }

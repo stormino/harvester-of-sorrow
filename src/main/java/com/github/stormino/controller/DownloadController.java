@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -158,7 +157,7 @@ public class DownloadController {
                 .year(year)
                 .build();
         DownloadTask task = downloadQueueService.addDownload(
-                meta, DownloadTask.ContentType.MOVIE, null, null, List.of("it"), null, false);
+                meta, DownloadTask.ContentType.MOVIE, null, null, List.of("it"), null);
         return ResponseEntity.ok(task);
     }
 
@@ -189,7 +188,7 @@ public class DownloadController {
                 .numberOfSeasons(0)
                 .build();
         DownloadTask task = downloadQueueService.addDownload(
-                meta, DownloadTask.ContentType.TV, season, episode, List.of("it"), null, false);
+                meta, DownloadTask.ContentType.TV, season, episode, List.of("it"), null);
         return ResponseEntity.ok(task);
     }
 

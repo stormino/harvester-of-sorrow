@@ -33,14 +33,6 @@ public class DownloadTask {
     private List<String> languages;
     private String quality;
 
-    /**
-     * Whether to include audio-description renditions (NAME containing "Audio Description"
-     * or CHARACTERISTICS=public.accessibility.describes-video) in the downloaded audio
-     * tracks. Off by default; surfaced as a checkbox in the download dialog.
-     */
-    @Builder.Default
-    private boolean includeAudioDescription = false;
-    
     private String outputPath;
     private String playlistUrl;
 
