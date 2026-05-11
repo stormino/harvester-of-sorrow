@@ -2,8 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  globalSetup: './helpers/app-lifecycle.ts',
-  globalTeardown: './helpers/app-lifecycle.ts',
+  globalSetup: './helpers/global-setup.ts',
+  globalTeardown: './helpers/global-teardown.ts',
 
   // Tests share a single booted app and SQLite DB — no parallel execution
   fullyParallel: false,
