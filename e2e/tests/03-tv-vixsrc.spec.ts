@@ -1,0 +1,36 @@
+import { test, expect } from '@playwright/test';
+import content from '../fixtures/content.json' with { type: 'json' };
+import { searchAndPickFirst, openDownloadDialog, enqueueEpisode } from '../helpers/search.js';
+import { gotoQueue, findLatestTaskId, waitForStatus } from '../helpers/queue.js';
+import { findDownloadedFile, expectValidVideoFile } from '../helpers/assertions.js';
+
+const fixture = content.vixsrcTv;
+
+test('vixsrc TV series — S01E01 downloads to correct path', async ({ page }) => {
+  // 1. Search and enqueue S01E01
+  const card = await searchAndPickFirst(page, fixture.query, 'vixsrc', 'TV');
+  await openDownloadDialog(card);
+  await enqueueEpisode(page, {
+    season: fixture.season,
+    episode: fixture.episode,
+    quality: 'worst',
+  });
+
+  // 2. Navigate to queue and locate the task
+  await gotoQueue(page);
+  const taskId = await findLatestTaskId(page, { source: 'vixsrc' });
+
+  // 3. Wait for completion
+  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 5 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 20 * 60 * 1000 });
+
+  // 4. Verify the file exists under the TV path with S01E01 in the filename
+  const filePath = await findDownloadedFile('tvshows', fixture.titleHint, 'S01E01');
+  await expectValidVideoFile(filePath, {
+    minDurationSeconds: 60,
+    maxVideoWidth: 1280,
+  });
+
+  // Path must include "Season 01"
+  expect(filePath).toContain('Season 01');
+});
