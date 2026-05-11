@@ -1,8 +1,12 @@
 package com.github.stormino.persistence;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaSource;
+import com.github.stormino.model.source.SourceMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,13 +24,15 @@ public class TaskPersistenceService {
 
     private final DownloadTaskRepository taskRepository;
     private final DownloadSubTaskRepository subTaskRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * Persist a newly created task.
      */
     public void saveTask(DownloadTask task) {
         DownloadTaskRecord r = toTaskRecord(task);
-        taskRepository.insert(r.getId(), r.getContentType(), r.getTmdbId(), r.getSeason(), r.getEpisode(),
+        taskRepository.insert(r.getId(), r.getSource(), r.getSourceMetadata(),
+                r.getContentType(), r.getTmdbId(), r.getSeason(), r.getEpisode(),
                 r.getTitle(), r.getEpisodeName(), r.getYear(), r.getLanguages(), r.getQuality(),
                 r.getOutputPath(), r.getPlaylistUrl(), r.getStatus(), r.getErrorMessage(),
                 r.getCreatedAt(), r.getStartedAt(), r.getCompletedAt());
@@ -113,8 +119,11 @@ public class TaskPersistenceService {
     // -------------------------------------------------------------------------
 
     private DownloadTaskRecord toTaskRecord(DownloadTask task) {
+        MediaSource source = task.getSource() != null ? task.getSource() : MediaSource.VIXSRC;
         return new DownloadTaskRecord(
                 task.getId(),
+                source.name(),
+                serializeSourceMetadata(task.getSourceMetadata()),
                 task.getContentType().name(),
                 task.getTmdbId(),
                 task.getSeason(),
@@ -132,6 +141,29 @@ public class TaskPersistenceService {
                 task.getStartedAt(),
                 task.getCompletedAt()
         );
+    }
+
+    private String serializeSourceMetadata(SourceMetadata metadata) {
+        if (metadata == null) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(metadata);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize SourceMetadata", e);
+        }
+    }
+
+    private SourceMetadata deserializeSourceMetadata(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, SourceMetadata.class);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to deserialize SourceMetadata from {}: {}", json, e.getMessage());
+            return null;
+        }
     }
 
     private DownloadSubTaskRecord toSubTaskRecord(DownloadSubTask subTask) {
@@ -162,8 +194,14 @@ public class TaskPersistenceService {
                 .map(this::fromSubTaskRecord)
                 .collect(Collectors.toCollection(CopyOnWriteArrayList::new));
 
+        MediaSource source = r.getSource() != null
+                ? MediaSource.valueOf(r.getSource())
+                : MediaSource.VIXSRC;
+
         return DownloadTask.builder()
                 .id(r.getId())
+                .source(source)
+                .sourceMetadata(deserializeSourceMetadata(r.getSourceMetadata()))
                 .contentType(DownloadTask.ContentType.valueOf(r.getContentType()))
                 .tmdbId(r.getTmdbId())
                 .season(r.getSeason())

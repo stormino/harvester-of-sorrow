@@ -1,5 +1,7 @@
 package com.github.stormino.config;
 
+import com.github.stormino.service.source.raiplay.RaiPlayAuthInterceptor;
+import com.github.stormino.service.source.raiplay.RaiPlayAuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Cookie;
@@ -10,6 +12,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,16 +24,25 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 @RequiredArgsConstructor
 public class HttpClientConfig {
-    
+
     private final VixSrcProperties properties;
-    
+    private final ObjectProvider<RaiPlayAuthService> raiPlayAuthService;
+
     @Bean
     public OkHttpClient okHttpClient() {
-        return new OkHttpClient.Builder()
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
                 .readTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
                 .writeTimeout(Duration.ofSeconds(properties.getExtractor().getTimeoutSeconds()))
-                .addInterceptor(new CloudflareInterceptor())
+                .addInterceptor(new CloudflareInterceptor());
+
+        // Only register the RaiPlay auth interceptor when auto-login is enabled.
+        RaiPlayAuthService auth = raiPlayAuthService.getIfAvailable();
+        if (auth != null) {
+            builder.addInterceptor(new RaiPlayAuthInterceptor(auth));
+        }
+
+        return builder
                 .addInterceptor(new RetryInterceptor(Integer.MAX_VALUE))
                 .cookieJar(new InMemoryCookieJar())
                 .followRedirects(true)

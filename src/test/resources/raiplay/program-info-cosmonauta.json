@@ -1,0 +1,82 @@
+{
+  "name": "Cosmonauta",
+  "id": "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb",
+  "description": "Mentre i sovietici mandano la cagnetta Laika nello spazio Luciana è una giovane comunista nell'Italia degli anni '60",
+  "label": "Un'adolescenza militante",
+  "path_id": "/programmi/cosmonauta.json",
+  "weblink": "/programmi/cosmonauta",
+  "type": "RaiPlay Programma Item",
+  "az": true,
+  "details": [
+    {
+      "type": "label",
+      "key": "year",
+      "value": "2009"
+    },
+    {
+      "type": "label",
+      "key": "country",
+      "value": "Italia"
+    },
+    {
+      "type": "label",
+      "key": "genre",
+      "value": "Commedia"
+    },
+    {
+      "type": "placeholder",
+      "key": "rating"
+    },
+    {
+      "type": "placeholder",
+      "key": "availability"
+    }
+  ],
+  "images": {
+    "landscape": "/dl/img/2020/05/21/1590076678093_2048x1152.jpg",
+    "portrait": "/dl/img/2018/12/18/1545131453841_1152x2048.JPG",
+    "square": "/dl/img/2020/05/21/1590076699098_2048x2048.jpg",
+    "landscape43": "/dl/img/2020/05/21/1590076683841_2048x1536.jpg",
+    "portrait43": "/dl/img/2020/05/21/1590076691329_1536x2048.jpg",
+    "landscape_logo": "/dl/img/2020/05/21/1590076283981_2048x1152_logo.jpg",
+    "portrait_logo": "/dl/img/2020/05/21/1590076283981_1536x2048_logo.jpg"
+  },
+  "actions": [
+    {
+      "action": "play",
+      "label": "RIPRODUCI",
+      "aria_label": "Riproduci Cosmonauta",
+      "path_id": "/programmi/cosmonauta.json",
+      "sub_type": "RaiPlay Programma Item",
+      "label_keepwatching": "RIPRENDI",
+      "aria_label_keepwatching": "Riprendi Cosmonauta"
+    },
+    {
+      "action": "goto",
+      "label": "Info",
+      "aria_label": "Maggiori informazioni su Cosmonauta",
+      "path_id": "/programmi/cosmonauta.json",
+      "sub_type": "RaiPlay Programma Item",
+      "weblink": "/programmi/cosmonauta",
+      "style": "icon"
+    },
+    {
+      "action": "favourites",
+      "label": "Salva",
+      "aria_label": "Salva Cosmonauta",
+      "path_id": "/programmi/cosmonauta.json",
+      "id": "ContentItem-82cd1a16-ac45-44f1-aea6-d925d2c034cb",
+      "label_active": "Salvato"
+    }
+  ],
+  "rights_management": {
+    "rights": {
+      "offline": {
+
+      },
+      "geoprotection": {
+
+      }
+    }
+  }
+}

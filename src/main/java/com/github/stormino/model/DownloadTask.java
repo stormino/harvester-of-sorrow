@@ -1,5 +1,6 @@
 package com.github.stormino.model;
 
+import com.github.stormino.model.source.SourceMetadata;
 import com.github.stormino.util.FormatUtils;
 import lombok.Builder;
 import lombok.Data;
@@ -12,10 +13,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Data
 @Builder
 public class DownloadTask {
-    
+
     @Builder.Default
     private String id = UUID.randomUUID().toString();
-    
+
+    @Builder.Default
+    private MediaSource source = MediaSource.VIXSRC;
+    private SourceMetadata sourceMetadata;
+
     private ContentType contentType;
     private Integer tmdbId;
     private Integer season;
@@ -27,6 +32,14 @@ public class DownloadTask {
     
     private List<String> languages;
     private String quality;
+
+    /**
+     * Whether to include audio-description renditions (NAME containing "Audio Description"
+     * or CHARACTERISTICS=public.accessibility.describes-video) in the downloaded audio
+     * tracks. Off by default; surfaced as a checkbox in the download dialog.
+     */
+    @Builder.Default
+    private boolean includeAudioDescription = false;
     
     private String outputPath;
     private String playlistUrl;

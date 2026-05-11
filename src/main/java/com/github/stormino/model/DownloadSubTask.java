@@ -25,6 +25,7 @@ public class DownloadSubTask {
 
     private String tempFilePath;  // Where track is downloaded
     private String playlistUrl;  // Playlist URL for this language
+    private String renditionUrl; // Pre-resolved rendition URL (audio/subtitle media playlist); null for video
 
     @Builder.Default
     private volatile DownloadStatus status = DownloadStatus.QUEUED;
@@ -62,11 +63,11 @@ public class DownloadSubTask {
         if (type == SubTaskType.VIDEO) {
             return resolution != null ? String.format("Video (%s)", resolution) : "Video";
         } else if (type == SubTaskType.AUDIO) {
-            // Audio track with language
+            if (title != null) return title;
             String langDisplay = language != null ? language.toUpperCase() : "unknown";
             return String.format("Audio - %s", langDisplay);
         } else {
-            // Subtitle track with language
+            if (title != null) return title;
             String langDisplay = language != null ? language.toUpperCase() : "unknown";
             return String.format("Subtitle - %s", langDisplay);
         }

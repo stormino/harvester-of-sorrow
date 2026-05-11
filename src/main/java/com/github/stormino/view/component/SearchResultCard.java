@@ -2,6 +2,7 @@ package com.github.stormino.view.component;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H3;
@@ -15,7 +16,11 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaSource;
+import com.github.stormino.model.source.RaiPlayMetadata;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -24,29 +29,36 @@ import java.util.function.Supplier;
  */
 public class SearchResultCard extends VerticalLayout {
     
+    private static final List<String> ALL_LANGUAGES =
+            List.of("en", "it", "es", "fr", "de", "pt", "ja", "ko", "ru", "zh");
+
     private final ContentMetadata content;
     private final DownloadTask.ContentType type;
     private final Supplier<Set<String>> defaultLanguagesSupplier;
     private final Supplier<String> defaultQualitySupplier;
+    private final Set<String> supportedLanguages;
     private final DownloadHandler downloadHandler;
-    
+
     public interface DownloadHandler {
         void onDownload(ContentMetadata content, DownloadTask.ContentType type,
                        Integer season, Integer episode,
-                       Set<String> languages, String quality);
+                       Set<String> languages, String quality,
+                       boolean includeAudioDescription);
     }
-    
+
     public SearchResultCard(ContentMetadata content,
                            DownloadTask.ContentType type,
                            Supplier<Set<String>> defaultLanguagesSupplier,
                            Supplier<String> defaultQualitySupplier,
+                           Set<String> supportedLanguages,
                            DownloadHandler downloadHandler) {
         this.content = content;
         this.type = type;
         this.defaultLanguagesSupplier = defaultLanguagesSupplier;
         this.defaultQualitySupplier = defaultQualitySupplier;
+        this.supportedLanguages = supportedLanguages;
         this.downloadHandler = downloadHandler;
-        
+
         createCard();
     }
     
@@ -96,8 +108,24 @@ public class SearchResultCard extends VerticalLayout {
                 .set("font-weight", "600");
         titleRow.add(title);
 
+        // Source tag
+        MediaSource source = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
+        Span sourceTag = new Span(source.getDisplayName());
+        sourceTag.addClassNames(LumoUtility.FontSize.XSMALL);
+        sourceTag.getStyle()
+                .set("background", switch (source) {
+                    case VIXSRC -> "#1976D2";
+                    case RAIPLAY -> "#0066B3";
+                })
+                .set("color", "#fff")
+                .set("padding", "0.15rem 0.4rem")
+                .set("border-radius", "0.25rem")
+                .set("font-weight", "600");
+        titleRow.add(sourceTag);
+
         // TV-specific info as badge
-        if (type == DownloadTask.ContentType.TV && content.getNumberOfSeasons() != null) {
+        if (type == DownloadTask.ContentType.TV && content.getNumberOfSeasons() != null
+                && content.getNumberOfSeasons() > 0) {
             Span badge = new Span(content.getNumberOfSeasons() + "S");
             badge.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
             badge.getStyle()
@@ -164,13 +192,23 @@ public class SearchResultCard extends VerticalLayout {
 
         add(titleRow, metaRow, overview, downloadBtn);
 
-        // Make card clickable to open TMDB page
-        if (content.getTmdbId() != null) {
-            String tmdbPath = type == DownloadTask.ContentType.MOVIE ? "movie" : "tv";
-            String tmdbUrl = "https://www.themoviedb.org/" + tmdbPath + "/" + content.getTmdbId();
+        // Make card clickable to open the source's public web page.
+        String externalUrl = externalUrlFor(source);
+        if (externalUrl != null) {
             getElement().addEventListener("click", e ->
-                    getElement().executeJs("window.open($0, '_blank')", tmdbUrl));
+                    getElement().executeJs("window.open($0, '_blank')", externalUrl));
         }
+    }
+
+    private String externalUrlFor(MediaSource source) {
+        return switch (source) {
+            case VIXSRC -> content.getTmdbId() == null ? null
+                    : "https://www.themoviedb.org/"
+                            + (type == DownloadTask.ContentType.MOVIE ? "movie" : "tv")
+                            + "/" + content.getTmdbId();
+            case RAIPLAY -> content.getSourceMetadata() instanceof RaiPlayMetadata m
+                    ? m.webUrl() : null;
+        };
     }
     
     private void openDownloadDialog() {
@@ -182,9 +220,14 @@ public class SearchResultCard extends VerticalLayout {
         layout.setPadding(false);
         layout.setSpacing(true);
         
-        // Language selector
+        // Language selector — restricted to languages this source actually serves
         MultiSelectComboBox<String> languageSelector = new MultiSelectComboBox<>("Languages");
-        languageSelector.setItems("en", "it", "es", "fr", "de", "pt", "ja", "ko", "ru", "zh");
+        List<String> languageItems = ALL_LANGUAGES.stream()
+                .filter(lang -> supportedLanguages == null
+                        || supportedLanguages.isEmpty()
+                        || supportedLanguages.contains(lang))
+                .toList();
+        languageSelector.setItems(languageItems);
         languageSelector.setWidthFull();
 
         // Quality selector
@@ -194,12 +237,30 @@ public class SearchResultCard extends VerticalLayout {
         qualitySelector.setValue(defaultQualitySupplier.get());
         qualitySelector.setWidthFull();
 
-        layout.add(languageSelector, qualitySelector);
+        // Audio-description checkbox — off by default. Only meaningful for sources
+        // that expose an accessibility audio rendition; RaiPlay doesn't.
+        boolean showAudioDescription = content.getSource() == MediaSource.VIXSRC;
+        Checkbox audioDescriptionCheckbox = new Checkbox("Include audio description");
+        audioDescriptionCheckbox.getElement().setAttribute(
+                "title", "Adds the accessibility audio track if available in the playlist.");
 
-        // Set default language after adding to layout
+        layout.add(languageSelector, qualitySelector);
+        if (showAudioDescription) {
+            layout.add(audioDescriptionCheckbox);
+        }
+
+        // Set default language after adding to layout, intersecting with supported set
         Set<String> defaultLanguages = defaultLanguagesSupplier.get();
         if (defaultLanguages != null && !defaultLanguages.isEmpty()) {
-            defaultLanguages.forEach(languageSelector::select);
+            Set<String> applicable = new LinkedHashSet<>(defaultLanguages);
+            if (supportedLanguages != null && !supportedLanguages.isEmpty()) {
+                applicable.retainAll(supportedLanguages);
+            }
+            if (applicable.isEmpty() && !languageItems.isEmpty()) {
+                // Fallback so the user always sees at least one selection
+                applicable.add(languageItems.get(0));
+            }
+            applicable.forEach(languageSelector::select);
         }
         
         // TV-specific: Season/Episode selectors
@@ -230,14 +291,15 @@ public class SearchResultCard extends VerticalLayout {
                         seasonField.getValue(),
                         episodeField.getValue(),
                         languageSelector.getValue(),
-                        qualitySelector.getValue()
+                        qualitySelector.getValue(),
+                        audioDescriptionCheckbox.getValue()
                 );
                 dialog.close();
             });
             downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            
+
             dialog.getFooter().add(downloadBtn);
-            
+
         } else {
             // Movie: Direct download
             Button downloadBtn = new Button("Add to Queue", e -> {
@@ -247,12 +309,13 @@ public class SearchResultCard extends VerticalLayout {
                         null,
                         null,
                         languageSelector.getValue(),
-                        qualitySelector.getValue()
+                        qualitySelector.getValue(),
+                        audioDescriptionCheckbox.getValue()
                 );
                 dialog.close();
             });
             downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            
+
             dialog.getFooter().add(downloadBtn);
         }
         

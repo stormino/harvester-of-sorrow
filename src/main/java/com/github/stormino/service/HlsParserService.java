@@ -52,6 +52,12 @@ public class HlsParserService {
         private String language;
         private String name;
         private String groupId;
+        private String characteristics;
+
+        public boolean isAudioDescription() {
+            return characteristics != null
+                    && characteristics.contains("public.accessibility.describes-video");
+        }
     }
 
     @Data
@@ -88,20 +94,23 @@ public class HlsParserService {
      */
     public Optional<HlsPlaylist> parsePlaylist(String playlistUrl, String referer) {
         try {
-            String content = fetchPlaylistContent(playlistUrl, referer);
-            if (content == null) {
+            FetchResult fetch = fetchPlaylistContent(playlistUrl, referer);
+            if (fetch == null) {
                 return Optional.empty();
             }
 
-            String baseUrl = extractBaseUrl(playlistUrl);
+            String baseUrl = extractBaseUrl(fetch.finalUrl());
 
             // Detect playlist type
-            if (content.contains("#EXT-X-STREAM-INF") || content.contains("#EXT-X-MEDIA")) {
+            // "#EXT-X-MEDIA:" (with colon) only appears in master playlists for rendition
+            // declarations. "#EXT-X-MEDIA-SEQUENCE:" and "#EXT-X-MEDIA-INITIALIZATION"
+            // are media-playlist tags and must not trigger the master branch.
+            if (fetch.content().contains("#EXT-X-STREAM-INF") || fetch.content().contains("#EXT-X-MEDIA:")) {
                 // Master playlist
-                return Optional.of(parseMasterPlaylist(content, baseUrl));
-            } else if (content.contains("#EXTINF")) {
+                return Optional.of(parseMasterPlaylist(fetch.content(), baseUrl));
+            } else if (fetch.content().contains("#EXTINF")) {
                 // Media playlist with segments
-                return Optional.of(parseMediaPlaylist(content, baseUrl));
+                return Optional.of(parseMediaPlaylist(fetch.content(), baseUrl));
             }
 
             log.warn("Unknown playlist format");
@@ -118,13 +127,13 @@ public class HlsParserService {
      */
     public Optional<List<String>> parseSegments(String mediaPlaylistUrl, String referer) {
         try {
-            String content = fetchPlaylistContent(mediaPlaylistUrl, referer);
-            if (content == null) {
+            FetchResult fetch = fetchPlaylistContent(mediaPlaylistUrl, referer);
+            if (fetch == null) {
                 return Optional.empty();
             }
 
-            String baseUrl = extractBaseUrl(mediaPlaylistUrl);
-            HlsPlaylist playlist = parseMediaPlaylist(content, baseUrl);
+            String baseUrl = extractBaseUrl(fetch.finalUrl());
+            HlsPlaylist playlist = parseMediaPlaylist(fetch.content(), baseUrl);
             return Optional.of(playlist.getSegments());
 
         } catch (Exception e) {
@@ -138,13 +147,13 @@ public class HlsParserService {
      */
     public Optional<MediaPlaylistInfo> parseMediaPlaylistInfo(String mediaPlaylistUrl, String referer) {
         try {
-            String content = fetchPlaylistContent(mediaPlaylistUrl, referer);
-            if (content == null) {
+            FetchResult fetch = fetchPlaylistContent(mediaPlaylistUrl, referer);
+            if (fetch == null) {
                 return Optional.empty();
             }
 
-            String baseUrl = extractBaseUrl(mediaPlaylistUrl);
-            return Optional.of(parseMediaPlaylistWithEncryption(content, baseUrl));
+            String baseUrl = extractBaseUrl(fetch.finalUrl());
+            return Optional.of(parseMediaPlaylistWithEncryption(fetch.content(), baseUrl));
 
         } catch (Exception e) {
             log.error("Failed to parse media playlist info: {}", e.getMessage(), e);
@@ -162,19 +171,26 @@ public class HlsParserService {
         // Parse audio tracks
         Pattern audioUriPattern = Pattern.compile("URI=\"([^\"]+)\"");
         Pattern audioLangPattern = Pattern.compile("LANGUAGE=\"([^\"]+)\"");
+        Pattern audioNamePattern = Pattern.compile("(?:^|,)NAME=\"([^\"]+)\"");
+        Pattern audioCharPattern = Pattern.compile("CHARACTERISTICS=\"([^\"]+)\"");
         for (String line : lines) {
             if (line.contains("#EXT-X-MEDIA:TYPE=AUDIO")) {
                 Matcher uriMatcher = audioUriPattern.matcher(line);
                 Matcher langMatcher = audioLangPattern.matcher(line);
+                Matcher nameMatcher = audioNamePattern.matcher(line);
+                Matcher charMatcher = audioCharPattern.matcher(line);
 
                 if (uriMatcher.find() && langMatcher.find()) {
                     String url = resolveUrl(baseUrl, uriMatcher.group(1));
                     String language = langMatcher.group(1);
+                    String name = nameMatcher.find() ? nameMatcher.group(1) : "Audio - " + language.toUpperCase();
+                    String characteristics = charMatcher.find() ? charMatcher.group(1) : null;
 
                     audioTracks.add(AudioTrack.builder()
                             .url(url)
                             .language(language)
-                            .name("Audio - " + language.toUpperCase())
+                            .name(name)
+                            .characteristics(characteristics)
                             .build());
                 }
             }
@@ -206,19 +222,22 @@ public class HlsParserService {
         // Parse subtitle tracks
         Pattern subtitleUriPattern = Pattern.compile("URI=\"([^\"]+)\"");
         Pattern subtitleLangPattern = Pattern.compile("LANGUAGE=\"([^\"]+)\"");
+        Pattern subtitleNamePattern = Pattern.compile("(?:^|,)NAME=\"([^\"]+)\"");
         for (String line : lines) {
             if (line.contains("#EXT-X-MEDIA:TYPE=SUBTITLES")) {
                 Matcher uriMatcher = subtitleUriPattern.matcher(line);
                 Matcher langMatcher = subtitleLangPattern.matcher(line);
+                Matcher nameMatcher = subtitleNamePattern.matcher(line);
 
                 if (uriMatcher.find() && langMatcher.find()) {
                     String url = resolveUrl(baseUrl, uriMatcher.group(1));
                     String language = langMatcher.group(1);
+                    String name = nameMatcher.find() ? nameMatcher.group(1) : "Subtitle - " + language.toUpperCase();
 
                     subtitleTracks.add(SubtitleTrack.builder()
                             .url(url)
                             .language(language)
-                            .name("Subtitle - " + language.toUpperCase())
+                            .name(name)
                             .build());
                 }
             }
@@ -307,7 +326,9 @@ public class HlsParserService {
                 .build();
     }
 
-    private String fetchPlaylistContent(String url, String referer) {
+    private record FetchResult(String content, String finalUrl) {}
+
+    private FetchResult fetchPlaylistContent(String url, String referer) {
         try {
             Request.Builder requestBuilder = new Request.Builder()
                     .url(url)
@@ -322,7 +343,10 @@ public class HlsParserService {
                     log.error("Failed to fetch playlist: HTTP {}", response.code());
                     return null;
                 }
-                return response.body().string();
+                // Use the final URL after any redirects (e.g. relinker → real m3u8 location)
+                // so that relative variant URLs are resolved correctly.
+                String finalUrl = response.request().url().toString();
+                return new FetchResult(response.body().string(), finalUrl);
             }
 
         } catch (IOException e) {

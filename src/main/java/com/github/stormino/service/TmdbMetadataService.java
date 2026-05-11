@@ -12,6 +12,8 @@ import com.uwetrottmann.tmdb2.entities.TvShow;
 import com.uwetrottmann.tmdb2.entities.TvShowResultsPage;
 import com.uwetrottmann.tmdb2.enumerations.AppendToResponseItem;
 import com.github.stormino.model.ContentMetadata;
+import com.github.stormino.model.MediaSource;
+import com.github.stormino.model.source.VixSrcMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -68,6 +70,8 @@ public class TmdbMetadataService {
             }
 
             return Optional.of(ContentMetadata.builder()
+                    .source(MediaSource.VIXSRC)
+                    .sourceMetadata(new VixSrcMetadata(tmdbId, null, null))
                     .tmdbId(tmdbId)
                     .title(movie.title)
                     .originalTitle(movie.original_title)
@@ -75,7 +79,7 @@ public class TmdbMetadataService {
                     .overview(movie.overview)
                     .voteAverage(movie.vote_average)
                     .build());
-            
+
         } catch (IOException e) {
             log.error("Error fetching movie metadata for ID {}: {}", tmdbId, e.getMessage());
             return Optional.empty();
@@ -125,6 +129,8 @@ public class TmdbMetadataService {
             }
 
             return Optional.of(ContentMetadata.builder()
+                    .source(MediaSource.VIXSRC)
+                    .sourceMetadata(new VixSrcMetadata(tmdbId, season, episode))
                     .tmdbId(tmdbId)
                     .title(show.name)
                     .originalTitle(show.original_name)
@@ -177,6 +183,8 @@ public class TmdbMetadataService {
                 }
 
                 results.add(ContentMetadata.builder()
+                        .source(MediaSource.VIXSRC)
+                        .sourceMetadata(new VixSrcMetadata(movie.id, null, null))
                         .tmdbId(movie.id)
                         .title(movie.title)
                         .originalTitle(movie.original_title)
@@ -242,6 +250,8 @@ public class TmdbMetadataService {
                     }
 
                     results.add(ContentMetadata.builder()
+                            .source(MediaSource.VIXSRC)
+                            .sourceMetadata(new VixSrcMetadata(show.id, null, null))
                             .tmdbId(show.id)
                             .title(show.name)
                             .originalTitle(show.original_name)
@@ -290,6 +300,8 @@ public class TmdbMetadataService {
             }
 
             return Optional.of(ContentMetadata.builder()
+                    .source(MediaSource.VIXSRC)
+                    .sourceMetadata(new VixSrcMetadata(tmdbId, null, null))
                     .tmdbId(tmdbId)
                     .title(show.name)
                     .originalTitle(show.original_name)

@@ -1,0 +1,90 @@
+{
+  "name": "Rocco Schiavone",
+  "id": "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+  "description": "Le indagini del vicequestore più saccente, sarcastico e cinico della Tv italiana",
+  "label": "La serie completa",
+  "path_id": "/programmi/roccoschiavone.json",
+  "weblink": "/programmi/roccoschiavone",
+  "type": "RaiPlay Programma Item",
+  "az": true,
+  "details": [
+    {
+      "type": "label",
+      "key": "year",
+      "value": "2016"
+    },
+    {
+      "type": "label",
+      "key": "country",
+      "value": "Italia"
+    },
+    {
+      "type": "label",
+      "key": "seasons",
+      "value": "6 stagioni"
+    },
+    {
+      "type": "placeholder",
+      "key": "rating"
+    },
+    {
+      "type": "symbol",
+      "key": "parental_control",
+      "value": "CDV"
+    },
+    {
+      "type": "placeholder",
+      "key": "availability"
+    }
+  ],
+  "trailer": {
+    "content_url": "https://mediapolisvod.rai.it/relinker/relinkerServlet.htm?cont=SprVpPpPlussRdSpB9j24hQ1JuAHgeeqqEEqualeeqqEEqual"
+  },
+  "images": {
+    "landscape": "/dl/img/2025/02/18/1739856512860_2048x1152.jpg",
+    "portrait": "",
+    "square": "/dl/img/2025/02/18/1739856516163_2048x2048.jpg",
+    "landscape43": "/dl/img/2025/02/18/1739856513526_2048x1536.jpg",
+    "portrait43": "/dl/img/2025/02/18/1739856514806_1536x2048.jpg",
+    "landscape_logo": "/dl/img/2025/02/18/1739856516884_2048x1152_label.jpg",
+    "portrait_logo": "/dl/img/2025/02/18/1739856517847_1536x2048_label.jpg"
+  },
+  "actions": [
+    {
+      "action": "play",
+      "label": "RIPRODUCI",
+      "aria_label": "Riproduci Rocco Schiavone",
+      "path_id": "/programmi/roccoschiavone.json",
+      "sub_type": "RaiPlay Programma Item",
+      "label_keepwatching": "RIPRENDI",
+      "aria_label_keepwatching": "Riprendi Rocco Schiavone"
+    },
+    {
+      "action": "goto",
+      "label": "Info",
+      "aria_label": "Maggiori informazioni su Rocco Schiavone",
+      "path_id": "/programmi/roccoschiavone.json",
+      "sub_type": "RaiPlay Programma Item",
+      "weblink": "/programmi/roccoschiavone",
+      "style": "icon"
+    },
+    {
+      "action": "favourites",
+      "label": "Salva",
+      "aria_label": "Salva Rocco Schiavone",
+      "path_id": "/programmi/roccoschiavone.json",
+      "id": "ContentItem-77523b38-712f-4020-9cf5-7d3dc68ac659",
+      "label_active": "Salvato"
+    }
+  ],
+  "rights_management": {
+    "rights": {
+      "offline": {
+
+      },
+      "geoprotection": {
+
+      }
+    }
+  }
+}

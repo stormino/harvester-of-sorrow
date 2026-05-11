@@ -23,6 +23,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.ProgressUpdate;
 import com.github.stormino.config.VixSrcProperties;
 import com.github.stormino.service.DownloadQueueService;
@@ -119,7 +120,7 @@ public class DownloadQueueView extends VerticalLayout {
         //<theme-editor-local-classname>
         treeGrid.addClassName("download-queue-view-grid-1");
 
-        treeGrid.addHierarchyColumn(this::getItemDisplayName)
+        treeGrid.addComponentHierarchyColumn(this::createTitleCell)
                 .setHeader("Title")
                 .setFlexGrow(3)
                 .setResizable(true);
@@ -544,6 +545,36 @@ public class DownloadQueueView extends VerticalLayout {
         } else {
             return item.getSubTask().getDisplayName();
         }
+    }
+
+    private HorizontalLayout createTitleCell(DownloadItem item) {
+        HorizontalLayout row = new HorizontalLayout();
+        row.setSpacing(false);
+        row.setPadding(false);
+        row.setAlignItems(Alignment.CENTER);
+        row.getStyle().set("gap", "0.4rem");
+
+        Span titleLabel = new Span(getItemDisplayName(item));
+
+        // Source tag — only on parent rows
+        if (item.isParent() && item.getTask().getSource() != null) {
+            MediaSource source = item.getTask().getSource();
+            Span sourceTag = new Span(source.getDisplayName());
+            sourceTag.addClassNames(LumoUtility.FontSize.XSMALL);
+            sourceTag.getStyle()
+                    .set("background", switch (source) {
+                        case VIXSRC -> "#1976D2";
+                        case RAIPLAY -> "#0066B3";
+                    })
+                    .set("color", "#fff")
+                    .set("padding", "0.1rem 0.35rem")
+                    .set("border-radius", "0.25rem")
+                    .set("font-weight", "600");
+            row.add(sourceTag);
+        }
+
+        row.add(titleLabel);
+        return row;
     }
 
     private String getItemSize(DownloadItem item) {

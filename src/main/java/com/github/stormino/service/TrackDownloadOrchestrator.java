@@ -6,9 +6,12 @@ import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.PlaylistInfo;
+import com.github.stormino.model.ResolvedMedia;
 import com.github.stormino.model.ProgressUpdate;
 import com.github.stormino.persistence.TaskPersistenceService;
 import com.github.stormino.service.command.FfmpegCommandBuilder;
+import com.github.stormino.service.source.MediaSourceProvider;
+import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.util.DownloadConstants;
 import com.github.stormino.util.PathUtils;
 import com.github.stormino.util.TempFileManager;
@@ -34,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class TrackDownloadOrchestrator {
 
-    private final VixSrcExtractorService extractorService;
+    private final MediaSourceRegistry sourceRegistry;
     private final ProgressBroadcastService progressBroadcast;
     private final VixSrcProperties properties;
     private final VideoTrackDownloadStrategy videoStrategy;
@@ -54,7 +57,6 @@ public class TrackDownloadOrchestrator {
     public boolean downloadWithTracks(DownloadTask task) {
         log.debug("Starting concurrent track download for: {}", task.getDisplayName());
 
-        // Use TempFileManager for automatic cleanup on success or failure
         try (TempFileManager tempFileManager = new TempFileManager()) {
             // 1. Create temp directory
             Path tempDir;
@@ -72,8 +74,24 @@ public class TrackDownloadOrchestrator {
                     ? task.getLanguages()
                     : properties.getDownload().getDefaultLanguageList();
 
-            // 3. Initialize sub-tasks: 1 video + N audio tracks + N subtitle tracks
-            List<DownloadSubTask> subTasks = initializeTrackSubTasks(task, languages);
+            // 3. Try playlist-driven init; fall back to language-driven
+            MediaSourceProvider provider = sourceRegistry.get(task.getSource());
+            ResolvedMedia resolvedMedia = provider.resolveMaster(task, languages.get(0)).orElse(null);
+
+            List<DownloadSubTask> subTasks;
+            if (resolvedMedia != null && resolvedMedia.parsed().getType() == HlsParserService.PlaylistType.MASTER) {
+                subTasks = initializePlaylistDrivenSubTasks(task, resolvedMedia, languages);
+                log.debug("Playlist-driven init: {} sub-tasks from master (1 video + {} audio + {} subtitle)",
+                        subTasks.size(),
+                        subTasks.stream().filter(s -> s.getType() == DownloadSubTask.SubTaskType.AUDIO).count(),
+                        subTasks.stream().filter(s -> s.getType() == DownloadSubTask.SubTaskType.SUBTITLE).count());
+            } else {
+                log.debug("Language-driven init (resolveMaster returned {})",
+                        resolvedMedia == null ? "empty" : "non-master playlist");
+                resolvedMedia = null; // clear non-master result so downloadTrackAsync uses old path
+                subTasks = initializeTrackSubTasks(task, languages);
+            }
+
             task.setSubTasks(subTasks);
             persistenceService.saveSubTasks(subTasks);
 
@@ -81,8 +99,9 @@ public class TrackDownloadOrchestrator {
             broadcastTaskStructure(task);
 
             // 4. Download tracks concurrently (1 video + N audio + N subtitle)
+            final ResolvedMedia rm = resolvedMedia; // effectively final for lambda capture
             List<CompletableFuture<Boolean>> downloadFutures = subTasks.stream()
-                    .map(subTask -> downloadTrackAsync(task, subTask, tempDir, languages.get(0)))
+                    .map(subTask -> downloadTrackAsync(task, subTask, tempDir, languages.get(0), rm))
                     .toList();
 
             // 5. Wait for all downloads
@@ -170,6 +189,78 @@ public class TrackDownloadOrchestrator {
         }
     }
 
+    /**
+     * Build sub-tasks from renditions discovered in the already-parsed master playlist.
+     * Audio and subtitle sub-tasks carry the pre-resolved {@code renditionUrl} so that
+     * {@link #downloadTrackAsync} skips re-fetching the master for each track.
+     */
+    private List<DownloadSubTask> initializePlaylistDrivenSubTasks(
+            DownloadTask task, ResolvedMedia resolvedMedia, List<String> languages) {
+
+        List<DownloadSubTask> subTasks = new ArrayList<>();
+        HlsParserService.HlsPlaylist parsed = resolvedMedia.parsed();
+
+        // Always exactly one video sub-task
+        subTasks.add(DownloadSubTask.builder()
+                .parentTaskId(task.getId())
+                .type(DownloadSubTask.SubTaskType.VIDEO)
+                .resolution(task.getQuality())
+                .build());
+
+        // Audio sub-tasks from actual renditions, filtered by requested languages.
+        // Audio-description tracks are skipped unless the user opted in.
+        List<HlsParserService.AudioTrack> audioTracks = parsed.getAudioTracks();
+        if (audioTracks != null) {
+            for (HlsParserService.AudioTrack track : audioTracks) {
+                if (track.isAudioDescription() && !task.isIncludeAudioDescription()) {
+                    continue;
+                }
+                if (languages.isEmpty() || languageMatchesAny(track.getLanguage(), languages)) {
+                    subTasks.add(DownloadSubTask.builder()
+                            .parentTaskId(task.getId())
+                            .type(DownloadSubTask.SubTaskType.AUDIO)
+                            .language(track.getLanguage() != null ? track.getLanguage() : "und")
+                            .title(track.getName())
+                            .renditionUrl(track.getUrl())
+                            .build());
+                }
+            }
+        }
+
+        // Subtitle sub-tasks from actual renditions, filtered by requested languages
+        List<HlsParserService.SubtitleTrack> subtitleTracks = parsed.getSubtitleTracks();
+        if (subtitleTracks != null) {
+            for (HlsParserService.SubtitleTrack track : subtitleTracks) {
+                if (languages.isEmpty() || languageMatchesAny(track.getLanguage(), languages)) {
+                    subTasks.add(DownloadSubTask.builder()
+                            .parentTaskId(task.getId())
+                            .type(DownloadSubTask.SubTaskType.SUBTITLE)
+                            .language(track.getLanguage() != null ? track.getLanguage() : "und")
+                            .title(track.getName())
+                            .renditionUrl(track.getUrl())
+                            .build());
+                }
+            }
+        }
+
+        return subTasks;
+    }
+
+    /**
+     * Fuzzy language match — handles ISO 639-1 ("it") vs ISO 639-2 ("ita") prefix differences.
+     */
+    private boolean languageMatchesAny(String trackLang, List<String> languages) {
+        if (trackLang == null) return false;
+        String tl = trackLang.toLowerCase();
+        for (String lang : languages) {
+            String rl = lang.toLowerCase();
+            if (tl.equals(rl) || tl.startsWith(rl) || rl.startsWith(tl)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private List<DownloadSubTask> initializeTrackSubTasks(DownloadTask task, List<String> languages) {
         List<DownloadSubTask> subTasks = new ArrayList<>();
 
@@ -207,8 +298,12 @@ public class TrackDownloadOrchestrator {
         return subTasks;
     }
 
+    /**
+     * @param resolvedMedia pre-resolved master; null triggers the legacy per-sub-task getPlaylist() path
+     */
     private CompletableFuture<Boolean> downloadTrackAsync(DownloadTask task, DownloadSubTask subTask,
-                                                          Path tempDir, String primaryLanguage) {
+                                                          Path tempDir, String primaryLanguage,
+                                                          ResolvedMedia resolvedMedia) {
         return CompletableFuture.supplyAsync(() -> {
             subTask.setStartedAt(LocalDateTime.now());
             subTask.setStatus(DownloadStatus.DOWNLOADING);
@@ -220,45 +315,38 @@ public class TrackDownloadOrchestrator {
 
             log.debug("Starting download for track: {}", subTask.getDisplayName());
 
-            // Build embed URL (referer)
-            String embedUrl;
-            if (task.getContentType() == DownloadTask.ContentType.TV) {
-                embedUrl = String.format("%s/tv/%d/%d/%d?lang=%s",
-                        properties.getExtractor().getBaseUrl(),
-                        task.getTmdbId(), task.getSeason(), task.getEpisode(), language);
+            // Resolve playlist URL and referer — either from the pre-resolved master or on demand
+            final String playlistUrl;
+            final String embedUrl;
+
+            if (resolvedMedia != null) {
+                embedUrl = resolvedMedia.playlist().getReferer();
+                // Video: use master URL so VideoTrackDownloadStrategy can pick the best variant
+                // Audio/Subtitle: use the already-resolved rendition URL
+                String renditionUrl = subTask.getRenditionUrl();
+                playlistUrl = (renditionUrl != null) ? renditionUrl : resolvedMedia.playlist().getUrl();
             } else {
-                embedUrl = String.format("%s/movie/%d?lang=%s",
-                        properties.getExtractor().getBaseUrl(),
-                        task.getTmdbId(), language);
+                MediaSourceProvider provider = sourceRegistry.get(task.getSource());
+                Optional<PlaylistInfo> playlistInfo = provider.getPlaylist(task, language);
+                if (playlistInfo.isEmpty()) {
+                    log.error("Failed to get playlist for {}", subTask.getDisplayName());
+                    subTask.setStatus(DownloadStatus.FAILED);
+                    subTask.setErrorMessage("Failed to get playlist URL");
+                    broadcastSubTaskUpdate(task, subTask);
+                    return false;
+                }
+                playlistUrl = playlistInfo.get().getUrl();
+                embedUrl = playlistInfo.get().getReferer();
             }
 
-            // Get playlist URL
-            Optional<PlaylistInfo> playlistInfo;
-            if (task.getContentType() == DownloadTask.ContentType.TV) {
-                playlistInfo = extractorService.getTvPlaylist(
-                        task.getTmdbId(), task.getSeason(), task.getEpisode(), language);
-            } else {
-                playlistInfo = extractorService.getMoviePlaylist(task.getTmdbId(), language);
-            }
-
-            if (playlistInfo.isEmpty()) {
-                log.error("Failed to get playlist for {}", subTask.getDisplayName());
-                subTask.setStatus(DownloadStatus.FAILED);
-                subTask.setErrorMessage("Failed to get playlist URL");
-                broadcastSubTaskUpdate(task, subTask);
-                return false;
-            }
-
-            String playlistUrl = playlistInfo.get().getUrl();
-
-            // Set output path
+            // Set output path — use sub-task ID for uniqueness (multiple audio tracks can share a language)
             Path outputPath;
             if (isVideo) {
                 outputPath = tempDir.resolve("video.mp4");
             } else if (isAudio) {
-                outputPath = tempDir.resolve("audio_" + language + ".m4a");
+                outputPath = tempDir.resolve("audio_" + subTask.getId() + ".m4a");
             } else {
-                outputPath = tempDir.resolve("subtitle_" + language + ".vtt");
+                outputPath = tempDir.resolve("subtitle_" + subTask.getId() + ".vtt");
             }
             subTask.setTempFilePath(outputPath.toString());
 

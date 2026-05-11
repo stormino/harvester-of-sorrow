@@ -16,6 +16,8 @@ public class DownloadTaskRecord {
 
     @Id
     private String id;
+    private String source;
+    private String sourceMetadata;   // JSON, polymorphic via Jackson
     private String contentType;
     private Integer tmdbId;
     private Integer season;
