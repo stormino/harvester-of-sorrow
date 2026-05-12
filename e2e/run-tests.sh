@@ -12,4 +12,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cd "$SCRIPT_DIR"
+# Expose .env.e2e vars to the Playwright process (e.g. RAIPLAY_USERNAME for skip guards)
+if [ -f "$SCRIPT_DIR/.env.e2e" ]; then
+  set -a; source "$SCRIPT_DIR/.env.e2e"; set +a
+fi
 npx playwright test "$@"
