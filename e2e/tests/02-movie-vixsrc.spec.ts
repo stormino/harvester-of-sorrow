@@ -18,7 +18,7 @@ test('vixsrc movie — full download happy path', async ({ page }) => {
 
   // 3. Wait for DOWNLOADING to confirm ffmpeg started, then wait for COMPLETED
   await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 3 * 60 * 1000 });
-  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 10 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 20 * 60 * 1000 });
 
   // 4. Verify the file on disk
   const filePath = await findDownloadedFile('movies', fixture.titleHint);

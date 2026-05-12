@@ -11,8 +11,8 @@ export default defineConfig({
 
   retries: process.env.CI ? 1 : 0,
 
-  // Real downloads take real minutes; worst-quality content typically finishes in < 10 min
-  timeout: 15 * 60 * 1000,
+  // Real downloads take real minutes; worst-quality movies can take 15–20 min
+  timeout: 25 * 60 * 1000,
 
   reporter: [
     ['list'],
