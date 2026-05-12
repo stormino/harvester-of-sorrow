@@ -110,7 +110,9 @@ export async function findDownloadedFile(
 
 function walkFind(dir: string, hint: string, subPath?: string): string | null {
   if (!existsSync(dir)) return null;
-  const hintLower = hint.toLowerCase();
+  // Normalize to alphanumeric-only so "Fight Club" matches "Fight.Club.1999.mp4"
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const hintNorm = norm(hint);
 
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -119,7 +121,7 @@ function walkFind(dir: string, hint: string, subPath?: string): string | null {
       if (found) return found;
     } else if (entry.isFile() && entry.name.endsWith('.mp4')) {
       const pathLower = full.toLowerCase();
-      const hintMatch = pathLower.includes(hintLower);
+      const hintMatch = norm(entry.name).includes(hintNorm);
       const subMatch = subPath ? pathLower.includes(subPath.toLowerCase()) : true;
       if (hintMatch && subMatch) return full;
     }
