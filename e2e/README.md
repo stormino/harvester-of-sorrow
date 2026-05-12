@@ -60,14 +60,20 @@ This automatically:
 1. Runs the preflight check (validates all tools and `.env.e2e`)
 2. Wipes `target/e2e/` from any previous run
 3. Boots the Spring Boot app on port 8089 with a throwaway SQLite DB and download paths
-4. Waits for the app to be healthy (up to 90 s — Vaadin frontend compile is slow on first boot)
+4. Waits for the app to be healthy (up to 3 min — Vaadin frontend compile is slow on first boot)
 5. Runs all 6 test files in order
-6. Stops the app and wipes `target/e2e/`
+6. Stops the app and leaves `target/e2e/` intact for inspection
+
+To wipe `target/e2e/` after the run:
+
+```bash
+KEEP_E2E_ARTIFACTS=0 npm test
+```
 
 ### Smoke test only (fast, no downloads)
 
 ```bash
-npx playwright test tests/01-smoke.spec.ts
+bash run-tests.sh tests/01-smoke.spec.ts
 ```
 
 Verifies the three main routes render. Completes in ~30 s.
@@ -75,7 +81,7 @@ Verifies the three main routes render. Completes in ~30 s.
 ### Single test file
 
 ```bash
-npx playwright test tests/02-movie-vixsrc.spec.ts
+bash run-tests.sh tests/02-movie-vixsrc.spec.ts
 ```
 
 ### Watch Chromium in real time
@@ -151,7 +157,7 @@ KEEP_E2E_ARTIFACTS=1 npm test
 | `PARALLEL_DOWNLOADS` | No | `2` | Max concurrent downloads during tests |
 | `DEFAULT_QUALITY` | No | `worst` | Keeps downloads small and fast |
 | `DEFAULT_LANGUAGE` | No | `it` | Default audio language for downloads |
-| `KEEP_E2E_ARTIFACTS` | No | — | Set to `1` to keep `target/e2e/` after the run |
+| `KEEP_E2E_ARTIFACTS` | No | keep | `target/e2e/` is kept by default; set to `0` to delete after the run |
 
 ---
 

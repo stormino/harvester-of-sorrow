@@ -86,11 +86,11 @@ export async function teardown(): Promise<void> {
     console.warn('stop-app.sh exited non-zero:', e);
   }
 
-  if (process.env.KEEP_E2E_ARTIFACTS !== '1') {
+  if (process.env.KEEP_E2E_ARTIFACTS === '0') {
     if (existsSync(e2eDir)) {
       rmSync(e2eDir, { recursive: true, force: true });
     }
   } else {
-    console.log('KEEP_E2E_ARTIFACTS=1 — leaving target/e2e/ intact for debugging.');
+    console.log('Leaving target/e2e/ intact (set KEEP_E2E_ARTIFACTS=0 to clean up).');
   }
 }
