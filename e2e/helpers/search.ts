@@ -30,7 +30,7 @@ export async function searchAndPickFirst(
  * Clicks the download button on a result card to open the download dialog.
  */
 export async function openDownloadDialog(card: Locator): Promise<void> {
-  const btn = card.locator('button[id^="result-card-download-"]');
+  const btn = card.locator('[id^="result-card-download-"]');
   await btn.waitFor({ state: 'visible' });
   await btn.click();
 
