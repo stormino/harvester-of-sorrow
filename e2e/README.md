@@ -150,6 +150,7 @@ KEEP_E2E_ARTIFACTS=1 npm test
 | `SERVER_PORT` | No | `8089` | Avoids clash with a dev server on 8080 |
 | `PARALLEL_DOWNLOADS` | No | `2` | Max concurrent downloads during tests |
 | `DEFAULT_QUALITY` | No | `worst` | Keeps downloads small and fast |
+| `DEFAULT_LANGUAGE` | No | `it` | Default audio language for downloads |
 | `KEEP_E2E_ARTIFACTS` | No | — | Set to `1` to keep `target/e2e/` after the run |
 
 ---
