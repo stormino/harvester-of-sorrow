@@ -17,20 +17,30 @@ const HEALTH_URL = 'http://localhost:8089/actuator/health';
 // Vaadin's first-run frontend compile regularly takes 2–3 min on a cold machine
 const HEALTH_TIMEOUT_MS = 3 * 60_000;
 const HEALTH_POLL_MS = 2_000;
+// Spring Boot DevTools restarts the app context on first Vaadin page load.
+// We require 12 s of continuous UP before declaring the app ready.
+const STABILITY_WINDOW_MS = 12_000;
 
 async function waitForHealth(): Promise<void> {
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
+  let stableFrom: number | null = null;
 
   while (Date.now() < deadline) {
     try {
       const res = await fetch(HEALTH_URL);
       if (res.ok) {
         const body = (await res.json()) as { status?: string };
-        if (body.status === 'UP') return;
+        if (body.status === 'UP') {
+          if (stableFrom === null) stableFrom = Date.now();
+          if (Date.now() - stableFrom >= STABILITY_WINDOW_MS) return;
+          await new Promise(r => setTimeout(r, HEALTH_POLL_MS));
+          continue;
+        }
       }
     } catch {
       // not up yet
     }
+    stableFrom = null;
     await new Promise(r => setTimeout(r, HEALTH_POLL_MS));
   }
 
