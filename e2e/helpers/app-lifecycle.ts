@@ -13,7 +13,8 @@ const startScript = resolve(__dirname, '..', 'scripts', 'start-app.sh');
 const preflight = resolve(__dirname, '..', 'scripts', 'preflight.sh');
 
 const APP_URL = 'http://localhost:8089/actuator/health';
-const HEALTH_TIMEOUT_MS = 90_000;
+// Vaadin's first-run frontend compile regularly takes 2–3 min on a cold machine
+const HEALTH_TIMEOUT_MS = 3 * 60_000;
 const HEALTH_POLL_MS = 2_000;
 
 async function waitForHealth(): Promise<void> {
@@ -31,8 +32,9 @@ async function waitForHealth(): Promise<void> {
     await new Promise(r => setTimeout(r, HEALTH_POLL_MS));
   }
   throw new Error(
-    `App did not become healthy within ${HEALTH_TIMEOUT_MS / 1000}s. ` +
-    `Check target/e2e/app.stdout.log`,
+    `App did not become healthy within ${HEALTH_TIMEOUT_MS / 1000}s.\n` +
+    `Check target/e2e/app.stdout.log for errors.\n` +
+    `Tip: run with KEEP_E2E_ARTIFACTS=1 so the log is preserved after teardown.`,
   );
 }
 
