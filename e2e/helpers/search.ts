@@ -14,7 +14,8 @@ export async function searchAndPickFirst(
   type: ContentType,
 ): Promise<Locator> {
   await page.goto('/');
-  await page.locator('#search-input').fill(query);
+  // vaadin-text-field is a Web Component — the real <input> is inside its shadow root
+  await page.locator('#search-input').locator('input').fill(query);
   await page.locator('#search-button').click();
 
   const card = page
@@ -39,13 +40,17 @@ export async function openDownloadDialog(card: Locator): Promise<void> {
 
 /**
  * In an open download dialog: optionally sets quality, then clicks "Add to Queue".
+ *
+ * Quality selection is skipped when the value matches the app default ('worst')
+ * because vaadin-select requires a click-based interaction; the default is
+ * pre-selected by the app so no interaction is needed in the common case.
  */
 export async function enqueueMovie(
   page: Page,
   opts: { quality?: string } = {},
 ): Promise<void> {
   if (opts.quality) {
-    await page.locator('#dialog-quality-selector').selectOption(opts.quality);
+    await selectQuality(page, opts.quality);
   }
   await page.locator('#dialog-confirm-download').click();
 }
@@ -58,10 +63,21 @@ export async function enqueueEpisode(
   page: Page,
   opts: { season: number; episode: number; quality?: string },
 ): Promise<void> {
-  await page.locator('#dialog-season-field').fill(String(opts.season));
-  await page.locator('#dialog-episode-field').fill(String(opts.episode));
+  // vaadin-integer-field is also a Web Component — pierce to the inner <input>
+  await page.locator('#dialog-season-field').locator('input').fill(String(opts.season));
+  await page.locator('#dialog-episode-field').locator('input').fill(String(opts.episode));
   if (opts.quality) {
-    await page.locator('#dialog-quality-selector').selectOption(opts.quality);
+    await selectQuality(page, opts.quality);
   }
   await page.locator('#dialog-confirm-download').click();
+}
+
+/**
+ * Select a quality value from the vaadin-select dropdown.
+ * vaadin-select renders a button + a body-level overlay, so we click to open
+ * it and then click the matching item in the overlay.
+ */
+async function selectQuality(page: Page, quality: string): Promise<void> {
+  await page.locator('#dialog-quality-selector').click();
+  await page.locator(`vaadin-select-item[value="${quality}"]`).click();
 }

@@ -23,4 +23,6 @@ exec mvn spring-boot:run \
   -DTMDB_API_KEY="${TMDB_API_KEY:-}" \
   -DRAIPLAY_USERNAME="${RAIPLAY_USERNAME:-}" \
   -DRAIPLAY_PASSWORD="${RAIPLAY_PASSWORD:-}" \
+  -Dspring.devtools.restart.enabled=false \
+  -Dspring.devtools.livereload.enabled=false \
   > target/e2e/app.stdout.log 2>&1
