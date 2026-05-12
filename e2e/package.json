@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:ui": "playwright test --ui",
+    "test": "bash run-tests.sh",
+    "test:headed": "bash run-tests.sh --headed",
+    "test:ui": "bash run-tests.sh --ui",
     "preflight": "./scripts/preflight.sh"
   },
   "devDependencies": {
