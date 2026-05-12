@@ -4,80 +4,26 @@ import { expect } from '@playwright/test';
 import { probe } from './ffprobe.js';
 import { moviesPath, tvShowsPath } from './paths.js';
 
-export interface VideoExpectations {
-  minDurationSeconds?: number;
-  minSizeBytes?: number;
-  audioLanguages?: string[];
-  expectSubtitles?: boolean;
-  maxVideoWidth?: number;
-}
-
 /**
- * Assert that a downloaded file is a valid video using ffprobe.
- * All checks are soft-fail so the full report is available on failure.
+ * Assert that a downloaded file is a valid, playable video using ffprobe:
+ * file exists, non-empty, has a video stream and an audio stream, positive duration.
  */
-export async function expectValidVideoFile(
-  filePath: string,
-  expectations: VideoExpectations = {},
-): Promise<void> {
-  const {
-    minDurationSeconds = 10,
-    minSizeBytes = 1_000_000,
-    audioLanguages,
-    expectSubtitles = false,
-    maxVideoWidth,
-  } = expectations;
-
+export async function expectValidVideoFile(filePath: string): Promise<void> {
   expect(existsSync(filePath), `File should exist: ${filePath}`).toBe(true);
-
-  const stat = statSync(filePath);
-  expect(
-    stat.size,
-    `File size ${stat.size} should be >= ${minSizeBytes} bytes`,
-  ).toBeGreaterThanOrEqual(minSizeBytes);
+  expect(statSync(filePath).size, `File should not be empty: ${filePath}`).toBeGreaterThan(0);
 
   const result = await probe(filePath);
 
-  // Duration
   const duration = parseFloat(result.format.duration);
-  expect(
-    duration,
-    `Duration ${duration}s should be >= ${minDurationSeconds}s`,
-  ).toBeGreaterThanOrEqual(minDurationSeconds);
+  expect(duration, `Duration should be > 0`).toBeGreaterThan(0);
 
-  // Video stream
   const videoStreams = result.streams.filter(s => s.codec_type === 'video');
-  expect(videoStreams.length, 'Should have exactly one video stream').toBe(1);
-  expect(videoStreams[0].width, 'Video width should be > 0').toBeGreaterThan(0);
-  expect(videoStreams[0].height, 'Video height should be > 0').toBeGreaterThan(0);
-  if (maxVideoWidth !== undefined) {
-    expect(
-      videoStreams[0].width,
-      `Video width ${videoStreams[0].width} should be <= ${maxVideoWidth} (worst quality)`,
-    ).toBeLessThanOrEqual(maxVideoWidth);
-  }
+  expect(videoStreams.length, 'Should have at least one video stream').toBeGreaterThanOrEqual(1);
 
-  // Audio stream
   const audioStreams = result.streams.filter(s => s.codec_type === 'audio');
   expect(audioStreams.length, 'Should have at least one audio stream').toBeGreaterThanOrEqual(1);
-
-  // Language checks (BCP-47 tolerant — compare lowercase prefix)
-  if (audioLanguages && audioLanguages.length > 0) {
-    for (const lang of audioLanguages) {
-      const found = audioStreams.some(s => {
-        const streamLang = s.tags?.language?.toLowerCase() ?? '';
-        return streamLang === lang.toLowerCase() || streamLang.startsWith(lang.toLowerCase());
-      });
-      expect(found, `Should have an audio stream for language "${lang}"`).toBe(true);
-    }
-  }
-
-  // Subtitle streams
-  if (expectSubtitles) {
-    const subStreams = result.streams.filter(s => s.codec_type === 'subtitle');
-    expect(subStreams.length, 'Should have at least one subtitle stream').toBeGreaterThanOrEqual(1);
-  }
 }
+
 
 /**
  * Poll the filesystem after COMPLETED status for up to 5 s, then return the

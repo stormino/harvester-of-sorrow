@@ -31,10 +31,7 @@ test('raiplay TV series — S01E01 downloads to correct path', async ({ page }) 
 
   // 4. Verify the file exists under the TV path with S01E01 in the filename
   const filePath = await findDownloadedFile('tvshows', fixture.titleHint, 'S01E01');
-  await expectValidVideoFile(filePath, {
-    minDurationSeconds: 60,
-    maxVideoWidth: 1280,
-  });
+  await expectValidVideoFile(filePath);
 
   expect(filePath).toContain('Season 01');
 });

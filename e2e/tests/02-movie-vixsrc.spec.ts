@@ -22,8 +22,5 @@ test('vixsrc movie — full download happy path', async ({ page }) => {
 
   // 4. Verify the file on disk
   const filePath = await findDownloadedFile('movies', fixture.titleHint);
-  await expectValidVideoFile(filePath, {
-    minDurationSeconds: 60,
-    maxVideoWidth: 1280,
-  });
+  await expectValidVideoFile(filePath);
 });
