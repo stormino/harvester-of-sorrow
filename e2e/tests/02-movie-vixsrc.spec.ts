@@ -10,7 +10,7 @@ test('vixsrc movie — full download happy path', async ({ page }) => {
   // 1. Search and enqueue
   const card = await searchAndPickFirst(page, fixture.query, 'vixsrc', 'MOVIE');
   await openDownloadDialog(card);
-  await enqueueMovie(page, { quality: 'worst', language: 'it' });
+  await enqueueMovie(page, { quality: 'worst' });
 
   // 2. Navigate to queue and locate the task
   await gotoQueue(page);
