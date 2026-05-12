@@ -12,13 +12,13 @@ test('cancel mid-download — no orphan processes or temp files', async ({ page 
   // 1. Enqueue the smallest fixture (vixsrc movie)
   const card = await searchAndPickFirst(page, fixture.query, 'vixsrc', 'MOVIE');
   await openDownloadDialog(card);
-  await enqueueMovie(page, { quality: 'worst' });
+  await enqueueMovie(page);
 
   await gotoQueue(page);
   const taskId = await findLatestTaskId(page, { source: 'vixsrc' });
 
   // 2. Wait until ffmpeg is actually running (DOWNLOADING status)
-  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 5 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 3 * 60 * 1000 });
 
   // 3. Give it 3 s so at least one progress event has fired (exercises cancel-mid-progress)
   await page.waitForTimeout(3_000);

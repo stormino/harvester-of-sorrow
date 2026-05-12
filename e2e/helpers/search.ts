@@ -46,13 +46,7 @@ export async function openDownloadDialog(card: Locator): Promise<void> {
  * pre-selected by the app so no interaction is needed in the common case.
  * Language is controlled by DEFAULT_LANGUAGE in .env.e2e and pre-selected by the app.
  */
-export async function enqueueMovie(
-  page: Page,
-  opts: { quality?: string } = {},
-): Promise<void> {
-  if (opts.quality) {
-    await selectQuality(page, opts.quality);
-  }
+export async function enqueueMovie(page: Page): Promise<void> {
   await page.locator('#dialog-confirm-download').click();
 }
 
@@ -62,25 +56,13 @@ export async function enqueueMovie(
  */
 export async function enqueueEpisode(
   page: Page,
-  opts: { season: number; episode: number; quality?: string },
+  opts: { season: number; episode: number },
 ): Promise<void> {
   // vaadin-integer-field is also a Web Component — pierce to the inner <input>
   await page.locator('#dialog-season-field').locator('input').fill(String(opts.season));
   await page.locator('#dialog-episode-field').locator('input').fill(String(opts.episode));
-  if (opts.quality) {
-    await selectQuality(page, opts.quality);
-  }
   await page.locator('#dialog-confirm-download').click();
 }
 
-/**
- * Select a quality value from the vaadin-select dropdown.
- * vaadin-select renders a button + a body-level overlay, so we click to open
- * it and then click the matching item in the overlay.
- */
-async function selectQuality(page: Page, quality: string): Promise<void> {
-  await page.locator('#dialog-quality-selector').click();
-  await page.locator(`vaadin-select-item[value="${quality}"]`).click();
-}
 
 

@@ -19,7 +19,6 @@ test('raiplay TV series — S01E01 downloads to correct path', async ({ page }) 
   await enqueueEpisode(page, {
     season: fixture.season,
     episode: fixture.episode,
-    quality: 'worst',
   });
 
   // 2. Navigate to queue and locate the task
@@ -27,8 +26,8 @@ test('raiplay TV series — S01E01 downloads to correct path', async ({ page }) 
   const taskId = await findLatestTaskId(page, { source: 'raiplay' });
 
   // 3. Wait for completion
-  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 5 * 60 * 1000 });
-  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 20 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 3 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 10 * 60 * 1000 });
 
   // 4. Verify the file exists under the TV path with S01E01 in the filename
   const filePath = await findDownloadedFile('tvshows', fixture.titleHint, 'S01E01');

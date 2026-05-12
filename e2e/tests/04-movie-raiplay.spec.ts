@@ -16,15 +16,15 @@ test('raiplay movie — full download happy path', async ({ page }) => {
   // 1. Search and enqueue
   const card = await searchAndPickFirst(page, fixture.query, 'raiplay', 'MOVIE');
   await openDownloadDialog(card);
-  await enqueueMovie(page, { quality: 'worst' });
+  await enqueueMovie(page);
 
   // 2. Navigate to queue and locate the task
   await gotoQueue(page);
   const taskId = await findLatestTaskId(page, { source: 'raiplay' });
 
   // 3. Wait for completion
-  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 5 * 60 * 1000 });
-  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 20 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 3 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 10 * 60 * 1000 });
 
   // 4. Verify the file on disk
   const filePath = await findDownloadedFile('movies', fixture.titleHint);

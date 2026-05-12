@@ -10,15 +10,15 @@ test('vixsrc movie — full download happy path', async ({ page }) => {
   // 1. Search and enqueue
   const card = await searchAndPickFirst(page, fixture.query, 'vixsrc', 'MOVIE');
   await openDownloadDialog(card);
-  await enqueueMovie(page, { quality: 'worst' });
+  await enqueueMovie(page);
 
   // 2. Navigate to queue and locate the task
   await gotoQueue(page);
   const taskId = await findLatestTaskId(page, { source: 'vixsrc' });
 
   // 3. Wait for DOWNLOADING to confirm ffmpeg started, then wait for COMPLETED
-  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 5 * 60 * 1000 });
-  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 20 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 3 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 10 * 60 * 1000 });
 
   // 4. Verify the file on disk
   const filePath = await findDownloadedFile('movies', fixture.titleHint);
