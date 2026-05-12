@@ -39,7 +39,7 @@ export async function openDownloadDialog(card: Locator): Promise<void> {
 }
 
 /**
- * In an open download dialog: optionally sets quality, then clicks "Add to Queue".
+ * In an open download dialog: optionally sets language/quality, then clicks "Add to Queue".
  *
  * Quality selection is skipped when the value matches the app default ('worst')
  * because vaadin-select requires a click-based interaction; the default is
@@ -47,8 +47,11 @@ export async function openDownloadDialog(card: Locator): Promise<void> {
  */
 export async function enqueueMovie(
   page: Page,
-  opts: { quality?: string } = {},
+  opts: { quality?: string; language?: string } = {},
 ): Promise<void> {
+  if (opts.language) {
+    await selectLanguage(page, opts.language);
+  }
   if (opts.quality) {
     await selectQuality(page, opts.quality);
   }
@@ -56,16 +59,19 @@ export async function enqueueMovie(
 }
 
 /**
- * In an open download dialog: fills season/episode, optionally sets quality,
+ * In an open download dialog: fills season/episode, optionally sets language/quality,
  * then clicks "Add to Queue".
  */
 export async function enqueueEpisode(
   page: Page,
-  opts: { season: number; episode: number; quality?: string },
+  opts: { season: number; episode: number; quality?: string; language?: string },
 ): Promise<void> {
   // vaadin-integer-field is also a Web Component — pierce to the inner <input>
   await page.locator('#dialog-season-field').locator('input').fill(String(opts.season));
   await page.locator('#dialog-episode-field').locator('input').fill(String(opts.episode));
+  if (opts.language) {
+    await selectLanguage(page, opts.language);
+  }
   if (opts.quality) {
     await selectQuality(page, opts.quality);
   }
@@ -80,4 +86,22 @@ export async function enqueueEpisode(
 async function selectQuality(page: Page, quality: string): Promise<void> {
   await page.locator('#dialog-quality-selector').click();
   await page.locator(`vaadin-select-item[value="${quality}"]`).click();
+}
+
+/**
+ * Select a language in the vaadin-multi-select-combo-box.
+ * Types the value into the combo box input to filter, then clicks the matching
+ * overlay item. Already-selected chips are left as-is; this only adds the given
+ * language if it is not already selected.
+ */
+async function selectLanguage(page: Page, language: string): Promise<void> {
+  const combo = page.locator('#dialog-language-selector');
+  const input = combo.locator('input');
+  await input.click();
+  await input.fill(language);
+  const item = page.locator(`vaadin-multi-select-combo-box-item[value="${language}"]`);
+  await item.waitFor({ state: 'visible', timeout: 5_000 });
+  await item.click();
+  // Close the dropdown by pressing Escape
+  await input.press('Escape');
 }

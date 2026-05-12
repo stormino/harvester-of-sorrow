@@ -20,6 +20,7 @@ test('raiplay TV series — S01E01 downloads to correct path', async ({ page }) 
     season: fixture.season,
     episode: fixture.episode,
     quality: 'worst',
+    language: 'it',
   });
 
   // 2. Navigate to queue and locate the task
