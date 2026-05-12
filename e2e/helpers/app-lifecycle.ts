@@ -12,11 +12,8 @@ export const pidFile = resolve(e2eDir, 'app.pid');
 const startScript = resolve(__dirname, '..', 'scripts', 'start-app.sh');
 const preflight = resolve(__dirname, '..', 'scripts', 'preflight.sh');
 
-// /readiness returns OUT_OF_SERVICE (503) during startup and DevTools restarts,
-// and UP (200) only when the application context is fully ready — the same
-// semantic as a Kubernetes readiness probe. Enabled via
-// -Dmanagement.health.probes.enabled=true in start-app.sh.
-const READINESS_URL = 'http://localhost:8089/actuator/health/readiness';
+// Standard health endpoint — reliable, includes DB and disk checks
+const HEALTH_URL = 'http://localhost:8089/actuator/health';
 // Vaadin's first-run frontend compile regularly takes 2–3 min on a cold machine
 const HEALTH_TIMEOUT_MS = 3 * 60_000;
 const HEALTH_POLL_MS = 2_000;
@@ -26,12 +23,11 @@ async function waitForHealth(): Promise<void> {
 
   while (Date.now() < deadline) {
     try {
-      const res = await fetch(READINESS_URL);
+      const res = await fetch(HEALTH_URL);
       if (res.ok) {
         const body = (await res.json()) as { status?: string };
         if (body.status === 'UP') return;
       }
-      // 503 = OUT_OF_SERVICE (starting up or DevTools mid-restart) — keep polling
     } catch {
       // not up yet
     }
@@ -39,7 +35,7 @@ async function waitForHealth(): Promise<void> {
   }
 
   throw new Error(
-    `App did not become ready within ${HEALTH_TIMEOUT_MS / 1000}s.\n` +
+    `App did not become healthy within ${HEALTH_TIMEOUT_MS / 1000}s.\n` +
     `Check target/e2e/app.stdout.log for errors.\n` +
     `Tip: run with KEEP_E2E_ARTIFACTS=1 so the log is preserved after teardown.`,
   );
@@ -64,6 +60,7 @@ export async function setup(): Promise<void> {
     throw new Error('Failed to spawn start-app.sh — no PID assigned');
   }
 
+  // Write PGID (= PID when detached) so teardown can kill the whole process tree
   writeFileSync(pidFile, String(child.pid));
   console.log(`App started (PID ${child.pid}), waiting for health check…`);
 

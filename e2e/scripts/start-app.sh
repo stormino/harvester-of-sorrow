@@ -34,5 +34,4 @@ exec mvn spring-boot:run \
   -DRAIPLAY_PASSWORD="${RAIPLAY_PASSWORD:-}" \
   -Dspring.devtools.restart.enabled=false \
   -Dspring.devtools.livereload.enabled=false \
-  -Dmanagement.health.probes.enabled=true \
   > target/e2e/app.stdout.log 2>&1
