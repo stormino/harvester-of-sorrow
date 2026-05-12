@@ -3,6 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 mkdir -p target/e2e
 
+# Kill anything already bound to the test port so stale processes never block startup
+PORT="${SERVER_PORT:-8089}"
+STALE=$(lsof -ti :"$PORT" || true)
+if [ -n "$STALE" ]; then
+  echo "Killing stale process(es) on port $PORT: $STALE"
+  kill -TERM $STALE 2>/dev/null || true
+  sleep 1
+fi
+
 # Load e2e config
 set -a; source e2e/.env.e2e; set +a
 
