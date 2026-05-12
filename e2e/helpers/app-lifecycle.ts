@@ -12,50 +12,34 @@ export const pidFile = resolve(e2eDir, 'app.pid');
 const startScript = resolve(__dirname, '..', 'scripts', 'start-app.sh');
 const preflight = resolve(__dirname, '..', 'scripts', 'preflight.sh');
 
-const APP_URL = 'http://localhost:8089/actuator/health';
+// /readiness returns OUT_OF_SERVICE (503) during startup and DevTools restarts,
+// and UP (200) only when the application context is fully ready — the same
+// semantic as a Kubernetes readiness probe. Enabled via
+// -Dmanagement.health.probes.enabled=true in start-app.sh.
+const READINESS_URL = 'http://localhost:8089/actuator/health/readiness';
 // Vaadin's first-run frontend compile regularly takes 2–3 min on a cold machine
 const HEALTH_TIMEOUT_MS = 3 * 60_000;
 const HEALTH_POLL_MS = 2_000;
-// DevTools restarts the context once during startup (restartedMain thread) and
-// can restart again when Vaadin writes generated files to target/ on first load.
-// Require the app to stay UP continuously for this long before declaring ready.
-const STABILITY_MS = 12_000;
 
 async function waitForHealth(): Promise<void> {
   const deadline = Date.now() + HEALTH_TIMEOUT_MS;
-  let stableFrom = 0;
 
   while (Date.now() < deadline) {
-    let up = false;
     try {
-      const res = await fetch(APP_URL);
+      const res = await fetch(READINESS_URL);
       if (res.ok) {
         const body = (await res.json()) as { status?: string };
-        up = body.status === 'UP';
+        if (body.status === 'UP') return;
       }
+      // 503 = OUT_OF_SERVICE (starting up or DevTools mid-restart) — keep polling
     } catch {
       // not up yet
     }
-
-    if (up) {
-      if (stableFrom === 0) {
-        stableFrom = Date.now();
-        console.log('App responded UP — waiting for stability…');
-      } else if (Date.now() - stableFrom >= STABILITY_MS) {
-        return;
-      }
-    } else {
-      if (stableFrom > 0) {
-        console.log('App went down during stability window — resetting…');
-        stableFrom = 0;
-      }
-    }
-
     await new Promise(r => setTimeout(r, HEALTH_POLL_MS));
   }
 
   throw new Error(
-    `App did not become healthy within ${HEALTH_TIMEOUT_MS / 1000}s.\n` +
+    `App did not become ready within ${HEALTH_TIMEOUT_MS / 1000}s.\n` +
     `Check target/e2e/app.stdout.log for errors.\n` +
     `Tip: run with KEEP_E2E_ARTIFACTS=1 so the log is preserved after teardown.`,
   );
@@ -84,7 +68,7 @@ export async function setup(): Promise<void> {
   console.log(`App started (PID ${child.pid}), waiting for health check…`);
 
   await waitForHealth();
-  console.log('App is UP and stable at http://localhost:8089');
+  console.log('App is ready at http://localhost:8089');
 }
 
 export async function teardown(): Promise<void> {
