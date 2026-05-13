@@ -178,6 +178,27 @@ public class DownloadQueueService {
     private DownloadTask addSourceDownload(ContentMetadata content, DownloadTask.ContentType contentType,
                                            Integer season, Integer episode,
                                            List<String> languages, String quality) {
+        // For a single TV episode from a non-TMDB source, always resolve the episode
+        // name from the provider listing so the correct title for the requested
+        // season/episode is used. The search-result card may represent a different
+        // episode (e.g. RaiPlay returns E01 as the card, carrying E01's title), so
+        // content.getEpisodeName() must not be used as-is for other episodes.
+        String episodeName = content.getEpisodeName();
+        if (contentType == DownloadTask.ContentType.TV && season != null && episode != null
+                && content.getSource() != null) {
+            try {
+                String resolved = sourceRegistry.get(content.getSource())
+                        .listEpisodes(content).stream()
+                        .filter(e -> e.season() == season && e.episode() == episode)
+                        .map(EpisodeRef::name)
+                        .findFirst()
+                        .orElse(null);
+                if (resolved != null) episodeName = resolved;
+            } catch (Exception ex) {
+                log.debug("Could not resolve episode name for {}: {}", content.getTitle(), ex.getMessage());
+            }
+        }
+
         DownloadTask task = DownloadTask.builder()
                 .source(content.getSource() != null ? content.getSource() : MediaSource.VIXSRC)
                 .sourceMetadata(content.getSourceMetadata())
@@ -186,7 +207,7 @@ public class DownloadQueueService {
                 .season(season)
                 .episode(episode)
                 .title(content.getTitle())
-                .episodeName(content.getEpisodeName())
+                .episodeName(episodeName)
                 .year(content.getYear())
                 .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
                 .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
@@ -631,8 +652,20 @@ public class DownloadQueueService {
         String filename;
         
         if (metadata != null) {
+            // For TV episodes, always override season/episode/episodeName from the task.
+            // The content object is the shared SearchResultCard metadata and may carry
+            // stale values from a previous enqueue of a different episode (same card,
+            // different user selection). Null-guarding here would cause every episode
+            // after the first to inherit the first episode's filename.
+            if (task.getContentType() == DownloadTask.ContentType.TV) {
+                if (task.getSeason() != null) metadata.setSeason(task.getSeason());
+                if (task.getEpisode() != null) metadata.setEpisode(task.getEpisode());
+                // Always set from task (may be null if lookup failed); clears any
+                // stale episode title the card carried from a different episode.
+                metadata.setEpisodeName(task.getEpisodeName());
+            }
             filename = metadata.generateFilename(
-                    task.getLanguages().get(0), 
+                    task.getLanguages().get(0),
                     "mp4"
             );
         } else {

@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import content from '../fixtures/content.json' with { type: 'json' };
 import { searchAndPickFirst, openDownloadDialog, enqueueEpisode } from '../helpers/search.js';
 import { gotoQueue, findLatestTaskId, waitForStatus } from '../helpers/queue.js';
@@ -26,10 +26,13 @@ test('raiplay TV series — S01E01 downloads to correct path', async ({ page }) 
   const taskId = await findLatestTaskId(page, { source: 'raiplay' });
 
   // 3. Wait for completion
-  await waitForStatus(page, taskId, ['DOWNLOADING'], { timeoutMs: 3 * 60 * 1000 });
+  await waitForStatus(page, taskId, ['DOWNLOADING', 'MERGING', 'COPYING', 'COMPLETED'], { timeoutMs: 3 * 60 * 1000 });
   await waitForStatus(page, taskId, ['COMPLETED'], { timeoutMs: 20 * 60 * 1000 });
 
-  // 4. Verify a valid video file was downloaded under the TV shows path
-  const filePath = await findDownloadedFile('tvshows', fixture.titleHint);
+  // 4. Verify the file exists with season/episode/name in the path
+  const filePath = await findDownloadedFile('tvshows', fixture.titleHint, 'S01E01');
   await expectValidVideoFile(filePath);
+  expect(filePath).toContain('Season 01');
+  // Episode name should be included in the filename (e.g. S01E01.Pista.Nera.mp4)
+  expect(filePath).toMatch(/S01E01\..+\.mp4$/);
 });
