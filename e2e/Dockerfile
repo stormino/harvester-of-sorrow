@@ -57,14 +57,15 @@ WORKDIR /app/e2e
 RUN npm ci --quiet
 RUN npx playwright install chromium --with-deps
 
+# Pre-create directories that Docker would otherwise create as root when
+# setting up bind-mount paths. Must happen before the chown below.
+RUN mkdir -p /app/target /app/target/e2e /app/e2e/test-results
+
 # Fix ownership of everything under /app now that installs are done
 RUN chown -R ${UID}:${GID} /app
 
 # Signal to playwright.config.ts that we're running in a container
 ENV DOCKER_E2E=1
-
-# Volume mount points: callers bind-mount these to retrieve results
-VOLUME ["/app/target/e2e", "/app/e2e/test-results"]
 
 WORKDIR /app
 # Entrypoint runs as root to fix bind-mount ownership, then drops to e2e user
