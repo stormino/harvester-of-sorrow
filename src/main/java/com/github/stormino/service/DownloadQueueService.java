@@ -652,19 +652,17 @@ public class DownloadQueueService {
         String filename;
         
         if (metadata != null) {
-            // For TV episodes, the search-result metadata may lack season/episode
-            // (e.g. RaiPlay cards carry only show-level info). Fill them from the
-            // task so generateFilename produces Show.S01E01.mp4, not Show.2016.mp4.
+            // For TV episodes, always override season/episode/episodeName from the task.
+            // The content object is the shared SearchResultCard metadata and may carry
+            // stale values from a previous enqueue of a different episode (same card,
+            // different user selection). Null-guarding here would cause every episode
+            // after the first to inherit the first episode's filename.
             if (task.getContentType() == DownloadTask.ContentType.TV) {
-                if (metadata.getSeason() == null && task.getSeason() != null) {
-                    metadata.setSeason(task.getSeason());
-                }
-                if (metadata.getEpisode() == null && task.getEpisode() != null) {
-                    metadata.setEpisode(task.getEpisode());
-                }
-                if (metadata.getEpisodeName() == null && task.getEpisodeName() != null) {
-                    metadata.setEpisodeName(task.getEpisodeName());
-                }
+                if (task.getSeason() != null) metadata.setSeason(task.getSeason());
+                if (task.getEpisode() != null) metadata.setEpisode(task.getEpisode());
+                // Always set from task (may be null if lookup failed); clears any
+                // stale episode title the card carried from a different episode.
+                metadata.setEpisodeName(task.getEpisodeName());
             }
             filename = metadata.generateFilename(
                     task.getLanguages().get(0),
