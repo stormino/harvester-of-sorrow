@@ -8,17 +8,18 @@ Vaadin ships two built-in themes:
   `oklch()` color space, CSS cascade layers
 
 **This project is currently on Vaadin 24.3.2.** Aura is not available as a built-in theme
-at this version. The implementation plan therefore describes two tracks:
+at this version. **The decision has been made to upgrade to Vaadin 25** and use Aura
+natively. Track A below is therefore the primary implementation path. Track B is retained
+as a fallback reference in case the upgrade is blocked.
 
-| Track | What |
-|-------|------|
-| **A — Upgrade to Vaadin 25** | Migrate to Vaadin 25 and use `@Theme(Aura.class)` natively |
-| **B — Aura-style Lumo override (24.3)** | Stay on 24.3, override `--lumo-*` tokens to match Aura's visual language |
+| Track | Status | What |
+|-------|--------|------|
+| **A — Upgrade to Vaadin 25** | ✅ Primary | Migrate to Vaadin 25 and use `@Theme(Aura.class)` natively |
+| **B — Aura-style Lumo override (24.3)** | Fallback only | Stay on 24.3, override `--lumo-*` tokens to match Aura's visual language |
 
-Track B is the lower-risk, lower-effort path and is recommended unless there is a
-separate reason to upgrade. The HTML prototype (`mobile-redesign-preview.html`) already
-shows the target visual result — it is faithful to the actual Aura token values obtained
-from the `packages/aura/src/` source files in `vaadin/web-components`.
+The HTML prototype (`mobile-redesign-preview.html`) shows the target visual result — it
+is faithful to the actual Aura token values obtained from `packages/aura/src/` in
+`vaadin/web-components`.
 
 ---
 
@@ -82,50 +83,115 @@ The values below come directly from the Aura source CSS
 
 ---
 
-## Track A — Upgrade to Vaadin 25
+## Track A — Upgrade to Vaadin 25 ✅ Primary Path
 
 ### Scope
-Update `pom.xml`, switch `@Theme` annotation, migrate any Lumo-specific CSS.
+Update `pom.xml`, switch `@Theme` annotation, migrate Lumo-specific CSS to Aura,
+then apply all UI changes described in the phases below.
 
-### Steps
+### Step 1 — Version upgrade (do this first, isolated)
 
-1. **Bump Vaadin BOM** in `pom.xml`:
-   ```xml
-   <vaadin.version>25.0.1</vaadin.version>
-   ```
+**`pom.xml`** — bump the Vaadin BOM and add the Aura theme dependency:
+```xml
+<properties>
+  <vaadin.version>25.0.1</vaadin.version>
+</properties>
 
-2. **Add Aura theme dependency** (pulled transitively via BOM, but explicit is safer):
-   ```xml
-   <dependency>
-     <groupId>com.vaadin</groupId>
-     <artifactId>vaadin-aura-theme</artifactId>
-   </dependency>
-   ```
+<dependencies>
+  <!-- explicit Aura dependency (also pulled transitively via BOM) -->
+  <dependency>
+    <groupId>com.vaadin</groupId>
+    <artifactId>vaadin-aura-theme</artifactId>
+  </dependency>
+</dependencies>
+```
 
-3. **Switch theme annotation** — find any class annotated `@Theme("vixsrc")` and
-   change to `@Theme(Aura.class)` (or keep the custom theme extending Aura):
-   ```java
-   import com.vaadin.flow.theme.aura.Aura;
-   @Theme(Aura.class)
-   public class Application implements AppShellConfigurator { … }
-   ```
-   Alternatively, in `theme.json` set `"parent": "aura"`.
+### Step 2 — Switch the application theme
 
-4. **Update `frontend/themes/vixsrc/styles/theme.css`** — remove Lumo overrides,
-   keep only app-specific additions on top of Aura.
+In Vaadin 25, the theme is declared on the class that implements
+`AppShellConfigurator`. The project currently has no explicit `AppShellConfigurator`;
+create one (or annotate the main `Application` class):
 
-5. **Replace `--lumo-*` custom property references** in Java views / CSS with
-   Aura equivalents (see mapping table in Track B).
+```java
+import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.theme.Theme;
+import com.vaadin.flow.theme.aura.Aura;
 
-6. **Test E2E suite** — run Playwright tests against the upgraded app.
+@Theme(value = "vixsrc", variant = Aura.class)  // custom theme extending Aura
+public class Application extends SpringApplication implements AppShellConfigurator {
+    // …
+}
+```
+
+Alternatively, keep the existing `theme.json` approach and just set the parent:
+
+**`frontend/themes/vixsrc/theme.json`**:
+```json
+{
+  "parent": "aura"
+}
+```
+
+This tells Vaadin to load Aura's component styles first, then overlay the custom
+`styles.css` on top.
+
+### Step 3 — Clear the Lumo overrides from `theme.css`
+
+With Aura as parent, the `--lumo-*` variable overrides in the current `theme.css`
+are no longer needed. Replace the entire `:root {}` block with Aura's own tokens
+for any remaining app-specific tweaks only.
+
+Any remaining `--lumo-*` references in Java view code (e.g. `LumoUtility` class
+names) continue to work — Lumo utilities remain available. Only the custom CSS
+property overrides need removing.
+
+### Step 4 — Replace `LumoUtility` colour references where needed
+
+`LumoUtility` constants still compile on Vaadin 25. Functional usage in Java views
+(`LumoUtility.FontSize.*`, `LumoUtility.Margin.*`, etc.) does not need to change.
+Only direct `--lumo-*` colour variable strings in inline CSS or `theme.css` need
+updating if they clash with Aura's palette.
+
+### Step 5 — Add Instrument Sans font
+
+**`frontend/index.html`** — add Google Fonts link in `<head>`:
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap" rel="stylesheet">
+```
+Or self-host in `frontend/themes/vixsrc/fonts/` with `@font-face` declarations.
+The font is already provided inside the `@vaadin/aura` npm package under
+`packages/aura/src/fonts/InstrumentSans/` if you prefer to serve it locally.
+
+### Step 6 — Run E2E suite
+
+```bash
+cd e2e && npx playwright test
+```
+
+Fix any selector breakage caused by component DOM changes between 24 → 25
+before starting the UI phases below.
+
+### Migration Notes: 24 → 25 Differences
+
+| Area | Vaadin 24 | Vaadin 25 |
+|------|-----------|-----------|
+| Theme parent | `"lumo"` | `"aura"` or `"lumo"` |
+| CSS architecture | Shadow DOM styles | Light DOM + CSS cascade layers |
+| Component heights | `--lumo-size-m: 2.25rem` | `36px` (Aura default) |
+| Default font | Roboto / system | Instrument Sans |
+| Color space | `hsl()` | `oklch()` |
+| `AppShellConfigurator` | optional | required for `@Theme` |
 
 ### Risk
-Medium — Vaadin 25 changed the theming architecture (CSS cascade layers, base
-styles model). Component slot names and shadow-part selectors may have changed.
+Medium. Vaadin 25 moved components to light DOM CSS with cascade layers, which
+means some `::part()` and `::slotted()` selectors in the current `theme.css` may
+need updating. The E2E suite (Step 6) will surface breakage early.
 
 ---
 
-## Track B — Aura-style Lumo Override (Recommended for 24.3)
+## Track B — Aura-style Lumo Override (Fallback, 24.3 only)
 
 Override the Lumo CSS custom properties in
 `frontend/themes/vixsrc/styles/theme.css` to match Aura's visual values.
@@ -168,10 +234,10 @@ Or self-host the font files in `frontend/themes/vixsrc/fonts/` and add
 
 ## UI Changes — View by View
 
-### Phase 1 — `theme.css` (Aura token override)
+### Phase 1 — `theme.css` (after Vaadin 25 upgrade)
 
-1. Replace all `--lumo-*` overrides with the mapping table above.
-2. Remove the current font-size reductions (Aura's 14 px base is already compact).
+1. Remove all `--lumo-*` overrides — Aura provides its own tokens as parent theme.
+2. Add only app-specific overrides that differ from Aura defaults.
 3. Add dark-mode support via `@media (prefers-color-scheme: dark)` using Aura's
    dark background `oklch(0.20 0.010 260)`.
 4. Fix dialog max-width:

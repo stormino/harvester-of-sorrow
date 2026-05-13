@@ -324,7 +324,7 @@ body {
 .btn-success-ghost:hover { background: var(--aura-green); color: oklch(1 0 0); }
 
 .btn-sm   { height: 30px; padding: 0 var(--vaadin-padding-m); font-size: var(--aura-font-size-s); }
-.btn-icon { width: 32px; height: 32px; padding: 0; border-radius: var(--vaadin-radius-m); }
+.btn-icon { width: 32px; height: 32px; padding: 0; border-radius: var(--vaadin-radius-m); justify-content: center; }
 @media (max-width: 480px) { .btn-icon { width: 40px; height: 40px; } }
 
 /* — Badges — */
@@ -512,19 +512,24 @@ select.input { cursor: pointer; }
 /* Download list */
 .dl-list { display: flex; flex-direction: column; gap: var(--vaadin-gap-s); }
 
-.dl-main {
+.dl-body {
   padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
-  display: flex; align-items: flex-start; gap: var(--vaadin-gap-m);
+  display: flex; flex-direction: column; gap: var(--vaadin-gap-s);
 }
-.dl-info { flex: 1; min-width: 0; }
+.dl-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--vaadin-gap-m);
+}
 .dl-title-row {
   display: flex; align-items: center; gap: var(--vaadin-gap-s);
-  margin-bottom: var(--vaadin-gap-xs); flex-wrap: wrap;
+  flex-wrap: wrap; flex: 1; min-width: 0;
+}
+.dl-actions {
+  display: flex; align-items: center; gap: var(--vaadin-gap-s); flex-shrink: 0;
 }
 .dl-title { font-size: var(--aura-font-size-m); font-weight: var(--aura-font-weight-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .dl-sub {
   font-size: var(--aura-font-size-xs); color: var(--aura-text-secondary);
-  margin-bottom: var(--vaadin-gap-s); display: flex; gap: var(--vaadin-gap-m); flex-wrap: wrap;
+  display: flex; gap: var(--vaadin-gap-m); flex-wrap: wrap;
 }
 .progress-row { display: flex; align-items: center; gap: var(--vaadin-gap-s); }
 .progress-bar { flex: 1; height: 4px; background: var(--aura-surface-2); border-radius: 99px; overflow: hidden; min-width: 0; }
@@ -539,8 +544,6 @@ select.input { cursor: pointer; }
 }
 @keyframes indeterminate { 0% { transform: translateX(-200%); } 100% { transform: translateX(360%); } }
 .progress-pct { font-size: var(--aura-font-size-xs); color: var(--aura-text-tertiary); white-space: nowrap; flex-shrink: 0; width: 30px; text-align: right; }
-
-.dl-side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--vaadin-gap-s); flex-shrink: 0; }
 
 /* Expand subtasks */
 .expand-btn {
@@ -833,46 +836,46 @@ select.input { cursor: pointer; }
 
       <div class="dl-list">
 
-        <div class="card">
-          <div class="dl-main">
-            <div class="dl-info">
+        <div class="card dl-card">
+          <div class="dl-body">
+            <div class="dl-header">
               <div class="dl-title-row">
                 <span class="dl-title">Dune: Part Two</span>
                 <span class="tag tag-vixsrc">VixSrc</span>
               </div>
-              <div class="dl-sub"><span>1080p · en</span><span>2.4 GB / 4.1 GB</span><span>12.3 MB/s · 2m 18s</span></div>
-              <div class="progress-row">
-                <div class="progress-bar"><div class="progress-fill fill-blue" style="width:58%"></div></div>
-                <span class="progress-pct">58%</span>
+              <div class="dl-actions">
+                <span class="badge badge-blue">Downloading</span>
+                <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
             </div>
-            <div class="dl-side">
-              <span class="badge badge-blue">Downloading</span>
-              <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+            <div class="dl-sub"><span>1080p · en</span><span>2.4 GB / 4.1 GB</span><span>12.3 MB/s · 2m 18s</span></div>
+            <div class="progress-row">
+              <div class="progress-bar"><div class="progress-fill fill-blue" style="width:58%"></div></div>
+              <span class="progress-pct">58%</span>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="dl-main">
-            <div class="dl-info">
+        <div class="card dl-card">
+          <div class="dl-body">
+            <div class="dl-header">
               <div class="dl-title-row">
                 <span class="dl-title">The Bear — S2</span>
                 <span class="tag tag-vixsrc">VixSrc</span>
               </div>
-              <div class="dl-sub"><span>1080p · en · 10 episodes</span><span>3.1 MB/s</span></div>
-              <div class="progress-row">
-                <div class="progress-bar"><div class="progress-fill fill-indeterminate"></div></div>
-                <span class="progress-pct">—</span>
+              <div class="dl-actions">
+                <span class="badge badge-blue">Extracting</span>
+                <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
             </div>
-            <div class="dl-side">
-              <span class="badge badge-blue">Extracting</span>
-              <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+            <div class="dl-sub"><span>1080p · en · 10 episodes</span><span>3.1 MB/s</span></div>
+            <div class="progress-row">
+              <div class="progress-bar"><div class="progress-fill fill-indeterminate"></div></div>
+              <span class="progress-pct">—</span>
             </div>
           </div>
           <button class="expand-btn" id="ebear" onclick="toggleExpand('bear','ebear')">
@@ -899,55 +902,57 @@ select.input { cursor: pointer; }
           </div>
         </div>
 
-        <div class="card">
-          <div class="dl-main">
-            <div class="dl-info">
+        <div class="card dl-card">
+          <div class="dl-body">
+            <div class="dl-header">
               <div class="dl-title-row"><span class="dl-title">Oppenheimer</span><span class="tag tag-vixsrc">VixSrc</span></div>
-              <div class="dl-sub"><span>1080p · en</span></div>
-              <div class="progress-row">
-                <div class="progress-bar"><div class="progress-fill fill-gray" style="width:0%"></div></div>
-                <span class="progress-pct">0%</span>
+              <div class="dl-actions">
+                <span class="badge badge-neutral">Queued</span>
+                <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
             </div>
-            <div class="dl-side">
-              <span class="badge badge-neutral">Queued</span>
-              <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+            <div class="dl-sub"><span>1080p · en</span></div>
+            <div class="progress-row">
+              <div class="progress-bar"><div class="progress-fill fill-gray" style="width:0%"></div></div>
+              <span class="progress-pct">0%</span>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="dl-main">
-            <div class="dl-info">
+        <div class="card dl-card">
+          <div class="dl-body">
+            <div class="dl-header">
               <div class="dl-title-row"><span class="dl-title">Avengers: Endgame</span><span class="tag tag-vixsrc">VixSrc</span></div>
-              <div class="dl-sub"><span style="color:var(--aura-red)">Stream extraction failed</span></div>
-              <div class="progress-row">
-                <div class="progress-bar"><div class="progress-fill fill-red" style="width:12%"></div></div>
-                <span class="progress-pct">12%</span>
+              <div class="dl-actions">
+                <span class="badge badge-red">Failed</span>
+                <button class="btn btn-success-ghost btn-icon btn-sm" title="Retry">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
               </div>
             </div>
-            <div class="dl-side">
-              <span class="badge badge-red">Failed</span>
-              <button class="btn btn-success-ghost btn-icon btn-sm" title="Retry">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-              </button>
+            <div class="dl-sub"><span style="color:var(--aura-red)">Stream extraction failed</span></div>
+            <div class="progress-row">
+              <div class="progress-bar"><div class="progress-fill fill-red" style="width:12%"></div></div>
+              <span class="progress-pct">12%</span>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="dl-main">
-            <div class="dl-info">
+        <div class="card dl-card">
+          <div class="dl-body">
+            <div class="dl-header">
               <div class="dl-title-row"><span class="dl-title">Poor Things</span><span class="tag tag-vixsrc">VixSrc</span></div>
-              <div class="dl-sub"><span>1080p · 3.8 GB</span></div>
-              <div class="progress-row">
-                <div class="progress-bar"><div class="progress-fill fill-green" style="width:100%"></div></div>
-                <span class="progress-pct">100%</span>
+              <div class="dl-actions">
+                <span class="badge badge-green">Done</span>
               </div>
             </div>
-            <div class="dl-side"><span class="badge badge-green">Done</span></div>
+            <div class="dl-sub"><span>1080p · 3.8 GB</span></div>
+            <div class="progress-row">
+              <div class="progress-bar"><div class="progress-fill fill-green" style="width:100%"></div></div>
+              <span class="progress-pct">100%</span>
+            </div>
           </div>
         </div>
 
