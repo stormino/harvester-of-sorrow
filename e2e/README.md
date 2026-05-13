@@ -122,30 +122,28 @@ The first build downloads Maven and npm dependencies — expect 5–10 min. Subs
 
 ### Run the full suite
 
-Use your existing `.env.e2e` directly via `--env-file`:
+Use the provided wrapper script — it pre-creates the output directories so Docker doesn't create them as root:
 
 ```bash
-docker run --rm \
-  --env-file e2e/.env.e2e \
-  -v "$(pwd)/e2e-results/target:/app/target/e2e" \
-  -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
-  vixsrc-e2e
+bash e2e/run-docker.sh
 ```
 
-After the run you'll find:
+Results land in `e2e-results/` (relative to the repo root):
 - `e2e-results/target/` — downloaded video files, app log (`app.stdout.log`), SQLite DB
 - `e2e-results/report/html-report/` — Playwright HTML report (open `index.html` in a browser)
 
-### Run a single test file
-
-Pass the test path as a `CMD` argument:
+To use a different output location:
 
 ```bash
-docker run --rm \
-  --env-file e2e/.env.e2e \
-  -v "$(pwd)/e2e-results/target:/app/target/e2e" \
-  -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
-  vixsrc-e2e tests/01-smoke.spec.ts
+E2E_RESULTS_DIR=/tmp/my-results bash e2e/run-docker.sh
+```
+
+### Run a single test file
+
+Pass the test path as an argument:
+
+```bash
+bash e2e/run-docker.sh tests/01-smoke.spec.ts
 ```
 
 ### RaiPlay tests
@@ -157,9 +155,10 @@ Set `RAIPLAY_USERNAME` and `RAIPLAY_PASSWORD` in your `.env.e2e` — they are al
 Bind-mount your local Maven repository to avoid re-downloading dependencies on every run:
 
 ```bash
+mkdir -p e2e-results/target e2e-results/report
 docker run --rm \
-  -e TMDB_API_KEY=your_key_here \
-  -v "$HOME/.m2:/root/.m2" \
+  --env-file e2e/.env.e2e \
+  -v "$HOME/.m2:/home/e2e/.m2" \
   -v "$(pwd)/e2e-results/target:/app/target/e2e" \
   -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
   vixsrc-e2e
