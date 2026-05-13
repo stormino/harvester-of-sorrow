@@ -631,8 +631,19 @@ public class DownloadQueueService {
         String filename;
         
         if (metadata != null) {
+            // For TV episodes, the search-result metadata may lack season/episode
+            // (e.g. RaiPlay cards carry only show-level info). Fill them from the
+            // task so generateFilename produces Show.S01E01.mp4, not Show.2016.mp4.
+            if (task.getContentType() == DownloadTask.ContentType.TV) {
+                if (metadata.getSeason() == null && task.getSeason() != null) {
+                    metadata.setSeason(task.getSeason());
+                }
+                if (metadata.getEpisode() == null && task.getEpisode() != null) {
+                    metadata.setEpisode(task.getEpisode());
+                }
+            }
             filename = metadata.generateFilename(
-                    task.getLanguages().get(0), 
+                    task.getLanguages().get(0),
                     "mp4"
             );
         } else {
