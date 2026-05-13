@@ -38,18 +38,15 @@ check_command "lsof"    "Install lsof (usually pre-installed)"
 check_version "node" 20 "Node.js"
 check_version "java" 21 "Java"
 
-# .env.e2e must exist
+# TMDB_API_KEY must be set — either via .env.e2e or injected directly (e.g. Docker --env-file)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/../.env.e2e"
-if [[ ! -f "$ENV_FILE" ]]; then
-  ERRORS+=("MISSING: e2e/.env.e2e — copy .env.e2e.example and fill in TMDB_API_KEY")
-else
-  # TMDB key must be non-empty
+if [[ -f "$ENV_FILE" ]]; then
   # shellcheck source=/dev/null
   source "$ENV_FILE"
-  if [[ -z "${TMDB_API_KEY:-}" ]]; then
-    ERRORS+=("EMPTY: TMDB_API_KEY in e2e/.env.e2e — a valid key is required")
-  fi
+fi
+if [[ -z "${TMDB_API_KEY:-}" ]]; then
+  ERRORS+=("MISSING: TMDB_API_KEY — set it in e2e/.env.e2e or pass via environment")
 fi
 
 # Disk space: require at least 5 GB free in repo root
