@@ -192,6 +192,7 @@ public class SearchResultCard extends VerticalLayout {
         // Download button
         Button downloadBtn = new Button("Download", VaadinIcon.DOWNLOAD.create());
         downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        downloadBtn.getElement().setAttribute("data-testid", "result-card-download");
         if (content.getTmdbId() != null) {
             downloadBtn.setId("result-card-download-" + content.getTmdbId());
         }
