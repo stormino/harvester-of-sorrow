@@ -62,17 +62,20 @@ public class SearchView extends VerticalLayout {
         title.addClassNames(LumoUtility.Margin.Top.NONE, LumoUtility.Margin.Bottom.SMALL);
 
         searchField = new TextField();
+        searchField.setId("search-input");
         searchField.setPlaceholder("Search movies and TV shows...");
         searchField.setWidthFull();
         searchField.addKeyPressListener(Key.ENTER, e -> performSearch());
         searchField.getStyle().set("min-width", "200px");
 
         contentTypeGroup = new RadioButtonGroup<>();
+        contentTypeGroup.setId("content-type-filter");
         contentTypeGroup.setLabel("Type");
         contentTypeGroup.setItems("Movies", "TV Shows", "Both");
         contentTypeGroup.setValue("Both");
 
         searchButton = new Button("Search");
+        searchButton.setId("search-button");
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         searchButton.addClickListener(e -> performSearch());
         searchButton.getStyle().set("margin-top", "auto");
@@ -86,6 +89,7 @@ public class SearchView extends VerticalLayout {
         searchLayout.expand(searchField);
 
         resultsContainer = new Div();
+        resultsContainer.setId("search-results");
         resultsContainer.addClassNames(
                 LumoUtility.Display.GRID,
                 LumoUtility.Gap.SMALL,

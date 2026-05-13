@@ -95,6 +95,7 @@ public class DownloadQueueView extends VerticalLayout {
         titleAndStatus.setPadding(false);
 
         Button clearCompletedBtn = new Button("Clear Completed", VaadinIcon.TRASH.create());
+        clearCompletedBtn.setId("clear-completed-button");
         clearCompletedBtn.addThemeVariants(ButtonVariant.LUMO_ERROR);
         clearCompletedBtn.addClickListener(e -> {
             int cleared = downloadQueueService.clearCompletedTasks();
@@ -117,6 +118,7 @@ public class DownloadQueueView extends VerticalLayout {
 
         // TreeGrid
         treeGrid = new TreeGrid<>();
+        treeGrid.setId("queue-grid");
         //<theme-editor-local-classname>
         treeGrid.addClassName("download-queue-view-grid-1");
 
@@ -678,6 +680,11 @@ public class DownloadQueueView extends VerticalLayout {
 
         Span badge = new Span(status.getDisplayName());
         badge.getElement().getThemeList().add("badge");
+        badge.getElement().setAttribute("data-testid", "queue-row-status");
+        badge.getElement().setAttribute("data-status", status.name());
+        if (item.isParent()) {
+            badge.getElement().setAttribute("data-task-id", item.getTask().getId());
+        }
 
         switch (status) {
             case COMPLETED -> badge.getElement().getThemeList().add("success");
@@ -758,6 +765,8 @@ public class DownloadQueueView extends VerticalLayout {
         if (!task.isCompleted() && !task.isFailed()) {
             Button cancelBtn = new Button(VaadinIcon.CLOSE_SMALL.create());
             cancelBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            cancelBtn.getElement().setAttribute("data-testid", "queue-row-cancel");
+            cancelBtn.getElement().setAttribute("data-task-id", task.getId());
             cancelBtn.addClickListener(e -> {
                 if (downloadQueueService.cancelTask(task.getId())) {
                     Notification.show("Download cancelled", 3000, Notification.Position.BOTTOM_END)

@@ -34,10 +34,11 @@ public class SettingsView extends VerticalLayout {
     public SettingsView(VixSrcProperties properties) {
         this.properties = properties;
         
+        setId("settings-view");
         setSizeFull();
         setPadding(true);
         setSpacing(true);
-        
+
         // Header
         H2 title = new H2("Settings");
         title.addClassNames(LumoUtility.Margin.Bottom.MEDIUM);
