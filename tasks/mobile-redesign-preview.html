@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VixSrc Downloader — Mobile Redesign Preview</title>
+<style>
+  /* ─── Reset & Base ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary:        hsl(210,100%,50%);
+    --primary-light:  hsla(210,100%,50%,.12);
+    --primary-text:   hsl(210,100%,40%);
+    --success:        hsl(145,63%,42%);
+    --success-light:  hsla(145,63%,42%,.12);
+    --error:          hsl(4,90%,52%);
+    --error-light:    hsla(4,90%,52%,.12);
+    --warning:        hsl(38,92%,50%);
+    --warning-light:  hsla(38,92%,50%,.12);
+    --surface:        #ffffff;
+    --surface-2:      #f5f7fa;
+    --border:         rgba(0,0,0,.1);
+    --text:           #1a1a2e;
+    --text-secondary: #64748b;
+    --text-tertiary:  #94a3b8;
+    --shadow-s:       0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-m:       0 4px 12px rgba(0,0,0,.10), 0 2px 4px rgba(0,0,0,.06);
+    --shadow-l:       0 10px 28px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+    --radius-s: 6px; --radius-m: 10px; --radius-l: 14px; --radius-xl: 20px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+    --nav-h: 56px;
+    --bottom-nav-h: 60px;
+    --drawer-w: 240px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #1e1e2e; --surface-2: #2a2a3e;
+      --border: rgba(255,255,255,.08);
+      --text: #e2e8f0; --text-secondary: #94a3b8; --text-tertiary: #64748b;
+      --shadow-s: 0 1px 3px rgba(0,0,0,.4); --shadow-m: 0 4px 12px rgba(0,0,0,.4);
+      --primary-light: hsla(210,100%,60%,.15);
+      --success-light: hsla(145,63%,50%,.15);
+      --error-light: hsla(4,90%,58%,.15);
+    }
+  }
+
+  body {
+    font-family: var(--font); font-size: 14px; color: var(--text);
+    background: var(--surface-2); line-height: 1.5; min-height: 100dvh;
+  }
+
+  /* ─── App Shell ─── */
+  .app-shell { display: flex; height: 100dvh; overflow: hidden; }
+
+  /* ─── Drawer (desktop sidebar) ─── */
+  .drawer {
+    width: var(--drawer-w); background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 0; flex-shrink: 0;
+    transition: transform .3s ease;
+    position: relative; z-index: 200;
+  }
+  .drawer-logo {
+    height: var(--nav-h); display: flex; align-items: center; gap: 10px;
+    padding: 0 18px; border-bottom: 1px solid var(--border);
+    font-weight: 700; font-size: 15px; letter-spacing: -.3px;
+  }
+  .drawer-logo svg { color: var(--primary); }
+  .drawer-version {
+    font-size: 11px; color: var(--text-tertiary);
+    background: var(--surface-2); padding: 2px 6px;
+    border-radius: 99px; margin-left: auto;
+  }
+  .side-nav { padding: 10px 8px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: var(--radius-m);
+    cursor: pointer; font-size: 13.5px; font-weight: 500;
+    color: var(--text-secondary); transition: all .15s;
+    text-decoration: none; margin-bottom: 2px;
+  }
+  .nav-item:hover  { background: var(--surface-2); color: var(--text); }
+  .nav-item.active { background: var(--primary-light); color: var(--primary-text); font-weight: 600; }
+  .nav-item svg    { flex-shrink: 0; opacity: .75; }
+  .nav-item.active svg { opacity: 1; }
+
+  /* ─── Main content area ─── */
+  .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ─── Top navbar ─── */
+  .navbar {
+    height: var(--nav-h); background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 16px; flex-shrink: 0;
+  }
+  .hamburger {
+    width: 36px; height: 36px; border-radius: var(--radius-m);
+    border: none; background: none; cursor: pointer;
+    display: none; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+  }
+  .hamburger:hover { background: var(--surface-2); }
+  .navbar-title { font-weight: 700; font-size: 15px; flex: 1; }
+  .navbar-page  { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+
+  /* ─── Page content ─── */
+  .page { flex: 1; overflow-y: auto; padding: 20px; }
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ─── Bottom navigation (mobile only) ─── */
+  .bottom-nav {
+    display: none; height: var(--bottom-nav-h);
+    background: var(--surface); border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .bottom-nav-inner {
+    display: flex; height: 100%;
+  }
+  .bottom-nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 3px;
+    cursor: pointer; font-size: 10px; font-weight: 500;
+    color: var(--text-tertiary); transition: all .15s;
+    border: none; background: none; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bottom-nav-item.active { color: var(--primary-text); }
+  .bottom-nav-item svg { width: 20px; height: 20px; }
+  .bottom-nav-item .bnav-dot {
+    width: 4px; height: 4px; border-radius: 99px;
+    background: var(--primary); margin-top: 2px;
+    opacity: 0;
+  }
+  .bottom-nav-item.active .bnav-dot { opacity: 1; }
+
+  /* ─── Mobile drawer overlay ─── */
+  .drawer-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    z-index: 190; opacity: 0; transition: opacity .25s;
+  }
+  .drawer-overlay.open { opacity: 1; }
+
+  /* ─── Responsive breakpoints ─── */
+  @media (max-width: 768px) {
+    .drawer {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      transform: translateX(-100%); z-index: 200;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-overlay { display: block; pointer-events: none; }
+    .drawer-overlay.open { pointer-events: auto; }
+    .hamburger { display: flex; }
+    .bottom-nav { display: flex; }
+    .page { padding: 14px; padding-bottom: calc(14px + var(--bottom-nav-h)); }
+  }
+
+  /* ═══ SEARCH PAGE ═══ */
+  .page-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+
+  .search-bar {
+    display: flex; gap: 10px; margin-bottom: 18px;
+    flex-wrap: wrap; align-items: flex-end;
+  }
+  .search-input-wrap { flex: 1 1 200px; display: flex; flex-direction: column; gap: 4px; }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .input-field {
+    height: 42px; border: 1.5px solid var(--border); border-radius: var(--radius-m);
+    padding: 0 14px; font-size: 14px; font-family: var(--font);
+    background: var(--surface); color: var(--text); outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+
+  .filter-pills { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .filter-pill {
+    padding: 8px 14px; border-radius: 99px; border: 1.5px solid var(--border);
+    cursor: pointer; font-size: 12.5px; font-weight: 500;
+    background: var(--surface); color: var(--text-secondary);
+    transition: all .15s; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .filter-pill:hover, .filter-pill.active {
+    background: var(--primary-light); border-color: var(--primary);
+    color: var(--primary-text);
+  }
+
+  .btn {
+    height: 42px; padding: 0 18px; border-radius: var(--radius-m);
+    border: none; cursor: pointer; font-size: 14px; font-weight: 600;
+    font-family: var(--font); transition: all .15s;
+    display: inline-flex; align-items: center; gap: 7px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: hsl(210,100%,44%); box-shadow: var(--shadow-m); }
+  .btn-danger  { background: var(--error-light); color: var(--error); }
+  .btn-danger:hover { background: var(--error); color: #fff; }
+  .btn-ghost   { background: none; border: 1.5px solid var(--border); color: var(--text-secondary); }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .btn-sm { height: 36px; padding: 0 12px; font-size: 13px; }
+  .btn-icon { width: 38px; height: 38px; padding: 0; border-radius: var(--radius-m); }
+
+  /* Search loading state */
+  .search-loading { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 13px; margin: 24px 0; }
+  .spinner {
+    width: 20px; height: 20px; border: 2.5px solid var(--border);
+    border-top-color: var(--primary); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 48px 24px;
+    color: var(--text-secondary);
+  }
+  .empty-state svg { width: 56px; height: 56px; opacity: .3; margin-bottom: 14px; }
+  .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* Results grid */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 14px;
+  }
+
+  /* Result card */
+  .result-card {
+    background: var(--surface); border-radius: var(--radius-l);
+    padding: 16px; box-shadow: var(--shadow-s);
+    cursor: pointer; transition: transform .2s ease, box-shadow .2s ease;
+    display: flex; flex-direction: column; gap: 8px;
+    position: relative; overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .result-card::before {
+    content: ''; position: absolute; inset: 0;
+    opacity: .06; pointer-events: none;
+  }
+  .result-card.movie::before { background: linear-gradient(135deg,#2196f3,#0d47a1); }
+  .result-card.tv::before    { background: linear-gradient(135deg,#e91e63,#880e4f); }
+  .result-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-l); }
+  .result-card:active { transform: scale(.98); box-shadow: var(--shadow-s); }
+
+  .card-title-row { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .card-title { font-size: 14.5px; font-weight: 700; line-height: 1.3; flex: 1; }
+  .tag {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 99px; white-space: nowrap; flex-shrink: 0;
+  }
+  .tag-source { background: #1565C0; color: #fff; }
+  .tag-raiplay { background: #004A8D; color: #fff; }
+  .tag-seasons { background: rgba(0,0,0,.08); color: var(--text-secondary); }
+
+  .card-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+  .card-year { font-weight: 600; }
+  .card-rating { color: #F59E0B; font-weight: 500; }
+  .card-overview { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+
+  .card-footer {
+    margin-top: 4px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end;
+  }
+
+  /* ═══ DOWNLOAD QUEUE PAGE ═══ */
+  .queue-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .queue-header-left { display: flex; flex-direction: column; gap: 4px; }
+  .status-bar {
+    display: flex; gap: 10px; align-items: center; font-size: 12px;
+    color: var(--text-secondary); flex-wrap: wrap;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+  .status-dot.active   { background: var(--primary); }
+  .status-dot.done     { background: var(--success); }
+  .status-dot.failed   { background: var(--error); }
+
+  /* Download cards (mobile-friendly list) */
+  .dl-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .dl-card {
+    background: var(--surface); border-radius: var(--radius-l);
+    box-shadow: var(--shadow-s); overflow: hidden;
+  }
+  .dl-card-main {
+    padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px;
+  }
+  .dl-info { flex: 1; min-width: 0; }
+  .dl-title-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; flex-wrap: wrap; }
+  .dl-title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dl-meta { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .dl-progress-row { display: flex; align-items: center; gap: 10px; }
+  .dl-progress-bar {
+    flex: 1; height: 6px; background: var(--surface-2);
+    border-radius: 99px; overflow: hidden;
+  }
+  .dl-progress-fill { height: 100%; border-radius: 99px; transition: width .3s; }
+  .dl-progress-fill.active   { background: var(--primary); }
+  .dl-progress-fill.done     { background: var(--success); }
+  .dl-progress-fill.failed   { background: var(--error); }
+  .dl-progress-fill.indeterminate {
+    width: 40% !important;
+    background: var(--primary);
+    animation: indeterminate 1.2s ease-in-out infinite;
+  }
+  @keyframes indeterminate {
+    0%   { transform: translateX(-200%); }
+    100% { transform: translateX(350%); }
+  }
+  .dl-pct { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+  .dl-actions { display: flex; gap: 6px; align-items: center; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 99px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+  }
+  .badge-primary   { background: var(--primary-light); color: var(--primary-text); }
+  .badge-success   { background: var(--success-light); color: var(--success); }
+  .badge-error     { background: var(--error-light);   color: var(--error); }
+  .badge-contrast  { background: rgba(0,0,0,.06); color: var(--text-secondary); }
+
+  /* Expandable subtasks */
+  .dl-expand-btn {
+    width: 100%; padding: 8px 16px; border: none; background: var(--surface-2);
+    color: var(--text-secondary); font-size: 12px; font-family: var(--font);
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    transition: background .15s; font-weight: 500;
+  }
+  .dl-expand-btn:hover { background: var(--border); }
+  .dl-expand-btn svg { transition: transform .2s; }
+  .dl-expand-btn.open svg { transform: rotate(180deg); }
+  .subtasks { display: none; }
+  .subtasks.open { display: block; }
+  .subtask-row {
+    padding: 10px 16px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(0,0,0,.015);
+  }
+  .subtask-title { font-size: 12px; color: var(--text-secondary); flex: 1; }
+
+  /* ═══ SETTINGS PAGE ═══ */
+  .settings-section {
+    background: var(--surface); border-radius: var(--radius-l);
+    box-shadow: var(--shadow-s); margin-bottom: 16px; overflow: hidden;
+  }
+  .settings-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .settings-header h3 { font-size: 14px; font-weight: 700; }
+  .settings-header svg { transition: transform .2s; color: var(--text-tertiary); }
+  .settings-header.open svg { transform: rotate(180deg); }
+  .settings-body { padding: 16px 18px; display: none; }
+  .settings-body.open { display: block; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .field-value {
+    height: 38px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-m); padding: 0 12px;
+    font-size: 13px; background: var(--surface-2);
+    color: var(--text); font-family: var(--font);
+    display: flex; align-items: center;
+  }
+  .warning-note {
+    margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-m);
+    background: var(--warning-light); color: var(--warning);
+    font-size: 12.5px; font-weight: 500;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+
+  /* ═══ DIALOG ═══ */
+  .dialog-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    z-index: 500; display: none; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .dialog-backdrop.open { display: flex; }
+  .dialog {
+    background: var(--surface); border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-l);
+    width: 100%; max-width: min(460px, 95vw);
+    animation: dialog-in .2s ease;
+  }
+  @keyframes dialog-in { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .dialog-header {
+    padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+    font-size: 16px; font-weight: 700;
+  }
+  .dialog-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .dialog-footer {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+  }
+  @media (max-width: 480px) {
+    .dialog-footer { flex-direction: column-reverse; }
+    .dialog-footer .btn { width: 100%; justify-content: center; height: 48px; }
+  }
+
+  /* select */
+  select.input-field { cursor: pointer; }
+
+  /* ─── Demo toggle bar ─── */
+  .demo-bar {
+    position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    z-index: 9999; background: #0f0f1a; color: #e2e8f0;
+    padding: 6px 14px; border-radius: 0 0 10px 10px;
+    display: flex; gap: 8px; align-items: center;
+    font-size: 11.5px; font-family: var(--font); box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  }
+  .demo-bar strong { color: var(--primary); }
+  .size-btn {
+    padding: 3px 10px; border-radius: 99px; border: 1px solid rgba(255,255,255,.2);
+    background: transparent; color: #e2e8f0; cursor: pointer; font-size: 11px;
+    font-family: var(--font); transition: all .15s;
+  }
+  .size-btn:hover, .size-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* ─── Viewport simulator ─── */
+  #viewport-wrap {
+    position: fixed; inset: 0; display: flex; align-items: flex-start;
+    justify-content: center; padding-top: 40px;
+    background: #0d0d1a;
+  }
+  #viewport-frame {
+    width: 100%; height: calc(100dvh - 40px);
+    background: var(--surface-2);
+    transition: width .3s ease, border-radius .3s ease;
+    overflow: hidden; position: relative;
+  }
+  #viewport-frame.mobile {
+    width: 390px; border-radius: 32px 32px 0 0;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.6);
+  }
+  #viewport-frame.tablet {
+    width: 768px; border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 30px rgba(0,0,0,.4);
+  }
+  #viewport-frame .app-shell {
+    width: 100%; height: 100%;
+  }
+</style>
+</head>
+<body>
+
+<!-- Demo controls -->
+<div class="demo-bar">
+  <strong>VixSrc</strong> Redesign Preview &nbsp;·&nbsp;
+  <button class="size-btn" onclick="setSize('mobile')">📱 Mobile (390px)</button>
+  <button class="size-btn" onclick="setSize('tablet')">🪄 Tablet (768px)</button>
+  <button class="size-btn active" onclick="setSize('desktop')">🖥 Desktop</button>
+</div>
+
+<div id="viewport-wrap">
+<div id="viewport-frame">
+
+<!-- App -->
+<div class="app-shell">
+
+  <!-- Drawer overlay (mobile) -->
+  <div class="drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
+
+  <!-- Sidebar / Drawer -->
+  <nav class="drawer" id="drawer">
+    <div class="drawer-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      VixSrc Downloader
+      <span class="drawer-version">v1.4</span>
+    </div>
+    <div class="side-nav">
+      <a class="nav-item active" id="nav-search" onclick="goTo('search')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Search
+      </a>
+      <a class="nav-item" id="nav-downloads" onclick="goTo('downloads')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Downloads
+        <span class="badge badge-primary" style="margin-left:auto;font-size:10px;">3</span>
+      </a>
+      <a class="nav-item" id="nav-settings" onclick="goTo('settings')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main-area">
+    <!-- Navbar -->
+    <div class="navbar">
+      <button class="hamburger" id="hamburger" onclick="toggleDrawer()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span class="navbar-title">VixSrc Downloader</span>
+      <span class="navbar-page" id="navbar-page">Search</span>
+    </div>
+
+    <!-- Pages -->
+    <div class="page">
+
+      <!-- ── SEARCH PAGE ── -->
+      <div class="page-section active" id="page-search">
+        <h1 class="page-title">Search</h1>
+        <div class="search-bar">
+          <div class="search-input-wrap">
+            <span class="field-label">Query</span>
+            <input class="input-field" type="text" placeholder="Movies & TV shows…" id="search-input" />
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span class="field-label">Type</span>
+            <div class="filter-pills">
+              <button class="filter-pill active" onclick="setPill(this)">All</button>
+              <button class="filter-pill" onclick="setPill(this)">Movies</button>
+              <button class="filter-pill" onclick="setPill(this)">TV Shows</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="fakeSearch()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Search
+          </button>
+        </div>
+
+        <!-- Loading state -->
+        <div class="search-loading" id="search-loading" style="display:none;">
+          <div class="spinner"></div>
+          Searching across sources…
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <h3>Search for content</h3>
+          <p>Type a movie or TV show title above<br>to find it and add it to your queue.</p>
+        </div>
+
+        <!-- Results -->
+        <div class="results-grid" id="results-grid" style="display:none;">
+          <!-- Movie card -->
+          <div class="result-card movie" onclick="openDialog()">
+            <div class="card-title-row">
+              <span class="card-title">Dune: Part Two</span>
+              <span class="tag tag-source">VixSrc</span>
+            </div>
+            <div class="card-meta">
+              <span class="card-year">2024</span>
+              <span class="card-rating">⭐ 8.4</span>
+              <span style="color:var(--text-tertiary);font-size:11px;">ID: 693134</span>
+            </div>
+            <p class="card-overview">Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.</p>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialog()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+
+          <!-- TV Show card -->
+          <div class="result-card tv" onclick="openDialog()">
+            <div class="card-title-row">
+              <span class="card-title">The Bear</span>
+              <span class="tag tag-source">VixSrc</span>
+              <span class="tag tag-seasons">3S</span>
+              <span class="tag tag-seasons">28E</span>
+            </div>
+            <div class="card-meta">
+              <span class="card-year">2022</span>
+              <span class="card-rating">⭐ 8.9</span>
+            </div>
+            <p class="card-overview">A young chef from the fine dining world comes home to Chicago to run his family's sandwich shop after a family tragedy.</p>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialogTV()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+
+          <!-- RaiPlay card -->
+          <div class="result-card tv" onclick="">
+            <div class="card-title-row">
+              <span class="card-title">Montalbano</span>
+              <span class="tag tag-raiplay">RaiPlay</span>
+              <span class="tag tag-seasons">12S</span>
+            </div>
+            <div class="card-meta">
+              <span class="card-year">1999</span>
+              <span class="card-rating">⭐ 8.1</span>
+            </div>
+            <p class="card-overview">Inspector Salvo Montalbano investigates crimes on the Sicilian coast, balancing cases with his love life and rich local food.</p>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialogTV()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+
+          <!-- Another movie -->
+          <div class="result-card movie">
+            <div class="card-title-row">
+              <span class="card-title">Oppenheimer</span>
+              <span class="tag tag-source">VixSrc</span>
+            </div>
+            <div class="card-meta">
+              <span class="card-year">2023</span>
+              <span class="card-rating">⭐ 8.9</span>
+            </div>
+            <p class="card-overview">The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb during WWII.</p>
+            <div class="card-footer">
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialog()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DOWNLOADS PAGE ── -->
+      <div class="page-section" id="page-downloads">
+        <div class="queue-header">
+          <div class="queue-header-left">
+            <h1 class="page-title" style="margin-bottom:6px;">Downloads</h1>
+            <div class="status-bar">
+              <span class="status-dot active"></span>2 active
+              <span>·</span>
+              <span class="status-dot"></span>1 queued
+              <span>·</span>
+              <span class="status-dot done"></span>4 completed
+              <span style="margin-left:4px;">· 12.3 MB/s · 142 GB free</span>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            Clear Done
+          </button>
+        </div>
+
+        <div class="dl-list">
+
+          <!-- Downloading item -->
+          <div class="dl-card">
+            <div class="dl-card-main">
+              <div class="dl-info">
+                <div class="dl-title-row">
+                  <span class="dl-title">Dune: Part Two</span>
+                  <span class="tag tag-source" style="font-size:9px;">VixSrc</span>
+                </div>
+                <div class="dl-meta">
+                  <span>1080p · en</span>
+                  <span>2.4 GB / 4.1 GB</span>
+                  <span>12.3 MB/s · ETA 2m 18s</span>
+                </div>
+                <div class="dl-progress-row">
+                  <div class="dl-progress-bar"><div class="dl-progress-fill active" style="width:58%"></div></div>
+                  <span class="dl-pct">58%</span>
+                </div>
+              </div>
+              <div class="dl-actions">
+                <span class="badge badge-primary">Downloading</span>
+                <button class="btn btn-ghost btn-icon btn-sm" title="Cancel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TV show with subtasks -->
+          <div class="dl-card">
+            <div class="dl-card-main">
+              <div class="dl-info">
+                <div class="dl-title-row">
+                  <span class="dl-title">The Bear — Season 2</span>
+                  <span class="tag tag-source" style="font-size:9px;">VixSrc</span>
+                </div>
+                <div class="dl-meta">
+                  <span>1080p · en</span>
+                  <span>10 episodes</span>
+                  <span>3.1 MB/s · ETA 18m</span>
+                </div>
+                <div class="dl-progress-row">
+                  <div class="dl-progress-bar"><div class="dl-progress-fill indeterminate" style="width:40%"></div></div>
+                  <span class="dl-pct">~</span>
+                </div>
+              </div>
+              <div class="dl-actions">
+                <span class="badge badge-primary">Extracting</span>
+                <button class="btn btn-ghost btn-icon btn-sm" title="Cancel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <button class="dl-expand-btn" id="expand-bear" onclick="toggleSubtasks('bear',this)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              10 episodes
+            </button>
+            <div class="subtasks" id="subtasks-bear">
+              <div class="subtask-row">
+                <span class="subtask-title">S02E01 – Carmy</span>
+                <div class="dl-progress-bar" style="max-width:100px"><div class="dl-progress-fill done" style="width:100%"></div></div>
+                <span class="badge badge-success">Done</span>
+              </div>
+              <div class="subtask-row">
+                <span class="subtask-title">S02E02 – Pasta</span>
+                <div class="dl-progress-bar" style="max-width:100px"><div class="dl-progress-fill active" style="width:45%"></div></div>
+                <span class="badge badge-primary">45%</span>
+              </div>
+              <div class="subtask-row">
+                <span class="subtask-title">S02E03 – Sundae</span>
+                <div class="dl-progress-bar" style="max-width:100px"><div class="dl-progress-fill" style="width:0%"></div></div>
+                <span class="badge badge-contrast">Queued</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Queued item -->
+          <div class="dl-card">
+            <div class="dl-card-main">
+              <div class="dl-info">
+                <div class="dl-title-row">
+                  <span class="dl-title">Oppenheimer</span>
+                  <span class="tag tag-source" style="font-size:9px;">VixSrc</span>
+                </div>
+                <div class="dl-meta"><span>1080p · en · Queued</span></div>
+                <div class="dl-progress-row">
+                  <div class="dl-progress-bar"><div class="dl-progress-fill" style="width:0%"></div></div>
+                  <span class="dl-pct">0%</span>
+                </div>
+              </div>
+              <div class="dl-actions">
+                <span class="badge badge-contrast">Queued</span>
+                <button class="btn btn-ghost btn-icon btn-sm" title="Cancel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Failed item -->
+          <div class="dl-card">
+            <div class="dl-card-main">
+              <div class="dl-info">
+                <div class="dl-title-row">
+                  <span class="dl-title">Avengers: Endgame</span>
+                  <span class="tag tag-source" style="font-size:9px;">VixSrc</span>
+                </div>
+                <div class="dl-meta"><span>Stream extraction failed</span></div>
+                <div class="dl-progress-row">
+                  <div class="dl-progress-bar"><div class="dl-progress-fill failed" style="width:12%"></div></div>
+                  <span class="dl-pct">12%</span>
+                </div>
+              </div>
+              <div class="dl-actions">
+                <span class="badge badge-error">Failed</span>
+                <button class="btn btn-ghost btn-icon btn-sm" title="Retry" style="color:var(--success)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed item -->
+          <div class="dl-card">
+            <div class="dl-card-main">
+              <div class="dl-info">
+                <div class="dl-title-row">
+                  <span class="dl-title">Poor Things</span>
+                  <span class="tag tag-source" style="font-size:9px;">VixSrc</span>
+                </div>
+                <div class="dl-meta"><span>1080p · 3.8 GB</span></div>
+                <div class="dl-progress-row">
+                  <div class="dl-progress-bar"><div class="dl-progress-fill done" style="width:100%"></div></div>
+                  <span class="dl-pct">100%</span>
+                </div>
+              </div>
+              <div class="dl-actions">
+                <span class="badge badge-success">Done</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── SETTINGS PAGE ── -->
+      <div class="page-section" id="page-settings">
+        <h1 class="page-title">Settings</h1>
+
+        <div class="settings-section">
+          <div class="settings-header open" onclick="toggleSettings(this)">
+            <h3>TMDB Configuration</h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="settings-body open">
+            <div class="form-grid">
+              <div class="form-field" style="grid-column:1/-1">
+                <span class="field-label">API Key</span>
+                <input class="input-field" type="password" value="•••••••••••••••••••••••••" />
+              </div>
+            </div>
+            <div class="warning-note">
+              ⚠️ API key changes require an application restart.
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSettings(this)">
+            <h3>Download Configuration</h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="settings-body">
+            <div class="form-grid">
+              <div class="form-field">
+                <span class="field-label">Movies Path</span>
+                <div class="field-value">/data/movies</div>
+              </div>
+              <div class="form-field">
+                <span class="field-label">TV Shows Path</span>
+                <div class="field-value">/data/tv</div>
+              </div>
+              <div class="form-field">
+                <span class="field-label">Temp Path</span>
+                <div class="field-value">/tmp/vixsrc</div>
+              </div>
+              <div class="form-field">
+                <span class="field-label">Parallel Downloads</span>
+                <div class="field-value">3</div>
+              </div>
+              <div class="form-field">
+                <span class="field-label">Default Quality</span>
+                <div class="field-value">best</div>
+              </div>
+              <div class="form-field">
+                <span class="field-label">Default Language</span>
+                <div class="field-value">it</div>
+              </div>
+            </div>
+            <div class="warning-note">
+              ⚠️ Read-only — update via environment variables or application.yml and restart.
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-header" onclick="toggleSettings(this)">
+            <h3>System Information</h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="settings-body">
+            <div class="form-grid">
+              <div class="form-field">
+                <span class="field-label">Java Version</span>
+                <div class="field-value">21.0.2</div>
+              </div>
+              <div class="form-field">
+                <span class="field-label">OS</span>
+                <div class="field-value">Linux 6.1</div>
+              </div>
+              <div class="form-field">
+                <span class="field-label">Processors</span>
+                <div class="field-value">8</div>
+              </div>
+            </div>
+            <div style="margin-top:14px;">
+              <button class="btn btn-primary btn-sm">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.39 0 4.56.93 6.16 2.44"/></svg>
+                Check Tools
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .page -->
+
+    <!-- Bottom nav (mobile) -->
+    <nav class="bottom-nav">
+      <div class="bottom-nav-inner">
+        <button class="bottom-nav-item active" id="bnav-search" onclick="goTo('search')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Search
+          <div class="bnav-dot"></div>
+        </button>
+        <button class="bottom-nav-item" id="bnav-downloads" onclick="goTo('downloads')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Downloads
+          <div class="bnav-dot"></div>
+        </button>
+        <button class="bottom-nav-item" id="bnav-settings" onclick="goTo('settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+          <div class="bnav-dot"></div>
+        </button>
+      </div>
+    </nav>
+
+  </div><!-- .main-area -->
+</div><!-- .app-shell -->
+
+</div><!-- #viewport-frame -->
+</div><!-- #viewport-wrap -->
+
+<!-- ── Download dialog (movie) ── -->
+<div class="dialog-backdrop" id="dialog-movie">
+  <div class="dialog">
+    <div class="dialog-header">Download: Dune: Part Two</div>
+    <div class="dialog-body">
+      <div class="form-field">
+        <span class="field-label">Languages</span>
+        <select class="input-field" multiple style="height:auto;padding:8px 12px;">
+          <option selected>en — English</option>
+          <option>it — Italian</option>
+          <option>es — Spanish</option>
+          <option>fr — French</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <span class="field-label">Quality</span>
+        <select class="input-field">
+          <option>best</option>
+          <option>1080</option>
+          <option>720</option>
+          <option>worst</option>
+        </select>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-primary" onclick="closeDialog('dialog-movie')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Add to Queue
+      </button>
+      <button class="btn btn-ghost" onclick="closeDialog('dialog-movie')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Download dialog (TV show) ── -->
+<div class="dialog-backdrop" id="dialog-tv">
+  <div class="dialog">
+    <div class="dialog-header">Download: The Bear</div>
+    <div class="dialog-body">
+      <div class="form-field">
+        <span class="field-label">Languages</span>
+        <select class="input-field" multiple style="height:auto;padding:8px 12px;">
+          <option selected>en — English</option>
+          <option>it — Italian</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <span class="field-label">Quality</span>
+        <select class="input-field">
+          <option>best</option><option>1080</option><option>720</option><option>worst</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="form-field">
+          <span class="field-label">Season</span>
+          <input class="input-field" type="number" placeholder="All seasons" min="1" />
+        </div>
+        <div class="form-field">
+          <span class="field-label">Episode</span>
+          <input class="input-field" type="number" placeholder="All episodes" min="1" />
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text-tertiary);">Leave blank to download everything.</div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-primary" onclick="closeDialog('dialog-tv')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Add to Queue
+      </button>
+      <button class="btn btn-ghost" onclick="closeDialog('dialog-tv')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Navigation ── */
+  const pages = ['search', 'downloads', 'settings'];
+  const pageNames = { search: 'Search', downloads: 'Downloads', settings: 'Settings' };
+
+  function goTo(name) {
+    pages.forEach(p => {
+      document.getElementById('page-' + p).classList.toggle('active', p === name);
+      document.getElementById('nav-' + p).classList.toggle('active', p === name);
+      const bn = document.getElementById('bnav-' + p);
+      if (bn) bn.classList.toggle('active', p === name);
+    });
+    document.getElementById('navbar-page').textContent = pageNames[name];
+    closeDrawer();
+  }
+
+  /* ── Drawer ── */
+  function toggleDrawer() {
+    const d = document.getElementById('drawer');
+    const o = document.getElementById('overlay');
+    d.classList.toggle('open');
+    o.classList.toggle('open');
+  }
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('overlay').classList.remove('open');
+  }
+
+  /* ── Filter pills ── */
+  function setPill(el) {
+    el.closest('.filter-pills').querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  /* ── Fake search ── */
+  function fakeSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    const loading = document.getElementById('search-loading');
+    const empty   = document.getElementById('empty-state');
+    const grid    = document.getElementById('results-grid');
+    loading.style.display = 'flex';
+    empty.style.display = 'none';
+    grid.style.display = 'none';
+    setTimeout(() => {
+      loading.style.display = 'none';
+      if (q) { grid.style.display = 'grid'; }
+      else   { empty.style.display = 'block'; }
+    }, 1200);
+  }
+
+  /* ── Dialogs ── */
+  function openDialog()   { document.getElementById('dialog-movie').classList.add('open'); }
+  function openDialogTV() { document.getElementById('dialog-tv').classList.add('open'); }
+  function closeDialog(id){ document.getElementById(id).classList.remove('open'); }
+  document.querySelectorAll('.dialog-backdrop').forEach(b =>
+    b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); }));
+
+  /* ── Subtasks expand ── */
+  function toggleSubtasks(id, btn) {
+    document.getElementById('subtasks-' + id).classList.toggle('open');
+    btn.classList.toggle('open');
+  }
+
+  /* ── Settings accordion ── */
+  function toggleSettings(header) {
+    header.classList.toggle('open');
+    header.nextElementSibling.classList.toggle('open');
+  }
+
+  /* ── Viewport size switcher ── */
+  function setSize(mode) {
+    const frame = document.getElementById('viewport-frame');
+    frame.classList.remove('mobile', 'tablet');
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    if (mode === 'mobile') frame.classList.add('mobile');
+    if (mode === 'tablet') frame.classList.add('tablet');
+  }
+
+  /* ── Show results by default if input has value ── */
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fakeSearch();
+  });
+</script>
+</body>
+</html>
