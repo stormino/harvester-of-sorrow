@@ -185,7 +185,7 @@ public class DownloadQueueService {
         if (contentType == DownloadTask.ContentType.TV && season != null && episode != null
                 && episodeName == null && content.getSource() != null) {
             try {
-                episodeName = sourceRegistry.getProvider(content.getSource())
+                episodeName = sourceRegistry.get(content.getSource())
                         .listEpisodes(content).stream()
                         .filter(e -> e.season() == season && e.episode() == episode)
                         .map(EpisodeRef::name)
