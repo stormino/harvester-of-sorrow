@@ -1,238 +1,351 @@
-# Mobile Redesign Plan
+# Mobile Redesign Plan — Vaadin Aura Theme
 
-## Goal
+## Theme Background
 
-Restyle the VixSrc Downloader UI to be significantly more pleasant to use on both
-desktop and mobile devices. The app is built with Vaadin 24 (server-side Java) and
-a custom Lumo theme override in `frontend/themes/vixsrc/styles/theme.css`.
+Vaadin ships two built-in themes:
+- **Lumo** — original theme (24.x default), Roboto/system font, `--lumo-*` tokens
+- **Aura** — new theme introduced in **Vaadin 25**, Instrument Sans font, `--aura-*` tokens,
+  `oklch()` color space, CSS cascade layers
 
----
+**This project is currently on Vaadin 24.3.2.** Aura is not available as a built-in theme
+at this version. The implementation plan therefore describes two tracks:
 
-## Current Pain Points
+| Track | What |
+|-------|------|
+| **A — Upgrade to Vaadin 25** | Migrate to Vaadin 25 and use `@Theme(Aura.class)` natively |
+| **B — Aura-style Lumo override (24.3)** | Stay on 24.3, override `--lumo-*` tokens to match Aura's visual language |
 
-### Navigation / Layout
-- The `MainLayout` uses Vaadin `AppLayout` with a collapsible drawer. On mobile the
-  drawer toggle works but the drawer overlaps content and has no visual affordance to
-  close it (tap-outside is easy to miss).
-- The navbar only contains a title + version. No active-route indicator in the header
-  on mobile (the sidenav items are hidden inside the drawer).
-- No bottom navigation bar for mobile — the standard pattern for small screens.
-
-### Search View (`SearchView.java`)
-- The search bar, content-type radio group, and search button are in a single
-  `HorizontalLayout` that wraps via `flex-wrap: wrap`. On narrow screens the radio
-  group breaks weirdly; the label "Type" is truncated.
-- Results grid uses `minmax(min(100%, 320px), 1fr)`. At 320 px a card is already at
-  full width but still cramped with padding on both sides.
-- No loading skeleton / spinner: the button text changes to "Searching..." but the
-  grid shows nothing during the wait — users don't know if the app is working.
-
-### Search Result Card (`SearchResultCard.java`)
-- Card hover effects (`translateY(-2px)`) do not fire on touch devices — they rely on
-  `mouseenter`/`mouseleave` DOM events, which don't exist on mobile.
-- Download button is small (`LUMO_SMALL`). On mobile it's a difficult tap target.
-- Clicking the card opens the TMDB page in a new tab. The entire card is a link, but
-  a download button inside it stops propagation. The distinction between "click card →
-  open TMDB" and "click button → download dialog" is unclear without hover state.
-
-### Download Dialog (`SearchResultCard.buildDownloadDialog`)
-- Fixed `width: 500px` — wider than most phone screens. On small screens this causes
-  horizontal overflow or gets squashed.
-- Fields are stacked vertically but without spacing tokens, so they crowd together.
-- The dialog footer has "Add to Queue" + "Cancel" side by side. On mobile they can
-  be tiny.
-
-### Download Queue View (`DownloadQueueView.java`)
-- Uses a `TreeGrid` with 8 columns. Even on desktop this is tight; on mobile, the CSS
-  tries to hide some columns by targeting generated slot names like
-  `vaadin-grid-cell-content[slot^="vaadin-grid-column-4"]`. This is fragile —
-  column indices shift if columns are reordered.
-- The grid has a hardcoded `height: 600px`. On small screens this either clips or
-  overflows.
-- Action buttons (cancel, retry, info) are tiny icon-only buttons inside a grid cell —
-  hard to tap precisely.
-- Status bar (counts, speed, disk space) is three separate `Span` elements in a
-  `VerticalLayout`. On mobile they stack and consume too much vertical real estate.
-
-### CSS (`theme.css`)
-- Font sizes are already reduced by 20–25 %. On mobile `--lumo-font-size-m: 0.8125rem`
-  (~13 px) is borderline too small for comfortable reading.
-- The responsive media queries hide columns by fragile slot selectors and don't adjust
-  the grid height or action button sizes.
-- No dark-mode support.
-- Button hover `translateY(-1px)` is desktop-only; no active/pressed state designed
-  for touch.
-
-### Settings View (`SettingsView.java`)
-- All fields are read-only and displayed in a long vertical scroll. No visual grouping
-  with card containers. On mobile, this is a long, boring wall of text.
+Track B is the lower-risk, lower-effort path and is recommended unless there is a
+separate reason to upgrade. The HTML prototype (`mobile-redesign-preview.html`) already
+shows the target visual result — it is faithful to the actual Aura token values obtained
+from the `packages/aura/src/` source files in `vaadin/web-components`.
 
 ---
 
-## Proposed Changes
+## Aura Design Tokens Reference
 
-### Phase 1 — CSS & Theme Fixes (lowest risk, highest impact)
+The values below come directly from the Aura source CSS
+(`packages/aura/src/{palette,color,typography,size,surface}.css`):
 
-**File:** `frontend/themes/vixsrc/styles/theme.css`
+### Typography
+| Token | Value |
+|-------|-------|
+| `--aura-font-family` | `'Instrument Sans', system-ui, ui-sans-serif, sans-serif` |
+| `--aura-base-font-size` | `14` (px, unitless) |
+| `--aura-font-size-m` | `round(14/16 * 1rem)` → **0.875 rem** |
+| `--aura-font-size-s` | **0.8125 rem** |
+| `--aura-font-size-xs` | **0.75 rem** |
+| `--aura-font-size-l` | **0.9375 rem** |
+| `--aura-font-size-xl` | **1.0625 rem** |
+| `--aura-font-weight-regular` | `400` |
+| `--aura-font-weight-medium` | `500` |
+| `--aura-font-weight-semibold` | `600` |
+| `--aura-base-line-height` | `1.4` |
 
-1. **Restore mobile font sizes** — restore `--lumo-font-size-m` to at least `0.875rem`
-   on screens ≤ 480 px using a media query so readability improves.
-2. **Touch-friendly active state** — replace or supplement `vaadin-button:hover`
-   `translateY` with a `:active` press effect that works on touch:
-   ```css
-   vaadin-button:active {
-       transform: scale(0.97);
-       box-shadow: none;
-   }
+### Colors (oklch)
+| Token | Value |
+|-------|-------|
+| `--aura-blue` | `oklch(0.55 0.20 264)` |
+| `--aura-green` | `oklch(0.60 0.20 155)` |
+| `--aura-red` | `oklch(0.59 0.20 25)` |
+| `--aura-orange` | `oklch(0.61 0.35 87)` |
+| `--aura-yellow` | `oklch(0.89 0.30 98)` |
+| `--aura-purple` | `oklch(0.58 0.22 290)` |
+| Background (light) | `oklch(0.95 0.005 248)` |
+| Background (dark) | `oklch(0.20 0.010 260)` |
+| Default accent | blue (`--aura-blue`) |
+
+### Spacing & Sizing
+| Token | Value |
+|-------|-------|
+| `--vaadin-gap-xs` | `4px` |
+| `--vaadin-gap-s` | `8px` |
+| `--vaadin-gap-m` | `12px` |
+| `--vaadin-gap-l` | `16px` |
+| `--vaadin-gap-xl` | `24px` |
+| `--vaadin-padding-s` | `8px` |
+| `--vaadin-padding-m` | `12px` |
+| `--vaadin-padding-l` | `16px` |
+| `--vaadin-padding-xl` | `24px` |
+
+### Border Radius
+| Token | Value |
+|-------|-------|
+| `--vaadin-radius-s` | `5px` |
+| `--vaadin-radius-m` | `9px` |
+| `--vaadin-radius-l` | `15px` |
+
+### Icon
+| Token | Value |
+|-------|-------|
+| `--vaadin-icon-stroke-width` | `1.75` |
+
+---
+
+## Track A — Upgrade to Vaadin 25
+
+### Scope
+Update `pom.xml`, switch `@Theme` annotation, migrate any Lumo-specific CSS.
+
+### Steps
+
+1. **Bump Vaadin BOM** in `pom.xml`:
+   ```xml
+   <vaadin.version>25.0.1</vaadin.version>
    ```
-3. **Fix dialog width** — add a CSS rule so dialogs never exceed the viewport width:
+
+2. **Add Aura theme dependency** (pulled transitively via BOM, but explicit is safer):
+   ```xml
+   <dependency>
+     <groupId>com.vaadin</groupId>
+     <artifactId>vaadin-aura-theme</artifactId>
+   </dependency>
+   ```
+
+3. **Switch theme annotation** — find any class annotated `@Theme("vixsrc")` and
+   change to `@Theme(Aura.class)` (or keep the custom theme extending Aura):
+   ```java
+   import com.vaadin.flow.theme.aura.Aura;
+   @Theme(Aura.class)
+   public class Application implements AppShellConfigurator { … }
+   ```
+   Alternatively, in `theme.json` set `"parent": "aura"`.
+
+4. **Update `frontend/themes/vixsrc/styles/theme.css`** — remove Lumo overrides,
+   keep only app-specific additions on top of Aura.
+
+5. **Replace `--lumo-*` custom property references** in Java views / CSS with
+   Aura equivalents (see mapping table in Track B).
+
+6. **Test E2E suite** — run Playwright tests against the upgraded app.
+
+### Risk
+Medium — Vaadin 25 changed the theming architecture (CSS cascade layers, base
+styles model). Component slot names and shadow-part selectors may have changed.
+
+---
+
+## Track B — Aura-style Lumo Override (Recommended for 24.3)
+
+Override the Lumo CSS custom properties in
+`frontend/themes/vixsrc/styles/theme.css` to match Aura's visual values.
+No version upgrade required.
+
+### Token Mapping (Lumo → Aura equivalent)
+
+| Lumo token | Aura target value |
+|-----------|-------------------|
+| `--lumo-font-family` | `'Instrument Sans', system-ui, ui-sans-serif, sans-serif` |
+| `--lumo-font-size-m` | `0.875rem` (Aura base 14 px) |
+| `--lumo-font-size-s` | `0.8125rem` |
+| `--lumo-font-size-xs` | `0.75rem` |
+| `--lumo-font-size-l` | `0.9375rem` |
+| `--lumo-font-size-xl` | `1.0625rem` |
+| `--lumo-primary-color` | `oklch(0.55 0.20 264)` (Aura blue) |
+| `--lumo-success-color` | `oklch(0.60 0.20 155)` (Aura green) |
+| `--lumo-error-color` | `oklch(0.59 0.20 25)` (Aura red) |
+| `--lumo-warning-color` | `oklch(0.89 0.30 98)` (Aura yellow) |
+| `--lumo-base-color` | `oklch(0.98 0.003 248)` (Aura surface-1 light) |
+| `--lumo-border-radius-s` | `5px` |
+| `--lumo-border-radius-m` | `9px` |
+| `--lumo-border-radius-l` | `15px` |
+| `--lumo-space-xs` | `4px` |
+| `--lumo-space-s` | `8px` |
+| `--lumo-space-m` | `12px` |
+| `--lumo-space-l` | `16px` |
+| `--lumo-space-xl` | `24px` |
+| `--lumo-size-m` | `36px` (Aura button/field height) |
+
+**Add Instrument Sans** via Google Fonts in `frontend/index.html`:
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap" rel="stylesheet">
+```
+Or self-host the font files in `frontend/themes/vixsrc/fonts/` and add
+`@font-face` rules at the top of `theme.css`.
+
+---
+
+## UI Changes — View by View
+
+### Phase 1 — `theme.css` (Aura token override)
+
+1. Replace all `--lumo-*` overrides with the mapping table above.
+2. Remove the current font-size reductions (Aura's 14 px base is already compact).
+3. Add dark-mode support via `@media (prefers-color-scheme: dark)` using Aura's
+   dark background `oklch(0.20 0.010 260)`.
+4. Fix dialog max-width:
    ```css
    vaadin-dialog-overlay::part(overlay) {
-       max-width: min(500px, 95vw);
-       width: min(500px, 95vw);
+     max-width: min(460px, 95vw);
+     width: min(460px, 95vw);
    }
    ```
-4. **Increase minimum tap target** — ensure buttons in grid cells meet 44 px height:
+5. Increase minimum tap target for small buttons (Aura guideline: 36 px+ height):
    ```css
-   vaadin-button[theme~="small"] {
-       min-height: 44px;
-       min-width: 44px;
+   vaadin-button[theme~="small"] { min-height: 36px; min-width: 36px; }
+   @media (max-width: 480px) {
+     vaadin-button[theme~="small"] { min-height: 44px; min-width: 44px; }
    }
    ```
-5. **Replace fragile column-hiding** — remove slot-name selectors and instead give
-   each TreeGrid column a stable CSS class from Java, then hide via class selectors.
-6. **Improve card styles** — add an `:active` state equivalent to hover for touch:
+6. Replace fragile column-hiding selectors with stable named class selectors.
+7. Replace `mouseenter`/`mouseleave` hover with pure CSS `:hover` + `:active`.
+8. Touch active state:
    ```css
-   .result-card:active {
-       transform: translateY(-2px);
-       box-shadow: 0 8px 16px rgba(33,150,243,0.25);
+   vaadin-button:active { transform: scale(.98); }
+   ```
+
+### Phase 2 — `MainLayout.java` (Navigation)
+
+1. **Bottom navigation for mobile** — add a secondary `HorizontalLayout` fixed at
+   the bottom of the viewport on `≤ 768px`. Each item: icon + label, using
+   `SideNavItem` route info for active state.
+   ```java
+   Div bottomNav = new Div();
+   bottomNav.addClassName("bottom-nav");
+   // … add 3 icon+label buttons navigating to Search, Downloads, Settings
+   addToNavbar(false, bottomNav); // or add to main layout as a separate element
+   ```
+   Use CSS to show/hide:
+   ```css
+   .bottom-nav { display: none; }
+   @media (max-width: 768px) { .bottom-nav { display: flex; } .drawer { display: none; } }
+   ```
+2. **Current page label in navbar** — add a `Span` that shows the active page name,
+   updated on `BeforeEnterEvent` via a `RouterLayout` listener.
+
+### Phase 3 — `SearchView.java`
+
+1. **Vertical layout on mobile** — wrap search field + filter group in a
+   `FlexLayout` and set `flex-direction: column` via CSS on `≤ 768px`.
+2. **Loading spinner** — add a `Div` with CSS animation shown while the async
+   search futures are pending, hidden on completion.
+3. **Empty-state** — add an initial state with an icon and call-to-action text
+   shown before any search is performed.
+4. **Results grid** — switch from `LumoUtility.Display.GRID` class to an explicit
+   CSS grid:
+   ```css
+   grid-template-columns: repeat(auto-fill, minmax(min(100%, 272px), 1fr));
+   gap: var(--vaadin-gap-m);          /* Aura: 12px */
+   ```
+
+### Phase 4 — `DownloadQueueView.java`
+
+1. **Fluid height** — replace `treeGrid.setHeight("600px")` with:
+   ```java
+   treeGrid.setSizeFull();
+   setFlexGrow(1, treeGrid);
+   ```
+2. **Named column classes** — add CSS class names to each column:
+   ```java
+   treeGrid.addComponentHierarchyColumn(this::createTitleCell)
+       .setHeader("Title").setFlexGrow(3).setClassNameGenerator(i -> "col-title");
+   // repeat for each column: col-status, col-progress, col-size,
+   //                         col-speed, col-eta, col-created, col-actions
+   ```
+   Then in `theme.css`:
+   ```css
+   @media (max-width: 768px) {
+     .col-size, .col-eta, .col-created { display: none; }
+   }
+   @media (max-width: 480px) {
+     .col-speed { display: none; }
    }
    ```
-7. **Add dark-mode awareness** — wrap color palette in
-   `@media (prefers-color-scheme: dark)` with inverted surface colours.
+3. **Status bar** — merge the three `Span` elements into one `HorizontalLayout`
+   with a `·` separator, collapsing to two lines only on `≤ 480px`.
+4. **Action buttons** — remove `LUMO_SMALL` on mobile (see Phase 1 CSS rule).
 
----
+### Phase 5 — `SearchResultCard.java`
 
-### Phase 2 — Layout & Navigation
+1. **CSS-only hover** — remove `getElement().addEventListener("mouseenter/mouseleave")`
+   Java listeners. Add CSS class `result-card` and rely on `:hover` + `:active`.
+2. **Larger download button** — remove `ButtonVariant.LUMO_SMALL` (or keep it and
+   override min-height via CSS Phase 1 rule).
+3. **Card footer separator** — add a thin border-top band using Aura's
+   `--vaadin-border-color-secondary` to separate metadata from the button.
+4. **Remove fixed dialog width** — delete `downloadDialog.setWidth("500px")`.
+   CSS Phase 1 `max-width: min(460px, 95vw)` handles sizing.
 
-**File:** `MainLayout.java`
+### Phase 6 — `SearchResultCard.buildDownloadDialog`
 
-1. **Bottom navigation bar for mobile** — add a second `HorizontalLayout` with three
-   icon+label nav items (Search, Downloads, Settings) positioned at the bottom of the
-   viewport via CSS (`position: fixed; bottom: 0`). Show it only on `≤ 768px` using a
-   CSS class toggled on the element.
-   - Alternatively, configure `AppLayout` with `setPrimarySection(Section.DRAWER)` and
-     add `setDrawerOpened(false)` on narrow viewports via `Page.addBrowserWindowResizeListener`.
-2. **Active route highlight in header** — add the current page title as a `Span` in the
-   header so mobile users always know where they are without opening the drawer.
+1. Dialog width — handled via CSS (Phase 1), no Java change needed.
+2. **Full-width footer buttons on mobile** — add class `dialog-footer` to the
+   footer layout, then in CSS:
+   ```css
+   @media (max-width: 480px) {
+     .dialog-footer { flex-direction: column-reverse; }
+     .dialog-footer vaadin-button { width: 100%; }
+   }
+   ```
+3. **Season/episode helper text** — the existing `setHelperText("Leave blank …")`
+   is already correct; make sure it is visible (not clipped) on small screens.
 
----
+### Phase 7 — `SettingsView.java`
 
-### Phase 3 — Search View
-
-**File:** `SearchView.java`
-
-1. **Vertical search bar layout on mobile** — change the `HorizontalLayout` to a
-   `VerticalLayout` on narrow widths, or use `FlexLayout` with a `flex-direction` CSS
-   override for mobile. At minimum, move the radio group above the text field so the
-   field + button remain side by side.
-2. **Loading state with spinner** — add a `Div` spinner element (via `lumo-icon` or a
-   simple CSS animation) that is shown while search is in progress, rather than only
-   changing button text.
-3. **Empty state illustration** — replace the blank area before search with a short
-   prompt ("Search for a movie or TV show to get started") to orient first-time users.
-
----
-
-### Phase 4 — Download Queue View
-
-**File:** `DownloadQueueView.java`
-
-1. **Fluid grid height** — replace `treeGrid.setHeight("600px")` with
-   `treeGrid.setSizeFull()` and let the parent layout control available height via
-   `setSizeFull()` + `setFlexGrow(1, treeGrid)`.
-2. **Mobile-first column strategy** — assign named CSS classes to each column from
-   Java (`.col-title`, `.col-status`, `.col-progress`, `.col-size`, `.col-speed`,
-   `.col-eta`, `.col-created`, `.col-actions`), then hide non-essential ones in CSS:
-   - **≤ 768 px**: hide `.col-size`, `.col-eta`, `.col-created`
-   - **≤ 480 px**: also hide `.col-speed`
-3. **Swipe-to-cancel** — for mobile, consider a long-press or swipe gesture on a row
-   to reveal action buttons, instead of always-visible icon buttons (lower priority).
-4. **Status bar consolidation** — merge the three status `Span` elements into a single
-   line with a bullet separator on desktop; stack them only on mobile.
-5. **Larger action buttons** — switch cancel/retry/info buttons from `LUMO_SMALL` to
-   default size on `≤ 480px` using a CSS class on the grid.
-
----
-
-### Phase 5 — Search Result Card
-
-**File:** `SearchResultCard.java`
-
-1. **Replace DOM mouseenter/mouseleave with CSS** — move hover effects to pure CSS
-   (already partially done in `theme.css`); remove the JS event listeners from Java.
-   Add a CSS class (e.g., `result-card`) and rely on `:hover` + `:active` only.
-2. **Larger download button** — remove `LUMO_SMALL` on the download button so it is
-   at least 44 px tall.
-3. **Clearer CTA area** — add a thin separator or background contrast band at the
-   bottom of the card to visually separate the "Download" button from the metadata.
-
----
-
-### Phase 6 — Download Dialog
-
-**File:** `SearchResultCard.java` (`buildDownloadDialog`)
-
-1. **Remove fixed width** — replace `downloadDialog.setWidth("500px")` with no width
-   setting; let CSS rule from Phase 1 handle `max-width: min(500px, 95vw)`.
-2. **Full-width footer buttons** — stack "Add to Queue" and "Cancel" vertically on
-   mobile, each full width.
-3. **Better season/episode UX** — add inline helper text explaining "leave blank for
-   all" more prominently; consider a segmented selector (All / Specific) to avoid
-   users needing to know to leave a field empty.
-
----
-
-### Phase 7 — Settings View
-
-**File:** `SettingsView.java`
-
-1. **Card grouping** — wrap each section (TMDB, Download, Extractor, System) in a
-   `vaadin-vertical-layout[theme~="card"]` container for visual separation.
-2. **Collapsible sections** — for mobile, consider wrapping each section in a
-   `vaadin-details` (Vaadin accordion) so users can expand only what they need.
-3. **Info density** — in the System Information section, switch from `Paragraph` to
-   a two-column key/value `FormLayout` to use horizontal space better on desktop.
+1. **Card wrapping** — wrap each section (`tmdbForm`, `downloadForm`, etc.) in
+   `vaadin-vertical-layout[theme~="card"]` using the `addThemeName("card")` API,
+   or use a `Div` with the custom `card` CSS class.
+2. **Collapsible sections** — use `vaadin-details` (Vaadin `Details` component)
+   for each section so mobile users can expand only what they need:
+   ```java
+   Details tmdbSection = new Details("TMDB Configuration", tmdbForm, tmdbNote);
+   tmdbSection.setOpened(true);
+   ```
+3. **Two-column form grid** — use `FormLayout` with `setResponsiveSteps` to
+   show two columns on desktop, one on mobile:
+   ```java
+   downloadForm.setResponsiveSteps(
+     new FormLayout.ResponsiveStep("0", 1),
+     new FormLayout.ResponsiveStep("480px", 2)
+   );
+   ```
 
 ---
 
 ## File Change Summary
 
-| File | Changes |
-|------|---------|
-| `frontend/themes/vixsrc/styles/theme.css` | Font size fix, touch states, dialog max-width, tap targets, dark mode, stable column classes |
-| `MainLayout.java` | Bottom nav bar for mobile, active route in header |
-| `SearchView.java` | Vertical search layout on mobile, loading spinner, empty state |
-| `DownloadQueueView.java` | Fluid grid height, named column classes, status bar consolidation, larger action buttons |
-| `SearchResultCard.java` | CSS-only hover/active effects, larger download button, remove fixed dialog width |
-| `SettingsView.java` | Card grouping, collapsible sections |
+| File | Track | Change |
+|------|-------|--------|
+| `pom.xml` | A only | Bump Vaadin to 25, add `vaadin-aura-theme` |
+| `frontend/index.html` | Both | Add Instrument Sans Google Font link |
+| `frontend/themes/vixsrc/styles/theme.css` | Both | Replace `--lumo-*` overrides with Aura token values; add dark mode; fix dialog, tap targets, column classes |
+| `MainLayout.java` | Both | Bottom nav bar for mobile; active page label in navbar |
+| `SearchView.java` | Both | Vertical search bar on mobile; spinner; empty state; Aura grid gap |
+| `DownloadQueueView.java` | Both | Fluid grid height; named column classes; status bar; mobile action buttons |
+| `SearchResultCard.java` | Both | CSS-only hover; remove dialog fixed width; larger download button |
+| `SettingsView.java` | Both | `Details` accordion sections; two-column `FormLayout` |
 
 ---
 
 ## Implementation Order
 
-1. **Phase 1 (CSS)** — immediately visible improvement on all screens, zero Java risk.
-2. **Phase 4 (Queue grid)** — highest UX pain on mobile; grid height and column hiding.
-3. **Phase 3 (Search layout)** — search is the primary entry point.
-4. **Phase 5 & 6 (Cards & Dialog)** — polishes the download flow.
-5. **Phase 2 (Navigation)** — bottom nav bar requires careful layout coordination.
-6. **Phase 7 (Settings)** — lowest traffic view; do last.
+1. **Phase 1 — `theme.css`** — zero Java risk, immediately visible on all screens.
+2. **Phase 4 — Queue view** — most painful on mobile today.
+3. **Phase 3 — Search view** — primary entry point.
+4. **Phase 5 & 6 — Cards & Dialog** — polishes the download flow.
+5. **Phase 2 — Navigation** — bottom nav requires layout coordination.
+6. **Phase 7 — Settings** — lowest traffic view.
+
+If choosing Track A (Vaadin 25), do the version upgrade as an isolated step
+before starting Phase 1, and run the full E2E suite to validate the upgrade
+before any UI work begins.
 
 ---
 
 ## Out of Scope
 
-- Changing the backend API or download logic.
-- Adding new features beyond what already exists.
-- PWA offline support (service worker already in Vite config but not designed here).
-- Changing the Vaadin version.
+- Backend API or download logic changes.
+- New features beyond existing functionality.
+- PWA offline mode.
+- Changing the Vaadin version beyond what Track A specifies.
+
+---
+
+## References
+
+- Aura source: `packages/aura/src/` in [`vaadin/web-components`](https://github.com/vaadin/web-components)
+- Aura docs: https://vaadin.com/docs/latest/styling/themes/aura
+- Aura color: https://vaadin.com/docs/latest/styling/themes/aura/color
+- Lumo → Aura styling: https://blog.vaadin.com/how-to-style-vaadin-components-for-both-aura-and-lumo
+- Vaadin 25 release: https://vaadin.com/blog/vaadin-25-0-release

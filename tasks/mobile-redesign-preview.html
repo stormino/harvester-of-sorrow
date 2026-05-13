@@ -3,524 +3,644 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>VixSrc Downloader — Redesign Preview</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
+<title>VixSrc Downloader — Aura Theme Preview</title>
+<!--
+  Faithful reproduction of Vaadin Aura theme tokens (Vaadin 25).
+  Font: Instrument Sans (Aura default: --aura-font-family-instrument-sans)
+  Colors: oklch() — matches actual Aura palette.css / color.css values
+  Spacing/radius: matches Aura size.css exactly
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700;1,75..100,400..700&display=swap" rel="stylesheet">
 <style>
-/* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-button, input, select { font-family: inherit; }
+button, input, select, textarea { font-family: inherit; }
 
-/* ── Design tokens ── */
+/* ══════════════════════════════════════════════════════
+   AURA DESIGN TOKENS
+   Source: packages/aura/src/{palette,color,typography,size,surface}.css
+   ══════════════════════════════════════════════════════ */
 :root {
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* — Font (--aura-font-family-instrument-sans) — */
+  --aura-font-family: 'Instrument Sans', system-ui, ui-sans-serif, sans-serif;
 
-  /* Surfaces */
-  --bg:          #f5f4ef;
-  --surface:     #ffffff;
-  --surface-2:   #f0ede8;
-  --border:      rgba(0,0,0,.09);
-  --border-2:    rgba(0,0,0,.05);
+  /* — Base font size: --aura-base-font-size: 14 — */
+  --aura-font-size-m:  0.875rem;   /* round(14/16*1rem) */
+  --aura-font-size-s:  0.8125rem;  /* (m + xs) / 2 */
+  --aura-font-size-xs: 0.75rem;    /* clamp(…, m*0.85, 0.8125rem) */
+  --aura-font-size-l:  0.9375rem;  /* m * 1.125 */
+  --aura-font-size-xl: 1.0625rem;  /* l * 1.125 */
 
-  /* Text */
-  --text:        #1a1915;
-  --text-2:      #6b6860;
-  --text-3:      #a09d98;
+  /* — Font weights — */
+  --aura-font-weight-regular:  400;
+  --aura-font-weight-medium:   500;
+  --aura-font-weight-semibold: 600;
 
-  /* Brand */
-  --accent:      #d97706;
-  --accent-bg:   rgba(217,119,6,.10);
-  --accent-text: #92400e;
+  /* — Line height (base 1.4) — */
+  --aura-line-height-m: 1.25rem;
+  --aura-line-height-l: 1.375rem;
 
-  /* Semantic */
-  --blue:        hsl(210,90%,48%);
-  --blue-bg:     hsla(210,90%,48%,.10);
-  --blue-text:   hsl(210,90%,36%);
-  --green:       hsl(152,60%,38%);
-  --green-bg:    hsla(152,60%,38%,.10);
-  --green-text:  hsl(152,60%,28%);
-  --red:         hsl(4,80%,52%);
-  --red-bg:      hsla(4,80%,52%,.10);
-  --red-text:    hsl(4,80%,40%);
+  /* — Palette (packages/aura/src/palette.css) — */
+  --aura-red:    oklch(0.59 0.20  25);
+  --aura-orange: oklch(0.61 0.35  87);
+  --aura-yellow: oklch(0.89 0.30  98);
+  --aura-green:  oklch(0.60 0.20 155);
+  --aura-blue:   oklch(0.55 0.20 264);
+  --aura-purple: oklch(0.58 0.22 290);
 
-  /* Shadows */
-  --shadow-xs:  0 1px 2px rgba(0,0,0,.06);
-  --shadow-s:   0 1px 4px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04);
-  --shadow-m:   0 4px 16px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
-  --shadow-l:   0 12px 36px rgba(0,0,0,.14), 0 0 0 1px rgba(0,0,0,.04);
+  /* — Accent = blue by default — */
+  --aura-accent: var(--aura-blue);
 
-  /* Shape */
-  --r-s:  6px;
-  --r-m:  10px;
-  --r-l:  14px;
-  --r-xl: 20px;
+  /* — Background (color.css: light = oklch(0.95 0.005 248)) — */
+  --aura-bg:        oklch(0.95 0.005 248);
+  --aura-surface-1: oklch(0.98 0.003 248);  /* elevated surface */
+  --aura-surface-2: oklch(0.92 0.008 248);  /* depressed / container */
 
-  /* Layout */
-  --nav-h:         56px;
-  --drawer-w:      224px;
-  --bottom-nav-h:  62px;
+  /* — Border radius (size.css: base-radius=3 → s=5px, m=9px, l=15px) — */
+  --vaadin-radius-s:  5px;
+  --vaadin-radius-m:  9px;
+  --vaadin-radius-l: 15px;
+
+  /* — Spacing (size.css) — */
+  --vaadin-gap-xs:  4px;
+  --vaadin-gap-s:   8px;
+  --vaadin-gap-m:  12px;
+  --vaadin-gap-l:  16px;
+  --vaadin-gap-xl: 24px;
+  --vaadin-padding-s:  8px;
+  --vaadin-padding-m: 12px;
+  --vaadin-padding-l: 16px;
+  --vaadin-padding-xl:24px;
+
+  /* — Neutral / text — */
+  --aura-neutral:          oklch(0.25 0.01 260);
+  --aura-text:             oklch(0.20 0.01 260);
+  --aura-text-secondary:   oklch(0.45 0.01 260);
+  --aura-text-tertiary:    oklch(0.65 0.01 260);
+
+  /* — Border — */
+  --aura-border:           oklch(0.85 0.01 260);
+  --aura-border-light:     oklch(0.90 0.005 260);
+
+  /* — Icon stroke — */
+  --vaadin-icon-stroke-width: 1.75;
+
+  /* — Shadow (shadow.css style) — */
+  --aura-shadow-s: 0 1px 3px oklch(0.2 0.01 260 / .08), 0 0 0 1px oklch(0.2 0.01 260 / .05);
+  --aura-shadow-m: 0 4px 14px oklch(0.2 0.01 260 / .10), 0 0 0 1px oklch(0.2 0.01 260 / .05);
+  --aura-shadow-l: 0 12px 36px oklch(0.2 0.01 260 / .14), 0 0 0 1px oklch(0.2 0.01 260 / .06);
+
+  /* — Semantic overlays — */
+  --aura-accent-surface:  color-mix(in oklab, var(--aura-blue) 12%, transparent);
+  --aura-green-surface:   color-mix(in oklab, var(--aura-green) 12%, transparent);
+  --aura-red-surface:     color-mix(in oklab, var(--aura-red) 12%, transparent);
+  --aura-yellow-surface:  color-mix(in oklab, var(--aura-yellow) 15%, transparent);
+
+  /* — App layout — */
+  --nav-h:          56px;
+  --drawer-w:       228px;
+  --bottom-nav-h:   64px;
 }
 
-/* ── Dark mode ── */
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg:       #18181b;
-    --surface:  #1f1f23;
-    --surface-2:#2a2a2f;
-    --border:   rgba(255,255,255,.08);
-    --border-2: rgba(255,255,255,.04);
-    --text:     #f0ede8;
-    --text-2:   #9a9690;
-    --text-3:   #5a5754;
-    --shadow-s: 0 1px 4px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.05);
-    --shadow-m: 0 4px 16px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.05);
-    --shadow-l: 0 12px 36px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);
+    --aura-bg:        oklch(0.20 0.010 260);
+    --aura-surface-1: oklch(0.24 0.010 260);
+    --aura-surface-2: oklch(0.18 0.008 260);
+    --aura-neutral:          oklch(0.88 0.005 260);
+    --aura-text:             oklch(0.92 0.005 260);
+    --aura-text-secondary:   oklch(0.68 0.010 260);
+    --aura-text-tertiary:    oklch(0.50 0.010 260);
+    --aura-border:           oklch(0.32 0.010 260);
+    --aura-border-light:     oklch(0.28 0.008 260);
+    --aura-shadow-s: 0 1px 3px oklch(0 0 0 / .30), 0 0 0 1px oklch(1 0 0 / .06);
+    --aura-shadow-m: 0 4px 14px oklch(0 0 0 / .40), 0 0 0 1px oklch(1 0 0 / .06);
+    --aura-shadow-l: 0 12px 36px oklch(0 0 0 / .50), 0 0 0 1px oklch(1 0 0 / .06);
+    --aura-blue: oklch(0.65 0.18 264);
+    --aura-accent: var(--aura-blue);
   }
 }
 
-/* ── App shell ── */
+/* ══════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════ */
 body {
-  font-family: var(--font); font-size: 14px; line-height: 1.5;
-  color: var(--text); background: var(--bg);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--aura-font-weight-regular);
+  line-height: var(--aura-line-height-m);
+  color: var(--aura-text);
+  background: var(--aura-bg);
   height: 100dvh; overflow: hidden; display: flex;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ══════════════════════════════════════════════════════
+   APP SHELL
+   ══════════════════════════════════════════════════════ */
 .drawer {
   width: var(--drawer-w); flex-shrink: 0;
-  background: var(--surface); border-right: 1px solid var(--border);
+  background: var(--aura-surface-1);
+  border-right: 1px solid var(--aura-border);
   display: flex; flex-direction: column;
-  transition: transform .25s ease;
-  z-index: 200;
+  transition: transform .22s ease; z-index: 200;
 }
 
 .drawer-logo {
-  height: var(--nav-h); display: flex; align-items: center; gap: 10px;
-  padding: 0 16px; border-bottom: 1px solid var(--border);
-  font-weight: 700; font-size: 14.5px; letter-spacing: -.2px;
-  flex-shrink: 0;
+  height: var(--nav-h); display: flex; align-items: center;
+  gap: var(--vaadin-gap-s); padding: 0 var(--vaadin-padding-l);
+  border-bottom: 1px solid var(--aura-border);
+  font-weight: var(--aura-font-weight-semibold);
+  font-size: var(--aura-font-size-l); flex-shrink: 0;
 }
-.logo-icon {
-  width: 28px; height: 28px; background: var(--accent);
-  border-radius: var(--r-s); display: flex; align-items: center;
-  justify-content: center; flex-shrink: 0;
+.logo-mark {
+  width: 26px; height: 26px;
+  background: var(--aura-accent); border-radius: var(--vaadin-radius-s);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: oklch(1 0 0);
 }
-.logo-icon svg { color: #fff; }
-.drawer-version {
-  margin-left: auto; font-size: 10.5px; color: var(--text-3);
-  background: var(--surface-2); padding: 2px 7px;
-  border-radius: 99px; font-weight: 500;
+.logo-version {
+  margin-left: auto; font-size: var(--aura-font-size-xs);
+  color: var(--aura-text-tertiary); background: var(--aura-surface-2);
+  padding: 2px 8px; border-radius: 99px;
+  font-weight: var(--aura-font-weight-medium);
 }
 
-.side-nav { padding: 8px; flex: 1; }
+.side-nav { padding: var(--vaadin-gap-s); flex: 1; }
 .nav-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 11px; border-radius: var(--r-m);
-  cursor: pointer; font-size: 13.5px; font-weight: 500;
-  color: var(--text-2); transition: all .12s;
-  text-decoration: none; margin-bottom: 1px;
+  display: flex; align-items: center; gap: var(--vaadin-gap-s);
+  padding: 9px var(--vaadin-padding-m);
+  border-radius: var(--vaadin-radius-m);
+  cursor: pointer; font-size: var(--aura-font-size-m);
+  font-weight: var(--aura-font-weight-medium);
+  color: var(--aura-text-secondary);
+  transition: background .12s, color .12s;
   border: none; background: none; width: 100%; text-align: left;
+  margin-bottom: 2px;
   -webkit-tap-highlight-color: transparent;
 }
-.nav-item:hover  { background: var(--surface-2); color: var(--text); }
-.nav-item.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 600; }
-.nav-item svg    { flex-shrink: 0; opacity: .7; }
+.nav-item svg { flex-shrink: 0; opacity: .7; stroke-width: var(--vaadin-icon-stroke-width); }
+.nav-item:hover  { background: var(--aura-surface-2); color: var(--aura-text); }
+.nav-item.active {
+  background: var(--aura-accent-surface);
+  color: var(--aura-blue);
+  font-weight: var(--aura-font-weight-semibold);
+}
 .nav-item.active svg { opacity: 1; }
 .nav-badge {
-  margin-left: auto; background: var(--accent); color: #fff;
-  font-size: 10px; font-weight: 700; padding: 1px 6px;
-  border-radius: 99px; min-width: 18px; text-align: center;
+  margin-left: auto; background: var(--aura-accent);
+  color: oklch(1 0 0); font-size: 10px;
+  font-weight: var(--aura-font-weight-semibold);
+  padding: 1px 7px; border-radius: 99px;
 }
 
-/* ── Main area ── */
-.main-area {
-  flex: 1; display: flex; flex-direction: column;
-  min-width: 0; overflow: hidden;
-}
+.main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 
 .navbar {
-  height: var(--nav-h); background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 16px; flex-shrink: 0;
+  height: var(--nav-h); background: var(--aura-surface-1);
+  border-bottom: 1px solid var(--aura-border);
+  display: flex; align-items: center; gap: var(--vaadin-gap-s);
+  padding: 0 var(--vaadin-padding-l); flex-shrink: 0;
 }
 .hamburger {
-  width: 34px; height: 34px; border-radius: var(--r-s);
+  width: 34px; height: 34px; border-radius: var(--vaadin-radius-m);
   border: none; background: none; cursor: pointer;
   display: none; align-items: center; justify-content: center;
-  color: var(--text-2); flex-shrink: 0;
+  color: var(--aura-text-secondary); flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
 }
-.hamburger:hover { background: var(--surface-2); }
-.navbar-brand { font-weight: 700; font-size: 14.5px; flex: 1; letter-spacing: -.2px; }
-.navbar-page { font-size: 12.5px; color: var(--text-2); font-weight: 500; }
+.hamburger:hover { background: var(--aura-surface-2); }
+.hamburger svg { stroke-width: var(--vaadin-icon-stroke-width); }
+.navbar-brand { font-weight: var(--aura-font-weight-semibold); font-size: var(--aura-font-size-l); flex: 1; }
+.navbar-page  { font-size: var(--aura-font-size-s); color: var(--aura-text-secondary); font-weight: var(--aura-font-weight-medium); }
 
-/* ── Page ── */
-.page { flex: 1; overflow-y: auto; padding: 22px 24px; }
+.page {
+  flex: 1; overflow-y: auto;
+  padding: var(--vaadin-padding-xl);
+}
 .page-section { display: none; }
 .page-section.active { display: block; }
 
-/* ── Bottom nav ── */
+/* Bottom nav */
 .bottom-nav {
   display: none; height: var(--bottom-nav-h);
-  background: var(--surface); border-top: 1px solid var(--border);
-  flex-shrink: 0; position: relative; z-index: 100;
+  background: var(--aura-surface-1); border-top: 1px solid var(--aura-border);
+  flex-shrink: 0;
 }
 .bottom-nav-inner { display: flex; height: 100%; }
 .bnav-item {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 3px;
-  cursor: pointer; font-size: 10px; font-weight: 500;
-  color: var(--text-3); transition: color .12s;
-  border: none; background: none; padding-bottom: 2px;
+  border: none; background: none; cursor: pointer;
+  font-size: 10px; font-weight: var(--aura-font-weight-medium);
+  color: var(--aura-text-tertiary); transition: color .12s;
+  padding-bottom: 2px;
   -webkit-tap-highlight-color: transparent;
 }
-.bnav-item svg { width: 22px; height: 22px; }
-.bnav-item.active { color: var(--accent); }
+.bnav-item svg { width: 22px; height: 22px; stroke-width: var(--vaadin-icon-stroke-width); }
+.bnav-item.active { color: var(--aura-blue); }
 
-/* ── Overlay ── */
 .drawer-overlay {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.35); z-index: 190;
-  backdrop-filter: blur(2px);
+  background: oklch(0 0 0 / .35); z-index: 190;
+  backdrop-filter: blur(2px); opacity: 0; transition: opacity .22s;
 }
 
-/* ════════════════════════════════════
-   MOBILE BREAKPOINT
-════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   MOBILE
+   ══════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .drawer {
     position: fixed; top: 0; bottom: 0; left: 0;
     transform: translateX(-100%);
   }
-  .drawer.open { transform: translateX(0); box-shadow: var(--shadow-l); }
-  .drawer-overlay { display: block; pointer-events: none; opacity: 0; transition: opacity .25s; }
+  .drawer.open { transform: translateX(0); box-shadow: var(--aura-shadow-l); }
+  .drawer-overlay { display: block; pointer-events: none; }
   .drawer-overlay.open { pointer-events: auto; opacity: 1; }
   .hamburger { display: flex; }
   .bottom-nav { display: flex; }
-  .page {
-    padding: 16px;
-    padding-bottom: calc(16px + var(--bottom-nav-h));
-  }
+  .page { padding: var(--vaadin-padding-l); padding-bottom: calc(var(--vaadin-padding-l) + var(--bottom-nav-h)); }
 }
 @media (max-width: 480px) {
-  .page { padding: 12px; padding-bottom: calc(12px + var(--bottom-nav-h)); }
+  .page { padding: var(--vaadin-padding-m); padding-bottom: calc(var(--vaadin-padding-m) + var(--bottom-nav-h)); }
+  .navbar { padding: 0 var(--vaadin-padding-m); }
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    SHARED COMPONENTS
-════════════════════════════════════ */
+   ══════════════════════════════════════════════════════ */
 .page-title {
-  font-size: 19px; font-weight: 700;
-  letter-spacing: -.3px; margin-bottom: 18px;
+  font-size: var(--aura-font-size-xl);
+  font-weight: var(--aura-font-weight-semibold);
+  margin-bottom: var(--vaadin-gap-l);
+  letter-spacing: -.01em;
 }
 
-/* Buttons */
+/* — Buttons — */
 .btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 0 16px; height: 38px; border-radius: var(--r-m);
-  font-size: 13.5px; font-weight: 600; border: none;
-  cursor: pointer; transition: all .12s; white-space: nowrap;
-  font-family: inherit;
+  display: inline-flex; align-items: center; gap: var(--vaadin-gap-s);
+  padding: 0 var(--vaadin-padding-l); height: 36px;
+  border-radius: var(--vaadin-radius-m);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-m);
+  font-weight: var(--aura-font-weight-semibold);
+  border: 1px solid transparent; cursor: pointer;
+  transition: background .12s, box-shadow .12s, border-color .12s;
+  white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
 }
-.btn:active { transform: scale(.97); }
-.btn-primary  { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #b45309; box-shadow: var(--shadow-m); }
-.btn-danger   { background: var(--red-bg); color: var(--red-text); }
-.btn-danger:hover { background: var(--red); color: #fff; }
-.btn-ghost    { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
-.btn-ghost:hover  { background: var(--border); color: var(--text); }
-.btn-success  { background: var(--green-bg); color: var(--green-text); }
-.btn-success:hover { background: var(--green); color: #fff; }
-.btn-sm       { height: 32px; padding: 0 12px; font-size: 12.5px; }
-.btn-icon     { width: 34px; height: 34px; padding: 0; border-radius: var(--r-m); }
-@media (max-width: 480px) {
-  .btn-icon { width: 40px; height: 40px; }
-}
+.btn svg { stroke-width: var(--vaadin-icon-stroke-width); }
+.btn:active { transform: scale(.98); }
 
-/* Badges */
+.btn-primary {
+  background: var(--aura-accent); color: oklch(1 0 0);
+  border-color: transparent;
+}
+.btn-primary:hover {
+  background: oklch(from var(--aura-blue) calc(l - .05) c h);
+  box-shadow: var(--aura-shadow-s);
+}
+.btn-outlined {
+  background: transparent;
+  border-color: var(--aura-border);
+  color: var(--aura-text-secondary);
+}
+.btn-outlined:hover { background: var(--aura-surface-2); color: var(--aura-text); }
+
+.btn-danger {
+  background: var(--aura-red-surface);
+  color: var(--aura-red);
+  border-color: transparent;
+}
+.btn-danger:hover { background: var(--aura-red); color: oklch(1 0 0); }
+
+.btn-success-ghost {
+  background: var(--aura-green-surface);
+  color: var(--aura-green);
+  border-color: transparent;
+}
+.btn-success-ghost:hover { background: var(--aura-green); color: oklch(1 0 0); }
+
+.btn-sm   { height: 30px; padding: 0 var(--vaadin-padding-m); font-size: var(--aura-font-size-s); }
+.btn-icon { width: 32px; height: 32px; padding: 0; border-radius: var(--vaadin-radius-m); }
+@media (max-width: 480px) { .btn-icon { width: 40px; height: 40px; } }
+
+/* — Badges — */
 .badge {
   display: inline-flex; align-items: center;
-  padding: 3px 9px; border-radius: 99px;
-  font-size: 10.5px; font-weight: 700;
+  padding: 2px 9px; border-radius: 99px;
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
   letter-spacing: .2px; white-space: nowrap;
 }
-.badge-blue    { background: var(--blue-bg);  color: var(--blue-text); }
-.badge-green   { background: var(--green-bg); color: var(--green-text); }
-.badge-red     { background: var(--red-bg);   color: var(--red-text); }
-.badge-neutral { background: var(--surface-2); color: var(--text-2); }
-.badge-accent  { background: var(--accent-bg); color: var(--accent-text); }
+.badge-blue    { background: var(--aura-accent-surface);  color: var(--aura-blue); }
+.badge-green   { background: var(--aura-green-surface); color: var(--aura-green); }
+.badge-red     { background: var(--aura-red-surface);   color: var(--aura-red); }
+.badge-neutral { background: var(--aura-surface-2);     color: var(--aura-text-secondary); }
 
-/* Tags */
+/* — Tags — */
 .tag {
-  display: inline-block; padding: 1.5px 7px;
-  border-radius: 99px; font-size: 10px; font-weight: 700;
-  letter-spacing: .2px;
+  display: inline-block;
+  padding: 1px 7px; border-radius: 99px;
+  font-size: 10px; font-weight: var(--aura-font-weight-semibold);
+  letter-spacing: .1px;
 }
-.tag-vixsrc  { background: #1e40af; color: #fff; }
-.tag-raiplay { background: #1e3a5f; color: #fff; }
-.tag-info    { background: var(--surface-2); color: var(--text-2); }
+.tag-vixsrc  { background: oklch(0.35 0.18 264); color: oklch(0.95 0.01 264); }
+.tag-raiplay { background: oklch(0.30 0.14 254); color: oklch(0.95 0.01 254); }
+.tag-info    { background: var(--aura-surface-2); color: var(--aura-text-secondary); }
 
-/* Fields */
-.field { display: flex; flex-direction: column; gap: 5px; }
-.field-label { font-size: 11.5px; font-weight: 600; color: var(--text-2); letter-spacing: .2px; }
-.input {
-  height: 38px; border: 1.5px solid var(--border);
-  border-radius: var(--r-m); padding: 0 12px;
-  font-size: 13.5px; background: var(--surface);
-  color: var(--text); outline: none; transition: border-color .12s, box-shadow .12s;
-  width: 100%;
+/* — Inputs — */
+.field { display: flex; flex-direction: column; gap: var(--vaadin-gap-xs); }
+.field-label {
+  font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-semibold);
+  color: var(--aura-text-secondary); letter-spacing: .25px;
+  text-transform: uppercase;
 }
-.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.input {
+  height: 36px; border: 1px solid var(--aura-border);
+  border-radius: var(--vaadin-radius-m);
+  padding: 0 var(--vaadin-padding-m);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-m);
+  background: var(--aura-surface-1);
+  color: var(--aura-text); outline: none;
+  transition: border-color .12s, box-shadow .12s; width: 100%;
+}
+.input:focus {
+  border-color: var(--aura-blue);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--aura-blue) 20%, transparent);
+}
 select.input { cursor: pointer; }
 
-/* Card */
+/* — Card — */
 .card {
-  background: var(--surface); border-radius: var(--r-l);
-  box-shadow: var(--shadow-s); overflow: hidden;
+  background: var(--aura-surface-1);
+  border-radius: var(--vaadin-radius-l);
+  box-shadow: var(--aura-shadow-s);
+  border: 1px solid var(--aura-border-light);
+  overflow: hidden;
 }
 
-/* Pill filter */
+/* — Pill filter — */
 .pill {
-  padding: 7px 14px; border-radius: 99px;
-  border: 1.5px solid var(--border);
-  background: var(--surface); color: var(--text-2);
-  font-size: 12.5px; font-weight: 500; cursor: pointer;
-  transition: all .12s; white-space: nowrap;
+  padding: 6px 14px; border-radius: 99px;
+  border: 1px solid var(--aura-border);
+  background: var(--aura-surface-1);
+  color: var(--aura-text-secondary);
+  font-family: var(--aura-font-family);
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--aura-font-weight-medium);
+  cursor: pointer; transition: all .12s; white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
 }
 .pill:hover, .pill.active {
-  background: var(--accent-bg); border-color: var(--accent);
-  color: var(--accent-text);
+  background: var(--aura-accent-surface);
+  border-color: color-mix(in oklab, var(--aura-blue) 40%, transparent);
+  color: var(--aura-blue);
 }
 
-/* Spinner */
+/* — Spinner — */
 .spinner {
   width: 18px; height: 18px; flex-shrink: 0;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent); border-radius: 50%;
-  animation: spin .65s linear infinite;
+  border: 2px solid var(--aura-border);
+  border-top-color: var(--aura-blue);
+  border-radius: 50%; animation: spin .65s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Warning note */
+/* — Note / warning — */
 .note {
-  padding: 10px 14px; border-radius: var(--r-m);
-  font-size: 12.5px; font-weight: 500;
-  display: flex; align-items: flex-start; gap: 8px;
+  padding: var(--vaadin-padding-s) var(--vaadin-padding-m);
+  border-radius: var(--vaadin-radius-m);
+  font-size: var(--aura-font-size-s);
+  font-weight: var(--aura-font-weight-medium);
+  display: flex; align-items: flex-start; gap: var(--vaadin-gap-s);
 }
-.note-warn { background: rgba(217,119,6,.08); color: var(--accent-text); }
+.note-warn { background: var(--aura-yellow-surface); color: oklch(0.45 0.15 75); }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    SEARCH PAGE
-════════════════════════════════════ */
+   ══════════════════════════════════════════════════════ */
 .search-bar {
-  display: flex; gap: 10px; align-items: flex-end;
-  flex-wrap: wrap; margin-bottom: 20px;
+  display: flex; gap: var(--vaadin-gap-m);
+  align-items: flex-end; flex-wrap: wrap;
+  margin-bottom: var(--vaadin-gap-xl);
 }
-.search-bar .field { flex: 1 1 200px; }
+.search-bar .field { flex: 1 1 180px; }
+.filter-row { display: flex; gap: var(--vaadin-gap-s); flex-wrap: wrap; }
 
-.filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
-
-/* Empty / Loading state */
 .state-center {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 12px;
-  padding: 64px 24px; text-align: center;
-  color: var(--text-2);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: var(--vaadin-gap-m);
+  padding: 64px var(--vaadin-padding-xl);
+  text-align: center; color: var(--aura-text-secondary);
 }
-.state-center svg { width: 48px; height: 48px; opacity: .25; }
-.state-center h3  { font-size: 15px; font-weight: 600; color: var(--text); }
-.state-center p   { font-size: 13px; line-height: 1.6; }
+.state-center svg { width: 46px; height: 46px; opacity: .2; stroke-width: 1.4; }
+.state-center h3  { font-size: var(--aura-font-size-l); font-weight: var(--aura-font-weight-semibold); color: var(--aura-text); }
+.state-center p   { font-size: var(--aura-font-size-s); line-height: 1.6; }
 
 /* Results grid */
 .results-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 272px), 1fr));
+  gap: var(--vaadin-gap-m);
 }
 
 /* Result card */
 .result-card {
-  position: relative; border-radius: var(--r-l);
-  background: var(--surface); box-shadow: var(--shadow-s);
+  border-radius: var(--vaadin-radius-l);
+  background: var(--aura-surface-1);
+  box-shadow: var(--aura-shadow-s);
+  border: 1px solid var(--aura-border-light);
   overflow: hidden; cursor: pointer;
   display: flex; flex-direction: column;
-  transition: transform .18s ease, box-shadow .18s ease;
+  transition: transform .16s ease, box-shadow .16s ease;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
 }
-.result-card::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  opacity: .04; transition: opacity .18s;
+/* Subtle top accent stripe for movie/TV type */
+.result-card.movie::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; background: var(--aura-blue); opacity: .6;
 }
-.result-card.movie::before { background: linear-gradient(135deg,#2563eb,#1d4ed8); }
-.result-card.tv::before    { background: linear-gradient(135deg,#db2777,#9d174d); }
-.result-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-m); }
-.result-card:hover::before { opacity: .07; }
-.result-card:active { transform: scale(.99); box-shadow: var(--shadow-s); }
+.result-card.tv::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; background: var(--aura-purple); opacity: .6;
+}
+.result-card:hover { transform: translateY(-2px); box-shadow: var(--aura-shadow-m); }
+.result-card:active { transform: scale(.99); box-shadow: var(--aura-shadow-s); }
 
-.rc-top {
-  padding: 14px 14px 10px;
-  flex: 1; display: flex; flex-direction: column; gap: 7px;
-}
-.rc-title-row { display: flex; align-items: flex-start; gap: 7px; flex-wrap: wrap; }
-.rc-title { font-size: 14px; font-weight: 700; line-height: 1.3; flex: 1; min-width: 0; }
-.rc-meta  { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--text-2); }
-.rc-rating { color: #D97706; font-weight: 600; }
-.rc-overview { font-size: 12px; color: var(--text-2); line-height: 1.55; }
+.rc-body { padding: var(--vaadin-padding-m) var(--vaadin-padding-m) var(--vaadin-padding-s); flex: 1; display: flex; flex-direction: column; gap: var(--vaadin-gap-s); }
+.rc-title-row { display: flex; align-items: flex-start; gap: var(--vaadin-gap-s); flex-wrap: wrap; }
+.rc-title { font-size: var(--aura-font-size-m); font-weight: var(--aura-font-weight-semibold); line-height: 1.35; flex: 1; min-width: 0; }
+.rc-meta { display: flex; gap: var(--vaadin-gap-m); align-items: center; flex-wrap: wrap; font-size: var(--aura-font-size-xs); color: var(--aura-text-secondary); }
+.rc-rating { color: var(--aura-orange); font-weight: var(--aura-font-weight-semibold); }
+.rc-overview { font-size: var(--aura-font-size-xs); color: var(--aura-text-secondary); line-height: 1.55; }
 
 .rc-footer {
-  padding: 10px 14px; border-top: 1px solid var(--border-2);
+  padding: var(--vaadin-padding-s) var(--vaadin-padding-m);
+  border-top: 1px solid var(--aura-border-light);
   display: flex; justify-content: flex-end;
-  background: rgba(0,0,0,.016);
+  background: color-mix(in oklab, var(--aura-surface-2) 40%, transparent);
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    DOWNLOAD QUEUE PAGE
-════════════════════════════════════ */
+   ══════════════════════════════════════════════════════ */
 .queue-header {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 12px; margin-bottom: 18px;
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: var(--vaadin-gap-m);
+  margin-bottom: var(--vaadin-gap-l); flex-wrap: wrap;
 }
-.queue-header-left { display: flex; flex-direction: column; gap: 6px; }
+.queue-header-left { display: flex; flex-direction: column; gap: var(--vaadin-gap-xs); }
 
 .status-bar {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--text-2); flex-wrap: wrap;
+  display: flex; align-items: center; gap: var(--vaadin-gap-s);
+  font-size: var(--aura-font-size-xs); color: var(--aura-text-secondary);
+  flex-wrap: wrap;
 }
-.s-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.s-dot-blue  { background: var(--blue); }
-.s-dot-green { background: var(--green); }
-.s-dot-red   { background: var(--red); }
-.s-dot-gray  { background: var(--text-3); }
-.status-bar .sep { color: var(--text-3); }
+.s-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.s-dot-blue  { background: var(--aura-blue); }
+.s-dot-green { background: var(--aura-green); }
+.s-dot-red   { background: var(--aura-red); }
+.s-dot-gray  { background: var(--aura-text-tertiary); }
+.sep { color: var(--aura-border); }
 
-/* Download card */
-.dl-list { display: flex; flex-direction: column; gap: 10px; }
-
-.dl-card { /* uses .card */ }
+/* Download list */
+.dl-list { display: flex; flex-direction: column; gap: var(--vaadin-gap-s); }
 
 .dl-main {
-  padding: 14px 16px; display: flex;
-  align-items: flex-start; gap: 12px;
+  padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
+  display: flex; align-items: flex-start; gap: var(--vaadin-gap-m);
 }
 .dl-info { flex: 1; min-width: 0; }
 .dl-title-row {
-  display: flex; align-items: center; gap: 7px;
-  margin-bottom: 4px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: var(--vaadin-gap-s);
+  margin-bottom: var(--vaadin-gap-xs); flex-wrap: wrap;
 }
-.dl-title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.dl-sub   { font-size: 11.5px; color: var(--text-2); margin-bottom: 9px; display: flex; gap: 10px; flex-wrap: wrap; }
-
-.progress-row { display: flex; align-items: center; gap: 9px; }
-.progress-bar {
-  flex: 1; height: 5px; background: var(--surface-2);
-  border-radius: 99px; overflow: hidden; min-width: 0;
+.dl-title { font-size: var(--aura-font-size-m); font-weight: var(--aura-font-weight-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.dl-sub {
+  font-size: var(--aura-font-size-xs); color: var(--aura-text-secondary);
+  margin-bottom: var(--vaadin-gap-s); display: flex; gap: var(--vaadin-gap-m); flex-wrap: wrap;
 }
+.progress-row { display: flex; align-items: center; gap: var(--vaadin-gap-s); }
+.progress-bar { flex: 1; height: 4px; background: var(--aura-surface-2); border-radius: 99px; overflow: hidden; min-width: 0; }
 .progress-fill { height: 100%; border-radius: 99px; transition: width .4s; }
-.fill-blue  { background: var(--blue); }
-.fill-green { background: var(--green); }
-.fill-red   { background: var(--red); }
-.fill-gray  { background: var(--text-3); }
+.fill-blue  { background: var(--aura-blue); }
+.fill-green { background: var(--aura-green); }
+.fill-red   { background: var(--aura-red); }
+.fill-gray  { background: var(--aura-text-tertiary); }
 .fill-indeterminate {
-  width: 35% !important; background: var(--blue);
+  width: 35% !important; background: var(--aura-blue);
   animation: indeterminate 1.3s ease-in-out infinite;
 }
-@keyframes indeterminate {
-  0%   { transform: translateX(-200%); }
-  100% { transform: translateX(360%); }
-}
-.progress-pct { font-size: 11px; color: var(--text-3); white-space: nowrap; flex-shrink: 0; }
+@keyframes indeterminate { 0% { transform: translateX(-200%); } 100% { transform: translateX(360%); } }
+.progress-pct { font-size: var(--aura-font-size-xs); color: var(--aura-text-tertiary); white-space: nowrap; flex-shrink: 0; width: 30px; text-align: right; }
 
-.dl-side { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; flex-shrink: 0; }
+.dl-side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--vaadin-gap-s); flex-shrink: 0; }
 
-/* Expand button */
+/* Expand subtasks */
 .expand-btn {
-  width: 100%; padding: 8px 16px;
-  border: none; background: var(--surface-2);
-  color: var(--text-2); font-size: 12px; font-weight: 500;
-  font-family: inherit; cursor: pointer;
-  display: flex; align-items: center; gap: 6px;
-  border-top: 1px solid var(--border-2);
+  width: 100%; padding: var(--vaadin-padding-s) var(--vaadin-padding-l);
+  border: none; background: var(--aura-surface-2);
+  color: var(--aura-text-secondary);
+  font-family: var(--aura-font-family); font-size: var(--aura-font-size-xs);
+  font-weight: var(--aura-font-weight-medium);
+  cursor: pointer; display: flex; align-items: center; gap: var(--vaadin-gap-s);
+  border-top: 1px solid var(--aura-border-light);
   transition: background .12s;
   -webkit-tap-highlight-color: transparent;
 }
-.expand-btn:hover { background: var(--border); color: var(--text); }
+.expand-btn svg { stroke-width: var(--vaadin-icon-stroke-width); }
+.expand-btn:hover { background: var(--aura-border-light); color: var(--aura-text); }
 .expand-chevron { transition: transform .2s; margin-left: auto; }
 .expand-btn.open .expand-chevron { transform: rotate(180deg); }
 
-/* Subtask rows */
 .subtask-list { display: none; }
 .subtask-list.open { display: block; }
 .subtask-row {
-  padding: 9px 16px; border-top: 1px solid var(--border-2);
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(0,0,0,.012);
+  padding: var(--vaadin-padding-s) var(--vaadin-padding-l);
+  border-top: 1px solid var(--aura-border-light);
+  display: flex; align-items: center; gap: var(--vaadin-gap-m);
+  background: color-mix(in oklab, var(--aura-surface-2) 40%, transparent);
 }
-.subtask-title { font-size: 12px; color: var(--text-2); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subtask-title { font-size: var(--aura-font-size-xs); color: var(--aura-text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    SETTINGS PAGE
-════════════════════════════════════ */
-.settings-stack { display: flex; flex-direction: column; gap: 12px; }
+   ══════════════════════════════════════════════════════ */
+.settings-stack { display: flex; flex-direction: column; gap: var(--vaadin-gap-m); }
 
-.settings-card { /* uses .card */ }
 .settings-toggle {
-  width: 100%; padding: 14px 18px;
-  border: none; background: none;
-  font-family: inherit; cursor: pointer;
-  display: flex; align-items: center; gap: 10px;
-  text-align: left; font-size: 14px; font-weight: 600;
-  color: var(--text); border-bottom: 1px solid var(--border-2);
+  width: 100%; padding: var(--vaadin-padding-m) var(--vaadin-padding-l);
+  border: none; background: none; font-family: var(--aura-font-family);
+  cursor: pointer; display: flex; align-items: center; gap: var(--vaadin-gap-s);
+  text-align: left; font-size: var(--aura-font-size-m);
+  font-weight: var(--aura-font-weight-semibold); color: var(--aura-text);
+  border-bottom: 1px solid transparent; transition: background .12s;
   -webkit-tap-highlight-color: transparent;
 }
-.settings-toggle:hover { background: var(--surface-2); }
-.settings-toggle svg { margin-left: auto; color: var(--text-3); transition: transform .2s; }
-.settings-toggle.open svg { transform: rotate(180deg); }
-.settings-toggle.open { border-bottom-color: var(--border); }
+.settings-toggle:hover { background: var(--aura-surface-2); }
+.settings-toggle .toggle-icon { margin-left: auto; color: var(--aura-text-tertiary); transition: transform .2s; }
+.settings-toggle.open .toggle-icon { transform: rotate(180deg); }
+.settings-toggle.open { border-bottom-color: var(--aura-border-light); }
 
-.settings-body { padding: 16px 18px; display: none; }
+.settings-body { padding: var(--vaadin-padding-l); display: none; }
 .settings-body.open { display: block; }
 
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--vaadin-gap-m); }
 @media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
 .full { grid-column: 1 / -1; }
 
 .field-value {
-  height: 38px; border: 1.5px solid var(--border);
-  border-radius: var(--r-m); padding: 0 12px;
-  font-size: 13px; background: var(--surface-2);
-  color: var(--text-2); display: flex; align-items: center;
+  height: 36px; border: 1px solid var(--aura-border);
+  border-radius: var(--vaadin-radius-m);
+  padding: 0 var(--vaadin-padding-m);
+  font-size: var(--aura-font-size-s);
+  background: var(--aura-surface-2);
+  color: var(--aura-text-secondary);
+  display: flex; align-items: center;
 }
 
-/* ════════════════════════════════════
+/* ══════════════════════════════════════════════════════
    DIALOG
-════════════════════════════════════ */
+   ══════════════════════════════════════════════════════ */
 .dialog-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,.4);
-  z-index: 500; display: none; align-items: center;
-  justify-content: center; padding: 16px;
+  position: fixed; inset: 0;
+  background: oklch(0 0 0 / .40);
+  z-index: 500; display: none;
+  align-items: center; justify-content: center;
+  padding: var(--vaadin-padding-l);
   backdrop-filter: blur(4px);
 }
 .dialog-backdrop.open { display: flex; }
 .dialog {
-  background: var(--surface); border-radius: var(--r-xl);
-  box-shadow: var(--shadow-l); width: 100%;
-  max-width: min(460px, 100%);
-  animation: dialog-in .18s ease;
+  background: var(--aura-surface-1);
+  border-radius: var(--vaadin-radius-l);
+  border: 1px solid var(--aura-border);
+  box-shadow: var(--aura-shadow-l);
+  width: 100%; max-width: min(460px, 100%);
+  animation: dialog-in .17s ease;
 }
-@keyframes dialog-in { from { transform: scale(.96); opacity: 0; } }
+@keyframes dialog-in { from { transform: scale(.97); opacity: 0; } }
 .dialog-head {
-  padding: 18px 20px 16px; border-bottom: 1px solid var(--border);
-  font-size: 16px; font-weight: 700; letter-spacing: -.2px;
+  padding: var(--vaadin-padding-l) var(--vaadin-padding-xl) var(--vaadin-padding-m);
+  border-bottom: 1px solid var(--aura-border-light);
+  font-size: var(--aura-font-size-l);
+  font-weight: var(--aura-font-weight-semibold);
 }
-.dialog-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.dialog-body { padding: var(--vaadin-padding-l) var(--vaadin-padding-xl); display: flex; flex-direction: column; gap: var(--vaadin-gap-m); }
 .dialog-foot {
-  padding: 14px 20px; border-top: 1px solid var(--border);
-  display: flex; gap: 8px; justify-content: flex-end;
+  padding: var(--vaadin-padding-m) var(--vaadin-padding-xl);
+  border-top: 1px solid var(--aura-border-light);
+  display: flex; gap: var(--vaadin-gap-s); justify-content: flex-end;
 }
 @media (max-width: 480px) {
   .dialog-foot { flex-direction: column-reverse; }
-  .dialog-foot .btn { width: 100%; height: 46px; justify-content: center; }
+  .dialog-foot .btn { width: 100%; height: 44px; justify-content: center; }
 }
 </style>
 </head>
@@ -529,75 +649,73 @@ select.input { cursor: pointer; }
 <!-- Overlay -->
 <div class="drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
 
-<!-- Sidebar -->
+<!-- ── Sidebar ── -->
 <nav class="drawer" id="drawer">
   <div class="drawer-logo">
-    <div class="logo-icon">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <div class="logo-mark">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     </div>
     VixSrc
-    <span class="drawer-version">v1.4</span>
+    <span class="logo-version">v1.4</span>
   </div>
   <div class="side-nav">
     <button class="nav-item active" id="nav-search" onclick="goTo('search')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       Search
     </button>
     <button class="nav-item" id="nav-downloads" onclick="goTo('downloads')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Downloads
       <span class="nav-badge">3</span>
     </button>
     <button class="nav-item" id="nav-settings" onclick="goTo('settings')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Settings
     </button>
   </div>
 </nav>
 
-<!-- Main area -->
+<!-- ── Main area ── -->
 <div class="main-area">
-  <!-- Navbar -->
   <div class="navbar">
     <button class="hamburger" onclick="toggleDrawer()">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <span class="navbar-brand">VixSrc Downloader</span>
     <span class="navbar-page" id="navbar-page">Search</span>
   </div>
 
-  <!-- Page content -->
   <div class="page">
 
-    <!-- ══ SEARCH PAGE ══ -->
+    <!-- ═══ SEARCH ═══ -->
     <div class="page-section active" id="page-search">
       <h1 class="page-title">Search</h1>
 
       <div class="search-bar">
         <div class="field">
-          <span class="field-label">TITLE</span>
+          <span class="field-label">Title</span>
           <input class="input" type="text" id="q" placeholder="Movie or TV show…" onkeydown="if(event.key==='Enter')doSearch()" />
         </div>
         <div class="field" style="flex:0 0 auto">
-          <span class="field-label">TYPE</span>
+          <span class="field-label">Type</span>
           <div class="filter-row">
             <button class="pill active" onclick="setPill(this)">All</button>
             <button class="pill" onclick="setPill(this)">Movies</button>
             <button class="pill" onclick="setPill(this)">TV Shows</button>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="doSearch()" style="flex-shrink:0;margin-bottom:1px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <button class="btn btn-primary" onclick="doSearch()" style="flex-shrink:0;align-self:flex-end">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           Search
         </button>
       </div>
 
-      <!-- States -->
       <div class="state-center" id="s-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <h3>Find something to watch</h3>
-        <p>Type a title above and press Search.<br>Results from VixSrc and RaiPlay will appear here.</p>
+        <p>Type a title and press Search.<br>Results from VixSrc and RaiPlay appear here.</p>
       </div>
+
       <div class="state-center" id="s-loading" style="display:none">
         <div class="spinner"></div>
         <p>Searching across sources…</p>
@@ -606,7 +724,7 @@ select.input { cursor: pointer; }
       <div class="results-grid" id="results" style="display:none">
 
         <div class="result-card movie" onclick="openDialog('d-movie')">
-          <div class="rc-top">
+          <div class="rc-body">
             <div class="rc-title-row">
               <span class="rc-title">Dune: Part Two</span>
               <span class="tag tag-vixsrc">VixSrc</span>
@@ -614,20 +732,20 @@ select.input { cursor: pointer; }
             <div class="rc-meta">
               <span>2024</span>
               <span class="rc-rating">★ 8.4</span>
-              <span style="color:var(--text-3);font-size:11px">ID 693134</span>
+              <span style="color:var(--aura-text-tertiary)">ID 693134</span>
             </div>
             <p class="rc-overview">Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.</p>
           </div>
           <div class="rc-footer">
             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialog('d-movie')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download
             </button>
           </div>
         </div>
 
         <div class="result-card tv" onclick="openDialog('d-tv')">
-          <div class="rc-top">
+          <div class="rc-body">
             <div class="rc-title-row">
               <span class="rc-title">The Bear</span>
               <span class="tag tag-vixsrc">VixSrc</span>
@@ -637,18 +755,18 @@ select.input { cursor: pointer; }
               <span>2022</span>
               <span class="rc-rating">★ 8.9</span>
             </div>
-            <p class="rc-overview">A young chef returns to Chicago to run his family's sandwich shop, navigating grief, chaos, and a driven kitchen team.</p>
+            <p class="rc-overview">A young chef returns to run his family's sandwich shop, navigating grief, chaos and a driven kitchen crew.</p>
           </div>
           <div class="rc-footer">
             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialog('d-tv')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download
             </button>
           </div>
         </div>
 
         <div class="result-card tv">
-          <div class="rc-top">
+          <div class="rc-body">
             <div class="rc-title-row">
               <span class="rc-title">Il Commissario Montalbano</span>
               <span class="tag tag-raiplay">RaiPlay</span>
@@ -658,18 +776,18 @@ select.input { cursor: pointer; }
               <span>1999</span>
               <span class="rc-rating">★ 8.1</span>
             </div>
-            <p class="rc-overview">Inspector Montalbano investigates crimes on the Sicilian coast, balancing cases with food, philosophy, and a complicated love life.</p>
+            <p class="rc-overview">Inspector Montalbano investigates crimes on the Sicilian coast, balancing cases with food and a complicated love life.</p>
           </div>
           <div class="rc-footer">
             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialog('d-tv')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download
             </button>
           </div>
         </div>
 
         <div class="result-card movie">
-          <div class="rc-top">
+          <div class="rc-body">
             <div class="rc-title-row">
               <span class="rc-title">Oppenheimer</span>
               <span class="tag tag-vixsrc">VixSrc</span>
@@ -677,13 +795,13 @@ select.input { cursor: pointer; }
             <div class="rc-meta">
               <span>2023</span>
               <span class="rc-rating">★ 8.9</span>
-              <span style="color:var(--text-3);font-size:11px">ID 872585</span>
+              <span style="color:var(--aura-text-tertiary)">ID 872585</span>
             </div>
-            <p class="rc-overview">The story of J. Robert Oppenheimer and the development of the atomic bomb. A race against time with devastating consequences.</p>
+            <p class="rc-overview">The story of J. Robert Oppenheimer and the development of the atomic bomb — a race against time with lasting consequences.</p>
           </div>
           <div class="rc-footer">
             <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDialog('d-movie')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download
             </button>
           </div>
@@ -692,44 +810,37 @@ select.input { cursor: pointer; }
       </div>
     </div>
 
-    <!-- ══ DOWNLOADS PAGE ══ -->
+    <!-- ═══ DOWNLOADS ═══ -->
     <div class="page-section" id="page-downloads">
       <div class="queue-header">
         <div class="queue-header-left">
           <h1 class="page-title" style="margin-bottom:0">Downloads</h1>
           <div class="status-bar">
-            <span class="s-dot s-dot-blue"></span> 2 active
+            <span class="s-dot s-dot-blue"></span>2 active
             <span class="sep">·</span>
-            <span class="s-dot s-dot-gray"></span> 1 queued
+            <span class="s-dot s-dot-gray"></span>1 queued
             <span class="sep">·</span>
-            <span class="s-dot s-dot-green"></span> 4 done
+            <span class="s-dot s-dot-green"></span>4 done
             <span class="sep">·</span>
-            <b>11.4 MB/s</b>
-            <span class="sep">·</span>
-            142 GB free
+            <b>11.4 MB/s</b><span class="sep">·</span>142 GB free
           </div>
         </div>
         <button class="btn btn-danger btn-sm">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
           Clear done
         </button>
       </div>
 
       <div class="dl-list">
 
-        <!-- Active download -->
-        <div class="card dl-card">
+        <div class="card">
           <div class="dl-main">
             <div class="dl-info">
               <div class="dl-title-row">
                 <span class="dl-title">Dune: Part Two</span>
                 <span class="tag tag-vixsrc">VixSrc</span>
               </div>
-              <div class="dl-sub">
-                <span>1080p · en</span>
-                <span>2.4 GB / 4.1 GB</span>
-                <span>12.3 MB/s · 2m 18s left</span>
-              </div>
+              <div class="dl-sub"><span>1080p · en</span><span>2.4 GB / 4.1 GB</span><span>12.3 MB/s · 2m 18s</span></div>
               <div class="progress-row">
                 <div class="progress-bar"><div class="progress-fill fill-blue" style="width:58%"></div></div>
                 <span class="progress-pct">58%</span>
@@ -737,25 +848,21 @@ select.input { cursor: pointer; }
             </div>
             <div class="dl-side">
               <span class="badge badge-blue">Downloading</span>
-              <button class="btn btn-ghost btn-icon btn-sm" title="Cancel">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- TV show with subtasks -->
-        <div class="card dl-card">
+        <div class="card">
           <div class="dl-main">
             <div class="dl-info">
               <div class="dl-title-row">
                 <span class="dl-title">The Bear — S2</span>
                 <span class="tag tag-vixsrc">VixSrc</span>
               </div>
-              <div class="dl-sub">
-                <span>1080p · en · 10 episodes</span>
-                <span>3.1 MB/s</span>
-              </div>
+              <div class="dl-sub"><span>1080p · en · 10 episodes</span><span>3.1 MB/s</span></div>
               <div class="progress-row">
                 <div class="progress-bar"><div class="progress-fill fill-indeterminate"></div></div>
                 <span class="progress-pct">—</span>
@@ -763,15 +870,15 @@ select.input { cursor: pointer; }
             </div>
             <div class="dl-side">
               <span class="badge badge-blue">Extracting</span>
-              <button class="btn btn-ghost btn-icon btn-sm" title="Cancel">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
           </div>
           <button class="expand-btn" id="ebear" onclick="toggleExpand('bear','ebear')">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>
             Show 10 episodes
-            <svg class="expand-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg class="expand-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="subtask-list" id="stbear">
             <div class="subtask-row">
@@ -789,22 +896,13 @@ select.input { cursor: pointer; }
               <div class="progress-bar" style="max-width:80px"><div class="progress-fill fill-gray" style="width:0%"></div></div>
               <span class="badge badge-neutral">Queued</span>
             </div>
-            <div class="subtask-row">
-              <span class="subtask-title">S02E04 – Honeydew</span>
-              <div class="progress-bar" style="max-width:80px"><div class="progress-fill fill-gray" style="width:0%"></div></div>
-              <span class="badge badge-neutral">Queued</span>
-            </div>
           </div>
         </div>
 
-        <!-- Queued -->
-        <div class="card dl-card">
+        <div class="card">
           <div class="dl-main">
             <div class="dl-info">
-              <div class="dl-title-row">
-                <span class="dl-title">Oppenheimer</span>
-                <span class="tag tag-vixsrc">VixSrc</span>
-              </div>
+              <div class="dl-title-row"><span class="dl-title">Oppenheimer</span><span class="tag tag-vixsrc">VixSrc</span></div>
               <div class="dl-sub"><span>1080p · en</span></div>
               <div class="progress-row">
                 <div class="progress-bar"><div class="progress-fill fill-gray" style="width:0%"></div></div>
@@ -813,22 +911,18 @@ select.input { cursor: pointer; }
             </div>
             <div class="dl-side">
               <span class="badge badge-neutral">Queued</span>
-              <button class="btn btn-ghost btn-icon btn-sm" title="Cancel">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <button class="btn btn-outlined btn-icon btn-sm" title="Cancel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Failed -->
-        <div class="card dl-card">
+        <div class="card">
           <div class="dl-main">
             <div class="dl-info">
-              <div class="dl-title-row">
-                <span class="dl-title">Avengers: Endgame</span>
-                <span class="tag tag-vixsrc">VixSrc</span>
-              </div>
-              <div class="dl-sub"><span style="color:var(--red-text)">Stream extraction failed</span></div>
+              <div class="dl-title-row"><span class="dl-title">Avengers: Endgame</span><span class="tag tag-vixsrc">VixSrc</span></div>
+              <div class="dl-sub"><span style="color:var(--aura-red)">Stream extraction failed</span></div>
               <div class="progress-row">
                 <div class="progress-bar"><div class="progress-fill fill-red" style="width:12%"></div></div>
                 <span class="progress-pct">12%</span>
@@ -836,123 +930,90 @@ select.input { cursor: pointer; }
             </div>
             <div class="dl-side">
               <span class="badge badge-red">Failed</span>
-              <button class="btn btn-success btn-icon btn-sm" title="Retry">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <button class="btn btn-success-ghost btn-icon btn-sm" title="Retry">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Completed -->
-        <div class="card dl-card">
+        <div class="card">
           <div class="dl-main">
             <div class="dl-info">
-              <div class="dl-title-row">
-                <span class="dl-title">Poor Things</span>
-                <span class="tag tag-vixsrc">VixSrc</span>
-              </div>
+              <div class="dl-title-row"><span class="dl-title">Poor Things</span><span class="tag tag-vixsrc">VixSrc</span></div>
               <div class="dl-sub"><span>1080p · 3.8 GB</span></div>
               <div class="progress-row">
                 <div class="progress-bar"><div class="progress-fill fill-green" style="width:100%"></div></div>
                 <span class="progress-pct">100%</span>
               </div>
             </div>
-            <div class="dl-side">
-              <span class="badge badge-green">Done</span>
-            </div>
+            <div class="dl-side"><span class="badge badge-green">Done</span></div>
           </div>
         </div>
 
       </div>
     </div>
 
-    <!-- ══ SETTINGS PAGE ══ -->
+    <!-- ═══ SETTINGS ═══ -->
     <div class="page-section" id="page-settings">
       <h1 class="page-title">Settings</h1>
       <div class="settings-stack">
 
-        <div class="card settings-card">
+        <div class="card">
           <button class="settings-toggle open" onclick="toggleSection(this)">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.75;flex-shrink:0"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
             TMDB Configuration
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg class="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="settings-body open">
             <div class="form-grid">
               <div class="field full">
-                <span class="field-label">API KEY</span>
+                <span class="field-label">API Key</span>
                 <input class="input" type="password" value="abcdef123456789" />
               </div>
             </div>
-            <div class="note note-warn" style="margin-top:12px">
+            <div class="note note-warn" style="margin-top:var(--vaadin-gap-m)">
               ⚠️ Changing the API key requires an application restart.
             </div>
           </div>
         </div>
 
-        <div class="card settings-card">
+        <div class="card">
           <button class="settings-toggle" onclick="toggleSection(this)">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.75;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download Configuration
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg class="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="settings-body">
             <div class="form-grid">
-              <div class="field">
-                <span class="field-label">MOVIES PATH</span>
-                <div class="field-value">/data/movies</div>
-              </div>
-              <div class="field">
-                <span class="field-label">TV SHOWS PATH</span>
-                <div class="field-value">/data/tv</div>
-              </div>
-              <div class="field">
-                <span class="field-label">TEMP PATH</span>
-                <div class="field-value">/tmp/vixsrc</div>
-              </div>
-              <div class="field">
-                <span class="field-label">PARALLEL DOWNLOADS</span>
-                <div class="field-value">3</div>
-              </div>
-              <div class="field">
-                <span class="field-label">DEFAULT QUALITY</span>
-                <div class="field-value">best</div>
-              </div>
-              <div class="field">
-                <span class="field-label">DEFAULT LANGUAGE</span>
-                <div class="field-value">it</div>
-              </div>
+              <div class="field"><span class="field-label">Movies Path</span><div class="field-value">/data/movies</div></div>
+              <div class="field"><span class="field-label">TV Shows Path</span><div class="field-value">/data/tv</div></div>
+              <div class="field"><span class="field-label">Temp Path</span><div class="field-value">/tmp/vixsrc</div></div>
+              <div class="field"><span class="field-label">Parallel Downloads</span><div class="field-value">3</div></div>
+              <div class="field"><span class="field-label">Default Quality</span><div class="field-value">best</div></div>
+              <div class="field"><span class="field-label">Default Language</span><div class="field-value">it</div></div>
             </div>
-            <div class="note note-warn" style="margin-top:12px">
+            <div class="note note-warn" style="margin-top:var(--vaadin-gap-m)">
               ⚠️ Read-only — update via environment variables or <code>application.yml</code>.
             </div>
           </div>
         </div>
 
-        <div class="card settings-card">
+        <div class="card">
           <button class="settings-toggle" onclick="toggleSection(this)">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:1.75;flex-shrink:0"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
             System Information
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg class="toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="stroke-width:2"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="settings-body">
             <div class="form-grid">
-              <div class="field">
-                <span class="field-label">JAVA VERSION</span>
-                <div class="field-value">21.0.2</div>
-              </div>
-              <div class="field">
-                <span class="field-label">OS</span>
-                <div class="field-value">Linux 6.1</div>
-              </div>
-              <div class="field">
-                <span class="field-label">CPU CORES</span>
-                <div class="field-value">8</div>
-              </div>
+              <div class="field"><span class="field-label">Java Version</span><div class="field-value">21.0.2</div></div>
+              <div class="field"><span class="field-label">OS</span><div class="field-value">Linux 6.1</div></div>
+              <div class="field"><span class="field-label">CPU Cores</span><div class="field-value">8</div></div>
             </div>
-            <div style="margin-top:14px">
+            <div style="margin-top:var(--vaadin-gap-m)">
               <button class="btn btn-primary btn-sm">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
                 Check Tools
               </button>
             </div>
@@ -964,24 +1025,24 @@ select.input { cursor: pointer; }
 
   </div><!-- .page -->
 
-  <!-- Bottom navigation -->
+  <!-- ── Bottom nav ── -->
   <nav class="bottom-nav">
     <div class="bottom-nav-inner">
       <button class="bnav-item active" id="bnav-search" onclick="goTo('search')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         Search
       </button>
       <button class="bnav-item" id="bnav-downloads" onclick="goTo('downloads')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Downloads
       </button>
       <button class="bnav-item" id="bnav-settings" onclick="goTo('settings')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </button>
     </div>
   </nav>
-</div>
+</div><!-- .main-area -->
 
 <!-- Dialog: Movie -->
 <div class="dialog-backdrop" id="d-movie" onclick="if(event.target===this)closeDialog('d-movie')">
@@ -989,8 +1050,8 @@ select.input { cursor: pointer; }
     <div class="dialog-head">Download: Dune: Part Two</div>
     <div class="dialog-body">
       <div class="field">
-        <span class="field-label">LANGUAGES</span>
-        <select class="input" multiple style="height:auto;padding:8px 12px">
+        <span class="field-label">Languages</span>
+        <select class="input" multiple style="height:auto;padding:8px var(--vaadin-padding-m)">
           <option selected>en — English</option>
           <option>it — Italian</option>
           <option>es — Spanish</option>
@@ -998,60 +1059,54 @@ select.input { cursor: pointer; }
         </select>
       </div>
       <div class="field">
-        <span class="field-label">QUALITY</span>
-        <select class="input">
-          <option>best</option><option>1080</option>
-          <option>720</option><option>worst</option>
-        </select>
+        <span class="field-label">Quality</span>
+        <select class="input"><option>best</option><option>1080</option><option>720</option><option>worst</option></select>
       </div>
     </div>
     <div class="dialog-foot">
       <button class="btn btn-primary" onclick="closeDialog('d-movie')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Add to Queue
       </button>
-      <button class="btn btn-ghost" onclick="closeDialog('d-movie')">Cancel</button>
+      <button class="btn btn-outlined" onclick="closeDialog('d-movie')">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- Dialog: TV Show -->
+<!-- Dialog: TV -->
 <div class="dialog-backdrop" id="d-tv" onclick="if(event.target===this)closeDialog('d-tv')">
   <div class="dialog">
     <div class="dialog-head">Download: The Bear</div>
     <div class="dialog-body">
       <div class="field">
-        <span class="field-label">LANGUAGES</span>
-        <select class="input" multiple style="height:auto;padding:8px 12px">
+        <span class="field-label">Languages</span>
+        <select class="input" multiple style="height:auto;padding:8px var(--vaadin-padding-m)">
           <option selected>en — English</option>
           <option>it — Italian</option>
         </select>
       </div>
       <div class="field">
-        <span class="field-label">QUALITY</span>
-        <select class="input">
-          <option>best</option><option>1080</option>
-          <option>720</option><option>worst</option>
-        </select>
+        <span class="field-label">Quality</span>
+        <select class="input"><option>best</option><option>1080</option><option>720</option><option>worst</option></select>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--vaadin-gap-m)">
         <div class="field">
-          <span class="field-label">SEASON</span>
+          <span class="field-label">Season</span>
           <input class="input" type="number" placeholder="All" min="1" />
         </div>
         <div class="field">
-          <span class="field-label">EPISODE</span>
+          <span class="field-label">Episode</span>
           <input class="input" type="number" placeholder="All" min="1" />
         </div>
       </div>
-      <p style="font-size:12px;color:var(--text-3)">Leave Season / Episode blank to download everything.</p>
+      <p style="font-size:var(--aura-font-size-xs);color:var(--aura-text-tertiary)">Leave Season / Episode blank to download everything.</p>
     </div>
     <div class="dialog-foot">
       <button class="btn btn-primary" onclick="closeDialog('d-tv')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Add to Queue
       </button>
-      <button class="btn btn-ghost" onclick="closeDialog('d-tv')">Cancel</button>
+      <button class="btn btn-outlined" onclick="closeDialog('d-tv')">Cancel</button>
     </div>
   </div>
 </div>
@@ -1062,9 +1117,9 @@ const NAMES = {search:'Search',downloads:'Downloads',settings:'Settings'};
 
 function goTo(p) {
   PAGES.forEach(n => {
-    document.getElementById('page-'+n)?.classList.toggle('active', n===p);
-    document.getElementById('nav-'+n)?.classList.toggle('active', n===p);
-    document.getElementById('bnav-'+n)?.classList.toggle('active', n===p);
+    document.getElementById('page-'+n)?.classList.toggle('active',n===p);
+    document.getElementById('nav-'+n)?.classList.toggle('active',n===p);
+    document.getElementById('bnav-'+n)?.classList.toggle('active',n===p);
   });
   document.getElementById('navbar-page').textContent = NAMES[p];
   closeDrawer();
@@ -1078,32 +1133,27 @@ function closeDrawer() {
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('overlay').classList.remove('open');
 }
-
 function setPill(el) {
-  el.closest('.filter-row').querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.closest('.filter-row').querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
 }
-
 function doSearch() {
   const q = document.getElementById('q').value.trim();
-  document.getElementById('s-empty').style.display = 'none';
-  document.getElementById('s-loading').style.display = 'flex';
-  document.getElementById('results').style.display = 'none';
-  setTimeout(() => {
-    document.getElementById('s-loading').style.display = 'none';
-    if (q) document.getElementById('results').style.display = 'grid';
-    else   document.getElementById('s-empty').style.display = 'flex';
-  }, 1100);
+  document.getElementById('s-empty').style.display='none';
+  document.getElementById('s-loading').style.display='flex';
+  document.getElementById('results').style.display='none';
+  setTimeout(()=>{
+    document.getElementById('s-loading').style.display='none';
+    if(q) document.getElementById('results').style.display='grid';
+    else  document.getElementById('s-empty').style.display='flex';
+  },1100);
 }
-
 function openDialog(id)  { document.getElementById(id).classList.add('open'); }
 function closeDialog(id) { document.getElementById(id).classList.remove('open'); }
-
-function toggleExpand(id, btnId) {
+function toggleExpand(id,btnId) {
   document.getElementById('st'+id).classList.toggle('open');
   document.getElementById(btnId).classList.toggle('open');
 }
-
 function toggleSection(btn) {
   btn.classList.toggle('open');
   btn.nextElementSibling.classList.toggle('open');
