@@ -66,7 +66,8 @@ ENV DOCKER_E2E=1
 # Volume mount points: callers bind-mount these to retrieve results
 VOLUME ["/app/target/e2e", "/app/e2e/test-results"]
 
-USER e2e
-
 WORKDIR /app
-ENTRYPOINT ["bash", "e2e/run-tests.sh"]
+# Entrypoint runs as root to fix bind-mount ownership, then drops to e2e user
+COPY --chown=root:root e2e/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
