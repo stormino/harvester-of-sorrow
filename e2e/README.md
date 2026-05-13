@@ -120,9 +120,11 @@ The first build downloads Maven and npm dependencies — expect 5–10 min. Subs
 
 ### Run the full suite
 
+Use your existing `.env.e2e` directly via `--env-file`:
+
 ```bash
 docker run --rm \
-  -e TMDB_API_KEY=your_key_here \
+  --env-file e2e/.env.e2e \
   -v "$(pwd)/e2e-results/target:/app/target/e2e" \
   -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
   vixsrc-e2e
@@ -138,7 +140,7 @@ Pass the test path as a `CMD` argument:
 
 ```bash
 docker run --rm \
-  -e TMDB_API_KEY=your_key_here \
+  --env-file e2e/.env.e2e \
   -v "$(pwd)/e2e-results/target:/app/target/e2e" \
   -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
   vixsrc-e2e tests/01-smoke.spec.ts
@@ -146,17 +148,7 @@ docker run --rm \
 
 ### RaiPlay tests
 
-Pass credentials as additional `-e` flags:
-
-```bash
-docker run --rm \
-  -e TMDB_API_KEY=your_key_here \
-  -e RAIPLAY_USERNAME=user@example.com \
-  -e RAIPLAY_PASSWORD=secret \
-  -v "$(pwd)/e2e-results/target:/app/target/e2e" \
-  -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
-  vixsrc-e2e
-```
+Set `RAIPLAY_USERNAME` and `RAIPLAY_PASSWORD` in your `.env.e2e` — they are already included in `.env.e2e.example`. No extra flags needed.
 
 ### Maven cache (optional speed-up)
 
