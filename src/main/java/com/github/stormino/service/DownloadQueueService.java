@@ -178,19 +178,22 @@ public class DownloadQueueService {
     private DownloadTask addSourceDownload(ContentMetadata content, DownloadTask.ContentType contentType,
                                            Integer season, Integer episode,
                                            List<String> languages, String quality) {
-        // For a single TV episode from a non-TMDB source, the show-level ContentMetadata
-        // has no episodeName. Resolve it by scanning the provider's episode list so the
-        // filename includes the episode title (e.g. Rocco.Schiavone.S01E01.Pista.Nera.mp4).
+        // For a single TV episode from a non-TMDB source, always resolve the episode
+        // name from the provider listing so the correct title for the requested
+        // season/episode is used. The search-result card may represent a different
+        // episode (e.g. RaiPlay returns E01 as the card, carrying E01's title), so
+        // content.getEpisodeName() must not be used as-is for other episodes.
         String episodeName = content.getEpisodeName();
         if (contentType == DownloadTask.ContentType.TV && season != null && episode != null
-                && episodeName == null && content.getSource() != null) {
+                && content.getSource() != null) {
             try {
-                episodeName = sourceRegistry.get(content.getSource())
+                String resolved = sourceRegistry.get(content.getSource())
                         .listEpisodes(content).stream()
                         .filter(e -> e.season() == season && e.episode() == episode)
                         .map(EpisodeRef::name)
                         .findFirst()
                         .orElse(null);
+                if (resolved != null) episodeName = resolved;
             } catch (Exception ex) {
                 log.debug("Could not resolve episode name for {}: {}", content.getTitle(), ex.getMessage());
             }
