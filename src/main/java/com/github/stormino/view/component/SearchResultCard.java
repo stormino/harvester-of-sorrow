@@ -38,6 +38,13 @@ public class SearchResultCard extends VerticalLayout {
     private final Set<String> supportedLanguages;
     private final DownloadHandler downloadHandler;
 
+    // Built once per card; fields reset on each open to avoid Vaadin overlay ID conflicts
+    private Dialog downloadDialog;
+    private MultiSelectComboBox<String> dialogLanguageSelector;
+    private Select<String> dialogQualitySelector;
+    private IntegerField dialogSeasonField;
+    private IntegerField dialogEpisodeField;
+
     public interface DownloadHandler {
         void onDownload(ContentMetadata content, DownloadTask.ContentType type,
                        Integer season, Integer episode,
@@ -222,112 +229,122 @@ public class SearchResultCard extends VerticalLayout {
     }
     
     private void openDownloadDialog() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Download: " + content.getTitle());
-        dialog.setWidth("500px");
-        
+        if (downloadDialog == null) {
+            buildDownloadDialog();
+        }
+        resetDialogFields();
+        downloadDialog.open();
+    }
+
+    private void buildDownloadDialog() {
+        downloadDialog = new Dialog();
+        downloadDialog.setHeaderTitle("Download: " + content.getTitle());
+        downloadDialog.setWidth("500px");
+
         VerticalLayout layout = new VerticalLayout();
         layout.setPadding(false);
         layout.setSpacing(true);
-        
+
         // Language selector — restricted to languages this source actually serves
-        MultiSelectComboBox<String> languageSelector = new MultiSelectComboBox<>("Languages");
-        languageSelector.setId("dialog-language-selector");
+        dialogLanguageSelector = new MultiSelectComboBox<>("Languages");
+        dialogLanguageSelector.setId("dialog-language-selector");
         List<String> languageItems = ALL_LANGUAGES.stream()
                 .filter(lang -> supportedLanguages == null
                         || supportedLanguages.isEmpty()
                         || supportedLanguages.contains(lang))
                 .toList();
-        languageSelector.setItems(languageItems);
-        languageSelector.setWidthFull();
+        dialogLanguageSelector.setItems(languageItems);
+        dialogLanguageSelector.setWidthFull();
 
         // Quality selector
-        Select<String> qualitySelector = new Select<>();
-        qualitySelector.setId("dialog-quality-selector");
-        qualitySelector.setLabel("Quality");
-        qualitySelector.setItems("best", "1080", "720", "worst");
-        qualitySelector.setValue(defaultQualitySupplier.get());
-        qualitySelector.setWidthFull();
+        dialogQualitySelector = new Select<>();
+        dialogQualitySelector.setId("dialog-quality-selector");
+        dialogQualitySelector.setLabel("Quality");
+        dialogQualitySelector.setItems("best", "1080", "720", "worst");
+        dialogQualitySelector.setWidthFull();
 
-        layout.add(languageSelector, qualitySelector);
+        layout.add(dialogLanguageSelector, dialogQualitySelector);
 
-        // Set default language after adding to layout, intersecting with supported set
+        // TV-specific: Season/Episode selectors
+        if (type == DownloadTask.ContentType.TV) {
+            dialogSeasonField = new IntegerField("Season");
+            dialogSeasonField.setId("dialog-season-field");
+            dialogSeasonField.setPlaceholder("All seasons");
+            dialogSeasonField.setHelperText("Leave blank to download all seasons");
+            dialogSeasonField.setMin(1);
+            dialogSeasonField.setStepButtonsVisible(true);
+            dialogSeasonField.setClearButtonVisible(true);
+            dialogSeasonField.setWidthFull();
+
+            dialogEpisodeField = new IntegerField("Episode");
+            dialogEpisodeField.setId("dialog-episode-field");
+            dialogEpisodeField.setPlaceholder("All episodes");
+            dialogEpisodeField.setHelperText("Leave blank to download all episodes in season");
+            dialogEpisodeField.setMin(1);
+            dialogEpisodeField.setStepButtonsVisible(true);
+            dialogEpisodeField.setClearButtonVisible(true);
+            dialogEpisodeField.setWidthFull();
+
+            layout.add(dialogSeasonField, dialogEpisodeField);
+
+            Button downloadBtn = new Button("Add to Queue", e -> {
+                downloadHandler.onDownload(
+                        content, type,
+                        dialogSeasonField.getValue(),
+                        dialogEpisodeField.getValue(),
+                        dialogLanguageSelector.getValue(),
+                        dialogQualitySelector.getValue()
+                );
+                downloadDialog.close();
+            });
+            downloadBtn.setId("dialog-confirm-download");
+            downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            downloadDialog.getFooter().add(downloadBtn);
+
+        } else {
+            Button downloadBtn = new Button("Add to Queue", e -> {
+                downloadHandler.onDownload(
+                        content, type,
+                        null, null,
+                        dialogLanguageSelector.getValue(),
+                        dialogQualitySelector.getValue()
+                );
+                downloadDialog.close();
+            });
+            downloadBtn.setId("dialog-confirm-download");
+            downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            downloadDialog.getFooter().add(downloadBtn);
+        }
+
+        Button cancelBtn = new Button("Cancel", e -> downloadDialog.close());
+        downloadDialog.getFooter().add(cancelBtn);
+
+        downloadDialog.add(layout);
+    }
+
+    private void resetDialogFields() {
+        // Reset quality to current default
+        dialogQualitySelector.setValue(defaultQualitySupplier.get());
+
+        // Reset language to current default, intersected with supported languages
+        dialogLanguageSelector.deselectAll();
         Set<String> defaultLanguages = defaultLanguagesSupplier.get();
         if (defaultLanguages != null && !defaultLanguages.isEmpty()) {
             Set<String> applicable = new LinkedHashSet<>(defaultLanguages);
             if (supportedLanguages != null && !supportedLanguages.isEmpty()) {
                 applicable.retainAll(supportedLanguages);
             }
+            List<String> languageItems = dialogLanguageSelector.getListDataView()
+                    .getItems().toList();
             if (applicable.isEmpty() && !languageItems.isEmpty()) {
-                // Fallback so the user always sees at least one selection
                 applicable.add(languageItems.get(0));
             }
-            applicable.forEach(languageSelector::select);
+            applicable.forEach(dialogLanguageSelector::select);
         }
-        
-        // TV-specific: Season/Episode selectors
-        if (type == DownloadTask.ContentType.TV) {
-            IntegerField seasonField = new IntegerField("Season");
-            seasonField.setId("dialog-season-field");
-            seasonField.setPlaceholder("All seasons");
-            seasonField.setHelperText("Leave blank to download all seasons");
-            seasonField.setMin(1);
-            seasonField.setStepButtonsVisible(true);
-            seasonField.setClearButtonVisible(true);
-            seasonField.setWidthFull();
 
-            IntegerField episodeField = new IntegerField("Episode");
-            episodeField.setId("dialog-episode-field");
-            episodeField.setPlaceholder("All episodes");
-            episodeField.setHelperText("Leave blank to download all episodes in season");
-            episodeField.setMin(1);
-            episodeField.setStepButtonsVisible(true);
-            episodeField.setClearButtonVisible(true);
-            episodeField.setWidthFull();
-
-            layout.add(seasonField, episodeField);
-
-            // Download button
-            Button downloadBtn = new Button("Add to Queue", e -> {
-                downloadHandler.onDownload(
-                        content,
-                        type,
-                        seasonField.getValue(),
-                        episodeField.getValue(),
-                        languageSelector.getValue(),
-                        qualitySelector.getValue()
-                );
-                dialog.close();
-            });
-            downloadBtn.setId("dialog-confirm-download");
-            downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-            dialog.getFooter().add(downloadBtn);
-
-        } else {
-            // Movie: Direct download
-            Button downloadBtn = new Button("Add to Queue", e -> {
-                downloadHandler.onDownload(
-                        content,
-                        type,
-                        null,
-                        null,
-                        languageSelector.getValue(),
-                        qualitySelector.getValue()
-                );
-                dialog.close();
-            });
-            downloadBtn.setId("dialog-confirm-download");
-            downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-            dialog.getFooter().add(downloadBtn);
-        }
-        
-        Button cancelBtn = new Button("Cancel", e -> dialog.close());
-        dialog.getFooter().add(cancelBtn);
-        
-        dialog.add(layout);
-        dialog.open();
+        // Clear season/episode so a previous selection never bleeds into the next open
+        if (dialogSeasonField != null) dialogSeasonField.clear();
+        if (dialogEpisodeField != null) dialogEpisodeField.clear();
     }
     
     private String truncateOverview(String overview) {
