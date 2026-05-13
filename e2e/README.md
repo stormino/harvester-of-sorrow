@@ -110,10 +110,12 @@ Docker packages every dependency (Java 21, Maven, Node 20, ffmpeg, Chromium) so 
 
 ### Build the image
 
-Run from the **repository root**:
+Run from the **repository root**, passing your host UID/GID so volume files are owned by you:
 
 ```bash
-docker build -f e2e/Dockerfile -t vixsrc-e2e .
+docker build -f e2e/Dockerfile \
+  --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+  -t vixsrc-e2e .
 ```
 
 The first build downloads Maven and npm dependencies — expect 5–10 min. Subsequent builds reuse cached layers.

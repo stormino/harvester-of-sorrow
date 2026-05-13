@@ -22,27 +22,41 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user whose UID/GID matches the host caller so that
+# files written to bind-mounted volumes are owned by the host user.
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g ${GID} e2e && useradd -u ${UID} -g e2e -m e2e
+
 WORKDIR /app
 
-# Bring in the cached Maven local repo from the deps stage
-COPY --from=deps /root/.m2 /root/.m2
+# Maven local repo — copy to the new user's home so Maven can read/write it
+COPY --from=deps --chown=${UID}:${GID} /root/.m2 /home/e2e/.m2
 
 # Copy project files
-COPY pom.xml ./
-COPY src ./src
-COPY frontend ./frontend
-COPY e2e ./e2e
+COPY --chown=${UID}:${GID} pom.xml ./
+COPY --chown=${UID}:${GID} src ./src
+COPY --chown=${UID}:${GID} frontend ./frontend
+COPY --chown=${UID}:${GID} e2e ./e2e
 
-# Install Node deps and Playwright's Chromium with all system dependencies
+# Install Playwright browser into a fixed, non-root path
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/.playwright-browsers
+
+# Install Node deps and Playwright's Chromium (system deps require root)
 WORKDIR /app/e2e
 RUN npm ci --quiet
 RUN npx playwright install chromium --with-deps
+
+# Fix ownership of everything under /app now that installs are done
+RUN chown -R ${UID}:${GID} /app
 
 # Signal to playwright.config.ts that we're running in a container
 ENV DOCKER_E2E=1
 
 # Volume mount points: callers bind-mount these to retrieve results
 VOLUME ["/app/target/e2e", "/app/e2e/test-results"]
+
+USER e2e
 
 WORKDIR /app
 ENTRYPOINT ["bash", "e2e/run-tests.sh"]
