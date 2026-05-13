@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, rmSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -55,9 +55,13 @@ export async function setup(): Promise<void> {
   execSync(preflight, { stdio: 'inherit' });
 
   if (existsSync(e2eDir)) {
-    rmSync(e2eDir, { recursive: true, force: true });
+    // Remove contents but not the directory itself — it may be a bind-mount point
+    for (const entry of readdirSync(e2eDir)) {
+      rmSync(resolve(e2eDir, entry), { recursive: true, force: true });
+    }
+  } else {
+    mkdirSync(e2eDir, { recursive: true });
   }
-  mkdirSync(e2eDir, { recursive: true });
 
   const child = spawn(startScript, [], {
     detached: true,
