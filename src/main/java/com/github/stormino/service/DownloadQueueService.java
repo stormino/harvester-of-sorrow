@@ -659,6 +659,9 @@ public class DownloadQueueService {
                 if (metadata.getEpisode() == null && task.getEpisode() != null) {
                     metadata.setEpisode(task.getEpisode());
                 }
+                if (metadata.getEpisodeName() == null && task.getEpisodeName() != null) {
+                    metadata.setEpisodeName(task.getEpisodeName());
+                }
             }
             filename = metadata.generateFilename(
                     task.getLanguages().get(0),
