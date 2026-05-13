@@ -26,7 +26,17 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # files written to bind-mounted volumes are owned by the host user.
 ARG UID=1000
 ARG GID=1000
-RUN groupadd -g ${GID} e2e && useradd -u ${UID} -g e2e -m e2e
+RUN set -e; \
+    if getent group ${GID} >/dev/null; then \
+      groupmod -n e2e "$(getent group ${GID} | cut -d: -f1)"; \
+    else \
+      groupadd -g ${GID} e2e; \
+    fi; \
+    if getent passwd ${UID} >/dev/null; then \
+      usermod -l e2e -g ${GID} -d /home/e2e -m "$(getent passwd ${UID} | cut -d: -f1)"; \
+    else \
+      useradd -u ${UID} -g e2e -m e2e; \
+    fi
 
 WORKDIR /app
 
