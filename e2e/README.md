@@ -104,6 +104,84 @@ npm run preflight
 
 ---
 
+## Running in Docker
+
+Docker packages every dependency (Java 21, Maven, Node 20, ffmpeg, Chromium) so the tests run without any local setup beyond Docker itself.
+
+### Build the image
+
+Run from the **repository root**:
+
+```bash
+docker build -f e2e/Dockerfile -t vixsrc-e2e .
+```
+
+The first build downloads Maven and npm dependencies — expect 5–10 min. Subsequent builds reuse cached layers.
+
+### Run the full suite
+
+```bash
+docker run --rm \
+  -e TMDB_API_KEY=your_key_here \
+  -v "$(pwd)/e2e-results/target:/app/target/e2e" \
+  -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
+  vixsrc-e2e
+```
+
+After the run you'll find:
+- `e2e-results/target/` — downloaded video files, app log (`app.stdout.log`), SQLite DB
+- `e2e-results/report/html-report/` — Playwright HTML report (open `index.html` in a browser)
+
+### Run a single test file
+
+Pass the test path as a `CMD` argument:
+
+```bash
+docker run --rm \
+  -e TMDB_API_KEY=your_key_here \
+  -v "$(pwd)/e2e-results/target:/app/target/e2e" \
+  -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
+  vixsrc-e2e tests/01-smoke.spec.ts
+```
+
+### RaiPlay tests
+
+Pass credentials as additional `-e` flags:
+
+```bash
+docker run --rm \
+  -e TMDB_API_KEY=your_key_here \
+  -e RAIPLAY_USERNAME=user@example.com \
+  -e RAIPLAY_PASSWORD=secret \
+  -v "$(pwd)/e2e-results/target:/app/target/e2e" \
+  -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
+  vixsrc-e2e
+```
+
+### Maven cache (optional speed-up)
+
+Bind-mount your local Maven repository to avoid re-downloading dependencies on every run:
+
+```bash
+docker run --rm \
+  -e TMDB_API_KEY=your_key_here \
+  -v "$HOME/.m2:/root/.m2" \
+  -v "$(pwd)/e2e-results/target:/app/target/e2e" \
+  -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
+  vixsrc-e2e
+```
+
+### Viewing the HTML report
+
+```bash
+# After the run:
+npx playwright show-report e2e-results/report/html-report
+```
+
+Or simply open `e2e-results/report/html-report/index.html` in your browser.
+
+---
+
 ## What each test does
 
 | File | Scenario | Downloads |

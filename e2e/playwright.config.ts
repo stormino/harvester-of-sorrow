@@ -24,6 +24,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    ...(process.env.CI || process.env.DOCKER_E2E
+      ? { launchOptions: { args: ['--no-sandbox', '--disable-dev-shm-usage'] } }
+      : {}),
   },
 
   outputDir: 'test-results/artifacts',

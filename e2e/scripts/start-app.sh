@@ -12,8 +12,10 @@ if [ -n "$STALE" ]; then
   sleep 1
 fi
 
-# Load e2e config
-set -a; source e2e/.env.e2e; set +a
+# Load e2e config if present (in Docker, env vars are injected via -e flags)
+if [ -f "e2e/.env.e2e" ]; then
+  set -a; source e2e/.env.e2e; set +a
+fi
 
 # Pass every config value explicitly as Maven/JVM system properties so they
 # reach Spring Boot regardless of whether spring-boot:run runs in-process or
