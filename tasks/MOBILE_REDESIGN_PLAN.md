@@ -392,10 +392,62 @@ Or self-host the font files in `frontend/themes/vixsrc/fonts/` and add
 4. **Phase 5 & 6 — Cards & Dialog** — polishes the download flow.
 5. **Phase 2 — Navigation** — bottom nav requires layout coordination.
 6. **Phase 7 — Settings** — lowest traffic view.
+7. **Phase 8 — E2E test adaptations** — update selectors and assertions broken by the Vaadin 25 / UI changes.
 
 If choosing Track A (Vaadin 25), do the version upgrade as an isolated step
 before starting Phase 1, and run the full E2E suite to validate the upgrade
 before any UI work begins.
+
+---
+
+## Phase 8 — E2E Test Adaptations
+
+Tests live in `e2e/tests/` and use Playwright. They are **run manually** by the
+developer (`cd e2e && npx playwright test`); this phase covers code changes only.
+
+### Breakage sources
+
+| Cause | Affected tests |
+|-------|---------------|
+| Vaadin 25 upgrades component DOM (shadow DOM → light DOM for some parts) | All — `vaadin-*` locators |
+| Bottom nav added to mobile layout | `01-smoke` (navigation assertions) |
+| `DownloadQueueView` changed from `TreeGrid` to card layout | `01-smoke` (`#queue-grid`), `06-cancel` |
+| Dialog no longer has fixed `500px` width | `02`, `03`, `04`, `05` (dialog open assertions) |
+
+### Changes needed
+
+#### `e2e/tests/01-smoke.spec.ts`
+- `#queue-grid` selector: if `TreeGrid` is replaced with a card list, update to
+  the new container ID (e.g. `#queue-list`) or a stable `data-testid` attribute.
+- Add a navigation smoke test for the bottom nav on mobile viewport
+  (use `page.setViewportSize({ width: 390, height: 844 })` to simulate iPhone).
+
+#### `e2e/helpers/search.ts`
+- `#search-input` and `#search-button` IDs set in Java — verify they survive the
+  Vaadin 25 Web Component DOM update. If the shadow-root structure changes, the
+  `.locator('input')` pierce may need adjustment.
+- `[data-testid="result-card"]`, `[data-source]`, `[data-type]` attributes are
+  set via `getElement().setAttribute(...)` — these should be unaffected.
+- `#dialog-confirm-download`, `#dialog-language-selector`,
+  `#dialog-quality-selector`, `#dialog-season-field`, `#dialog-episode-field` —
+  all set in Java; verify they still render after the dialog width CSS change.
+
+#### `e2e/helpers/queue.ts`
+- Any selectors referencing `vaadin-grid` cells or rows need updating if
+  `TreeGrid` is replaced with a card-based layout.
+
+### Recommended approach
+1. After each UI phase is complete, run `npx playwright test --headed` against a
+   running local instance to surface broken selectors.
+2. Fix selectors in the helper/test files; keep selector logic in helpers
+   (`search.ts`, `queue.ts`) so test files stay clean.
+3. Add `data-testid` attributes in Java to any new interactive elements
+   introduced during the redesign (bottom nav buttons, card action buttons).
+4. For mobile-specific tests, use a named Playwright project in
+   `playwright.config.ts`:
+   ```ts
+   { name: 'mobile-chrome', use: { ...devices['Pixel 5'] } }
+   ```
 
 ---
 
