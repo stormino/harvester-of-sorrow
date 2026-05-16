@@ -1,7 +1,6 @@
 /* =====================================================
-   VixSrc – Aura theme customisations
-   All --lumo-* token overrides removed; Aura provides
-   its own values via theme.json "parent": "aura".
+   VixSrc – custom styles layered on top of Aura.
+   Aura is loaded via theme.json "documentCss".
    ===================================================== */
 
 /* ── Card ────────────────────────────────────────── */
@@ -81,40 +80,26 @@ vaadin-notification-card {
 .result-card {
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: var(--lumo-base-color);
+    border: 1px solid var(--lumo-contrast-10pct);
+    border-left-width: 3px;
 }
 
 .result-card--movie {
-    background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+    border-left-color: var(--lumo-primary-color);
 }
 
 .result-card--tv {
-    background: linear-gradient(135deg, #FCE4EC 0%, #F8BBD0 100%);
+    border-left-color: var(--lumo-success-color);
 }
 
 .result-card:hover {
     transform: translateY(-2px);
-}
-
-.result-card--movie:hover {
-    box-shadow: 0 8px 16px rgba(33, 150, 243, 0.25);
-}
-
-.result-card--tv:hover {
-    box-shadow: 0 8px 16px rgba(233, 30, 99, 0.25);
+    box-shadow: var(--lumo-box-shadow-s);
 }
 
 .result-card:active {
     transform: scale(0.99);
-}
-
-@media (prefers-color-scheme: dark) {
-    .result-card--movie {
-        background: linear-gradient(135deg, #1a2a3d 0%, #0d1f33 100%);
-    }
-
-    .result-card--tv {
-        background: linear-gradient(135deg, #2d1a22 0%, #1f0d16 100%);
-    }
 }
 
 /* ── Search bar ──────────────────────────────────── */
