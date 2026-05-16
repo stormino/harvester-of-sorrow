@@ -197,6 +197,12 @@ vaadin-button[theme~="small"] {
     to   { opacity: 1; }
 }
 
+/* ── Download queue status bar ───────────────────── */
+.queue-status-row {
+    font-size: var(--lumo-font-size-s);
+    color: var(--lumo-secondary-text-color);
+}
+
 /* ── Mobile bottom navigation ────────────────────── */
 .mobile-bottom-nav {
     display: none;
@@ -258,11 +264,13 @@ vaadin-button[theme~="small"] {
         padding-bottom: calc(56px + env(safe-area-inset-bottom));
     }
 
-    /*
-     * Column hiding for the download queue TreeGrid.
-     * Stable selectors based on column class names are added in Phase 4.
-     * Temporary: hide columns 4 (Speed), 5 (ETA), 6 (Created) by slot index.
-     */
+    /* Hide Speed / ETA / Created columns — part names set via setPartNameGenerator */
+    .download-queue-view-grid-1::part(col-speed),
+    .download-queue-view-grid-1::part(col-eta),
+    .download-queue-view-grid-1::part(col-created) {
+        display: none;
+    }
+    /* Hide header cells by slot index (part names only apply to data cells) */
     .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-4"],
     .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-5"],
     .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-6"] {
@@ -291,7 +299,10 @@ vaadin-button[theme~="small"] {
    RESPONSIVE  —  Mobile  ≤480 px
    ===================================================== */
 @media (max-width: 480px) {
-    /* Additionally hide Downloaded (col 3) on small phones */
+    /* Additionally hide Downloaded on small phones */
+    .download-queue-view-grid-1::part(col-size) {
+        display: none;
+    }
     .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-3"] {
         display: none;
     }

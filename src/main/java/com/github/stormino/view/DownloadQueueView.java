@@ -90,7 +90,12 @@ public class DownloadQueueView extends VerticalLayout {
         diskSpaceSpan.addClassNames(LumoUtility.FontSize.SMALL);
         diskSpaceSpan.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
-        VerticalLayout titleAndStatus = new VerticalLayout(title, statusCountsSpan, overallSpeedSpan, diskSpaceSpan);
+        HorizontalLayout statusRow = new HorizontalLayout(statusCountsSpan, overallSpeedSpan, diskSpaceSpan);
+        statusRow.setSpacing(false);
+        statusRow.addClassName("queue-status-row");
+        statusRow.getStyle().set("flex-wrap", "wrap").set("gap", "var(--lumo-space-s)");
+
+        VerticalLayout titleAndStatus = new VerticalLayout(title, statusRow);
         titleAndStatus.setSpacing(false);
         titleAndStatus.setPadding(false);
 
@@ -140,31 +145,36 @@ public class DownloadQueueView extends VerticalLayout {
         treeGrid.addColumn(this::getItemSize)
                 .setHeader("Downloaded")
                 .setWidth("120px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-size");
 
         treeGrid.addColumn(this::getItemSpeed)
                 .setHeader("Speed")
                 .setWidth("120px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-speed");
 
         treeGrid.addColumn(this::getItemEta)
                 .setHeader("ETA")
                 .setWidth("100px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-eta");
 
         treeGrid.addColumn(this::getItemCreatedTime)
                 .setHeader("Created")
                 .setWidth("100px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-created");
 
         treeGrid.addComponentColumn(this::createActionButtons)
                 .setHeader("Actions")
                 .setWidth("100px")
                 .setResizable(true);
 
-        treeGrid.setHeight("600px");
+        treeGrid.setSizeFull();
 
         add(header, treeGrid);
+        expand(treeGrid);
         addClassName("fade-in");
 
         refreshGrid();
