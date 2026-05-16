@@ -1,60 +1,10 @@
-/* Custom styles for VixSrc Downloader */
+/* =====================================================
+   VixSrc – Aura theme customisations
+   All --lumo-* token overrides removed; Aura provides
+   its own values via theme.json "parent": "aura".
+   ===================================================== */
 
-:root {
-    /* ========================================
-       FONT FAMILY - Roboto
-       ======================================== */
-    --lumo-font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-
-    /* ========================================
-       FONT SIZES - Reduced by ~20-25%
-       ======================================== */
-    --lumo-font-size-xxxl: 1.375rem;   /* Was 1.75rem, -21% */
-    --lumo-font-size-xxl: 1.125rem;    /* Was 1.375rem, -18% */
-    --lumo-font-size-xl: 1rem;         /* Was 1.25rem, -20% */
-    --lumo-font-size-l: 0.9375rem;     /* Was 1.125rem, -17% */
-    --lumo-font-size-m: 0.8125rem;     /* Was 1rem, -19% */
-    --lumo-font-size-s: 0.6875rem;     /* Was 0.875rem, -21% */
-    --lumo-font-size-xs: 0.65rem;      /* Was 0.8125rem, -20% */
-    --lumo-font-size-xxs: 0.625rem;    /* Was 0.75rem, -17% */
-
-    /* ========================================
-       COLOR PALETTE - Modernized
-       ======================================== */
-    /* Primary - Brighter Blue */
-    --lumo-primary-color: hsl(210, 100%, 56%);
-    --lumo-primary-color-50pct: hsla(210, 100%, 56%, 0.5);
-    --lumo-primary-color-10pct: hsla(210, 100%, 56%, 0.1);
-    --lumo-primary-text-color: hsl(210, 100%, 68%);
-
-    /* Success - Modern Green */
-    --lumo-success-color: hsl(145, 63%, 49%);
-    --lumo-success-color-10pct: hsla(145, 63%, 49%, 0.1);
-    --lumo-success-text-color: hsl(145, 80%, 42%);
-
-    /* Error - Modern Red */
-    --lumo-error-color: hsl(4, 90%, 58%);
-    --lumo-error-color-10pct: hsla(4, 90%, 58%, 0.1);
-    --lumo-error-text-color: hsl(4, 90%, 50%);
-
-    /* ========================================
-       BORDER RADIUS - More Rounded
-       ======================================== */
-    --lumo-border-radius-s: 0.375rem;    /* Was 0.25rem */
-    --lumo-border-radius-m: 0.5rem;      /* Was 0.375rem */
-    --lumo-border-radius-l: 0.75rem;     /* Was 0.5rem */
-    --lumo-border-radius-xl: 1rem;       /* Custom */
-
-    /* ========================================
-       SPACING - Enhanced
-       ======================================== */
-    --lumo-space-xs: 0.375rem;  /* Was 0.25rem */
-    --lumo-space-s: 0.625rem;   /* Was 0.5rem */
-    --lumo-space-m: 1.25rem;    /* Was 1rem */
-    --lumo-space-l: 2rem;       /* Was 1.5rem */
-}
-
-/* Card styles */
+/* ── Card ────────────────────────────────────────── */
 vaadin-vertical-layout[theme~="card"] {
     background-color: var(--lumo-contrast-5pct);
     border-radius: var(--lumo-border-radius-l);
@@ -67,21 +17,28 @@ vaadin-vertical-layout[theme~="card"]:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-/* Grid enhancements */
-vaadin-grid {
-    --lumo-font-size-s: 0.6875rem;
-}
-
+/* ── Grid ────────────────────────────────────────── */
 vaadin-grid-cell-content {
     padding: var(--lumo-space-xs) var(--lumo-space-s);
 }
 
-/* Progress bar styling */
+/* ── Progress bar ────────────────────────────────── */
 vaadin-progress-bar {
     height: 8px;
+    border-radius: var(--lumo-border-radius-m);
+    overflow: hidden;
 }
 
-/* Badge styling */
+vaadin-progress-bar::part(bar) {
+    transition: width 0.3s ease;
+    background: linear-gradient(
+        90deg,
+        var(--lumo-primary-color) 0%,
+        var(--lumo-primary-color-50pct) 100%
+    );
+}
+
+/* ── Badge ───────────────────────────────────────── */
 [theme~="badge"] {
     display: inline-flex;
     align-items: center;
@@ -92,6 +49,7 @@ vaadin-progress-bar {
     font-weight: 500;
     line-height: 1;
     text-transform: uppercase;
+    transition: all 0.2s ease;
 }
 
 [theme~="badge"][theme~="success"] {
@@ -114,38 +72,38 @@ vaadin-progress-bar {
     color: var(--lumo-primary-text-color);
 }
 
-/* Notification enhancements */
+/* ── Notification ────────────────────────────────── */
 vaadin-notification-card {
     border-radius: var(--lumo-border-radius-m);
 }
 
-/* Search result grid */
-.search-results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: var(--lumo-space-l);
-    padding: var(--lumo-space-l);
+/* ── Search results container ────────────────────── */
+#search-results {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 272px), 1fr));
 }
 
-/* TreeGrid enhancements */
+/* ── Dialog ──────────────────────────────────────── */
+vaadin-dialog-overlay::part(overlay) {
+    max-width: min(460px, 95vw);
+    width: 100%;
+}
+
+/* ── TreeGrid ────────────────────────────────────── */
 vaadin-grid-tree-toggle {
     margin-inline-start: calc(var(--lumo-space-s) * -1);
 }
 
-/* Child row styling - lighter background with left border */
 vaadin-grid-tree-grid::part(row)[level="1"] {
     background-color: var(--lumo-contrast-5pct);
     border-left: 3px solid var(--lumo-primary-color-10pct);
 }
 
-/* Child row text - slightly smaller and muted */
 vaadin-grid-tree-grid::part(cell)[level="1"] {
     font-size: var(--lumo-font-size-s);
     color: var(--lumo-secondary-text-color);
     padding-left: calc(var(--lumo-space-m) + 3px);
 }
 
-/* Expand/collapse icon styling with transitions */
 vaadin-grid-tree-toggle::part(toggle) {
     color: var(--lumo-contrast-60pct);
     transition: all 0.2s ease;
@@ -161,7 +119,6 @@ vaadin-grid-tree-toggle[expanded]::part(toggle) {
     transform: rotate(90deg);
 }
 
-/* Hover effect for tree rows */
 vaadin-grid-tree-grid::part(row) {
     transition: background-color 0.15s ease;
 }
@@ -171,16 +128,11 @@ vaadin-grid-tree-grid::part(row):hover {
     cursor: pointer;
 }
 
-/* Alternating row colors */
 vaadin-grid-tree-grid::part(row):nth-child(even) {
     background-color: var(--lumo-contrast-5pct);
 }
 
-/* ========================================
-   ANIMATIONS & TRANSITIONS
-   ======================================== */
-
-/* Smooth transitions for interactive elements */
+/* ── Buttons / interactive elements ─────────────── */
 vaadin-button,
 vaadin-text-field,
 vaadin-select,
@@ -195,87 +147,90 @@ vaadin-button:hover {
 }
 
 vaadin-button:active {
-    transform: translateY(0);
+    transform: scale(0.98);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Progress bar animations */
-vaadin-progress-bar {
-    border-radius: var(--lumo-border-radius-m);
-    overflow: hidden;
+/* Ensure tappable targets are large enough for touch */
+vaadin-button[theme~="small"] {
+    min-height: 36px;
 }
 
-vaadin-progress-bar::part(bar) {
-    transition: width 0.3s ease;
-    background: linear-gradient(90deg,
-        var(--lumo-primary-color) 0%,
-        var(--lumo-primary-color-50pct) 100%);
-}
-
-/* Badge animations */
-[theme~="badge"] {
-    transition: all 0.2s ease;
-    border-radius: var(--lumo-border-radius-m);
-}
-
-[theme~="badge"]:hover {
-    transform: scale(1.05);
-}
-
-
-/* Fade in animation for content */
+/* ── Fade-in ─────────────────────────────────────── */
 .fade-in {
     animation: fadeIn 0.3s ease-in;
 }
 
 @keyframes fadeIn {
     from { opacity: 0; }
-    to { opacity: 1; }
+    to   { opacity: 1; }
 }
 
-/* ========================================
-   RESPONSIVE DESIGN - Mobile Breakpoints
-   ======================================== */
-
-/* Tablet and below (max-width: 768px) */
+/* =====================================================
+   RESPONSIVE  —  Tablet  ≤768 px
+   ===================================================== */
 @media (max-width: 768px) {
-    /* Hide less critical TreeGrid columns on tablet */
-    vaadin-grid-tree-grid vaadin-grid-cell-content[slot^="vaadin-grid-column-4"],
-    vaadin-grid-tree-grid vaadin-grid-cell-content[slot^="vaadin-grid-column-5"],
-    vaadin-grid-tree-grid vaadin-grid-cell-content[slot^="vaadin-grid-column-6"] {
+    /*
+     * Column hiding for the download queue TreeGrid.
+     * Stable selectors based on column class names are added in Phase 4.
+     * Temporary: hide columns 4 (Speed), 5 (ETA), 6 (Created) by slot index.
+     */
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-4"],
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-5"],
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-6"] {
         display: none;
     }
 
-    /* Adjust search results grid */
-    .search-results-grid {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    #search-results {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
         gap: var(--lumo-space-m);
         padding: var(--lumo-space-m);
     }
 }
 
-/* Mobile (max-width: 480px) */
+/* =====================================================
+   RESPONSIVE  —  Mobile  ≤480 px
+   ===================================================== */
 @media (max-width: 480px) {
-    /* Stack critical info only */
-    vaadin-grid-tree-grid vaadin-grid-cell-content[slot^="vaadin-grid-column-3"],
-    vaadin-grid-tree-grid vaadin-grid-cell-content[slot^="vaadin-grid-column-7"] {
+    /* Additionally hide Downloaded (col 3) on small phones */
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-3"] {
         display: none;
     }
 
-    /* Reduce padding for mobile */
     vaadin-grid-cell-content {
         padding: calc(var(--lumo-space-xs) * 0.75) var(--lumo-space-xs);
     }
 
-    /* Single column for search results */
-    .search-results-grid {
+    #search-results {
         grid-template-columns: 1fr;
         gap: var(--lumo-space-s);
         padding: var(--lumo-space-s);
     }
 
-    /* Adjust card padding for mobile */
     vaadin-vertical-layout[theme~="card"] {
         padding: var(--lumo-space-m);
+    }
+
+    vaadin-dialog-overlay::part(overlay) {
+        max-width: 100vw;
+        margin: 0;
+        border-radius: var(--lumo-border-radius-l) var(--lumo-border-radius-l) 0 0;
+    }
+}
+
+/* =====================================================
+   DARK MODE  —  system preference
+   ===================================================== */
+@media (prefers-color-scheme: dark) {
+    vaadin-vertical-layout[theme~="card"] {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    vaadin-vertical-layout[theme~="card"]:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    }
+
+    vaadin-button:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     }
 }
