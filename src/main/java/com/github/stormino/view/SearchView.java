@@ -15,10 +15,12 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
@@ -44,6 +46,7 @@ public class SearchView extends VerticalLayout {
     private final TextField searchField;
     private final RadioButtonGroup<String> contentTypeGroup;
     private final Button searchButton;
+    private final ProgressBar loadingBar;
     private final Div resultsContainer;
 
     public SearchView(DownloadQueueService downloadQueueService,
@@ -66,7 +69,6 @@ public class SearchView extends VerticalLayout {
         searchField.setPlaceholder("Search movies and TV shows...");
         searchField.setWidthFull();
         searchField.addKeyPressListener(Key.ENTER, e -> performSearch());
-        searchField.getStyle().set("min-width", "200px");
 
         contentTypeGroup = new RadioButtonGroup<>();
         contentTypeGroup.setId("content-type-filter");
@@ -76,17 +78,23 @@ public class SearchView extends VerticalLayout {
 
         searchButton = new Button("Search");
         searchButton.setId("search-button");
+        searchButton.addClassName("search-button");
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         searchButton.addClickListener(e -> performSearch());
-        searchButton.getStyle().set("margin-top", "auto");
 
         HorizontalLayout searchLayout = new HorizontalLayout(searchField, contentTypeGroup, searchButton);
         searchLayout.setWidthFull();
         searchLayout.setDefaultVerticalComponentAlignment(Alignment.END);
         searchLayout.setSpacing(true);
-        searchLayout.addClassNames(LumoUtility.Gap.SMALL);
+        searchLayout.addClassNames("search-bar", LumoUtility.Gap.SMALL);
         searchLayout.getStyle().set("flex-wrap", "wrap");
         searchLayout.expand(searchField);
+
+        loadingBar = new ProgressBar();
+        loadingBar.setIndeterminate(true);
+        loadingBar.setVisible(false);
+        loadingBar.addClassName("search-loading-bar");
+        loadingBar.setWidthFull();
 
         resultsContainer = new Div();
         resultsContainer.setId("search-results");
@@ -95,10 +103,9 @@ public class SearchView extends VerticalLayout {
                 LumoUtility.Gap.SMALL,
                 LumoUtility.Padding.Vertical.SMALL
         );
-        resultsContainer.getStyle()
-                .set("grid-template-columns", "repeat(auto-fill, minmax(min(100%, 320px), 1fr))");
+        // grid-template-columns is set entirely in theme.css (#search-results)
 
-        add(title, searchLayout, resultsContainer);
+        add(title, searchLayout, loadingBar, resultsContainer);
     }
 
     private void performSearch() {
@@ -111,7 +118,7 @@ public class SearchView extends VerticalLayout {
 
         resultsContainer.removeAll();
         searchButton.setEnabled(false);
-        searchButton.setText("Searching...");
+        loadingBar.setVisible(true);
 
         ContentTypeFilter filter = switch (contentTypeGroup.getValue()) {
             case "Movies"   -> ContentTypeFilter.MOVIES;
@@ -160,19 +167,31 @@ public class SearchView extends VerticalLayout {
             List<ContentMetadata> finalTvShows = tvShows;
 
             getUI().ifPresent(ui -> ui.access(() -> {
+                loadingBar.setVisible(false);
+                searchButton.setEnabled(true);
+
                 finalMovies .forEach(m  -> addResultCard(m,  DownloadTask.ContentType.MOVIE));
                 finalTvShows.forEach(tv -> addResultCard(tv, DownloadTask.ContentType.TV));
 
                 if (resultsContainer.getChildren().count() == 0) {
-                    Paragraph noResults = new Paragraph("No results found for: " + query);
-                    noResults.addClassNames(LumoUtility.TextColor.SECONDARY);
-                    resultsContainer.add(noResults);
+                    resultsContainer.add(buildEmptyState(query));
                 }
-
-                searchButton.setEnabled(true);
-                searchButton.setText("Search");
             }));
         });
+    }
+
+    private Div buildEmptyState(String query) {
+        Div empty = new Div();
+        empty.addClassName("search-empty-state");
+
+        var icon = VaadinIcon.SEARCH.create();
+        icon.addClassName("search-empty-icon");
+
+        Paragraph msg = new Paragraph("No results found for: " + query);
+        msg.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.Margin.NONE);
+
+        empty.add(icon, msg);
+        return empty;
     }
 
     private void addResultCard(ContentMetadata content, DownloadTask.ContentType type) {
