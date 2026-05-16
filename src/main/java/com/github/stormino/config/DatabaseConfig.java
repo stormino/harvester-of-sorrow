@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jdbc.core.convert.JdbcArrayColumns;
+import org.springframework.data.jdbc.core.dialect.JdbcArrayColumns;
 import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 import org.springframework.data.relational.core.dialect.AnsiDialect;
 
@@ -52,7 +52,6 @@ public class DatabaseConfig {
 
     static class SqliteJdbcDialect extends AnsiDialect implements JdbcDialect {
         @Override
-        @SuppressWarnings("deprecation")
         public JdbcArrayColumns getArraySupport() {
             return JdbcArrayColumns.Unsupported.INSTANCE;
         }
