@@ -76,35 +76,16 @@ public class SearchResultCard extends VerticalLayout {
             getElement().setAttribute("data-title", content.getTitle());
         }
 
+        String typeClass = type == DownloadTask.ContentType.MOVIE ? "result-card--movie" : "result-card--tv";
         addClassNames(
+                "result-card",
+                typeClass,
                 LumoUtility.BorderRadius.MEDIUM,
                 LumoUtility.Padding.SMALL,
                 LumoUtility.BoxShadow.SMALL
         );
         setSpacing(false);
-        getStyle()
-                .set("gap", "0.5rem")
-                .set("transition", "transform 0.2s ease, box-shadow 0.2s ease")
-                .set("cursor", "pointer");
-
-        // Set background gradient based on content type with hover effect
-        if (type == DownloadTask.ContentType.MOVIE) {
-            getStyle().set("background", "linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)"); // Modern blue gradient
-            getElement().addEventListener("mouseenter", e ->
-                getStyle().set("box-shadow", "0 8px 16px rgba(33, 150, 243, 0.25)")
-                        .set("transform", "translateY(-2px)"));
-            getElement().addEventListener("mouseleave", e ->
-                getStyle().set("box-shadow", "0 2px 4px rgba(0, 0, 0, 0.1)")
-                        .set("transform", "translateY(0)"));
-        } else {
-            getStyle().set("background", "linear-gradient(135deg, #FCE4EC 0%, #F8BBD0 100%)"); // Modern pink gradient
-            getElement().addEventListener("mouseenter", e ->
-                getStyle().set("box-shadow", "0 8px 16px rgba(233, 30, 99, 0.25)")
-                        .set("transform", "translateY(-2px)"));
-            getElement().addEventListener("mouseleave", e ->
-                getStyle().set("box-shadow", "0 2px 4px rgba(0, 0, 0, 0.1)")
-                        .set("transform", "translateY(0)"));
-        }
+        getStyle().set("gap", "0.5rem");
 
         // Title row
         HorizontalLayout titleRow = new HorizontalLayout();
@@ -239,7 +220,6 @@ public class SearchResultCard extends VerticalLayout {
     private void buildDownloadDialog() {
         downloadDialog = new Dialog();
         downloadDialog.setHeaderTitle("Download: " + content.getTitle());
-        downloadDialog.setWidth("500px");
 
         VerticalLayout layout = new VerticalLayout();
         layout.setPadding(false);
