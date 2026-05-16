@@ -1,7 +1,21 @@
 /* =====================================================
    VixSrc – custom styles layered on top of Aura.
-   Aura is loaded via theme.json "documentCss".
    ===================================================== */
+
+/* Instrument Sans — same declaration as aura.css but pointing to the
+   Spring Boot static resource path so it resolves correctly regardless
+   of how aura.css is bundled by Vite. */
+@font-face {
+    font-display: swap;
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 400 700;
+    src: url('/aura/fonts/InstrumentSans/InstrumentSans.woff2') format('woff2');
+}
+
+:root {
+    --lumo-font-family: 'Instrument Sans', sans-serif;
+}
 
 /* ── Card ────────────────────────────────────────── */
 vaadin-vertical-layout[theme~="card"] {
