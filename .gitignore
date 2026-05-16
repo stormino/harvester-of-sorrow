@@ -87,4 +87,4 @@ e2e/test-results/
 e2e/.env.e2e
 e2e/dist/
 target/e2e/
-e2e-results/src/main/frontend/generated/
+e2e-results/
