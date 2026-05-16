@@ -44,7 +44,7 @@ bin/
 
 # Vaadin
 node_modules/
-frontend/generated/
+frontend/
 src/main/frontend/generated/
 pnpm-lock.yaml
 webpack.generated.js

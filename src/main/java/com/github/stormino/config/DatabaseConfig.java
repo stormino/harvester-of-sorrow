@@ -50,9 +50,9 @@ public class DatabaseConfig {
         return new SqliteJdbcDialect();
     }
 
-    @SuppressWarnings("deprecation")
     static class SqliteJdbcDialect extends AnsiDialect implements JdbcDialect {
         @Override
+        @SuppressWarnings("deprecation")
         public JdbcArrayColumns getArraySupport() {
             return JdbcArrayColumns.Unsupported.INSTANCE;
         }

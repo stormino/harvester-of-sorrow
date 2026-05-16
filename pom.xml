@@ -223,6 +223,10 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <!-- Explicit path prevents fallback to legacy ./frontend/ directory -->
+                    <frontendDirectory>${project.basedir}/src/main/frontend</frontendDirectory>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -247,6 +251,9 @@
                                 <phase>compile</phase>
                             </execution>
                         </executions>
+                        <configuration>
+                            <frontendDirectory>${project.basedir}/src/main/frontend</frontendDirectory>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
