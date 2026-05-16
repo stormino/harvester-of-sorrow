@@ -1,3 +1,3 @@
 {
-  "documentCss": ["@vaadin/aura/aura.css"]
+  "parent": "aura"
 }

@@ -1,0 +1,3 @@
+{
+  "importCss": ["@vaadin/aura/aura.css"]
+}
