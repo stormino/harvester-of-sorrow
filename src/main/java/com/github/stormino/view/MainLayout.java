@@ -16,7 +16,6 @@ import com.vaadin.flow.component.sidenav.SideNav;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 import com.vaadin.flow.spring.annotation.UIScope;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import org.springframework.beans.factory.annotation.Value;
 
 @SpringComponent
@@ -34,16 +33,14 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
 
     private void createHeader() {
         H1 appName = new H1("VixSrc Downloader");
-        appName.addClassNames(
-                LumoUtility.FontSize.LARGE,
-                LumoUtility.Margin.NONE
-        );
+        appName.getStyle()
+                .set("font-size", "var(--aura-font-size-l, 1.125rem)")
+                .set("margin", "0");
 
         Span version = new Span("v" + appVersion);
-        version.addClassNames(
-                LumoUtility.FontSize.SMALL,
-                LumoUtility.TextColor.SECONDARY
-        );
+        version.getStyle()
+                .set("font-size", "var(--aura-font-size-s, 0.875rem)")
+                .set("color", "var(--vaadin-text-color-secondary)");
 
         HorizontalLayout header = new HorizontalLayout(
                 new DrawerToggle(),
@@ -54,10 +51,7 @@ public class MainLayout extends AppLayout implements AfterNavigationObserver {
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         header.expand(appName);
         header.setWidthFull();
-        header.addClassNames(
-                LumoUtility.Padding.Vertical.NONE,
-                LumoUtility.Padding.Horizontal.MEDIUM
-        );
+        header.getStyle().set("padding", "0 var(--vaadin-gap-m, 1rem)");
 
         addToNavbar(header);
     }

@@ -25,7 +25,6 @@ import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -56,13 +55,13 @@ public class SearchView extends VerticalLayout {
         this.properties = properties;
         this.sourceRegistry = sourceRegistry;
 
-        setSizeFull();
+        setWidthFull();
         setPadding(false);
         setSpacing(false);
-        getStyle().set("padding", "1rem");
+        getStyle().set("padding", "1rem").set("gap", "0.75rem").set("box-sizing", "border-box");
 
         H2 title = new H2("Search Movies & TV Shows");
-        title.addClassNames(LumoUtility.Margin.Top.NONE, LumoUtility.Margin.Bottom.SMALL);
+        title.getStyle().set("margin", "0");
 
         searchField = new TextField();
         searchField.setId("search-input");
@@ -85,9 +84,9 @@ public class SearchView extends VerticalLayout {
         HorizontalLayout searchLayout = new HorizontalLayout(searchField, contentTypeGroup, searchButton);
         searchLayout.setWidthFull();
         searchLayout.setDefaultVerticalComponentAlignment(Alignment.END);
-        searchLayout.setSpacing(true);
-        searchLayout.addClassNames("search-bar", LumoUtility.Gap.SMALL);
-        searchLayout.getStyle().set("flex-wrap", "wrap");
+        searchLayout.setSpacing(false);
+        searchLayout.addClassName("search-bar");
+        searchLayout.getStyle().set("flex-wrap", "wrap").set("gap", "0.5rem");
         searchLayout.expand(searchField);
 
         loadingBar = new ProgressBar();
@@ -98,12 +97,11 @@ public class SearchView extends VerticalLayout {
 
         resultsContainer = new Div();
         resultsContainer.setId("search-results");
-        resultsContainer.addClassNames(
-                LumoUtility.Display.GRID,
-                LumoUtility.Gap.SMALL,
-                LumoUtility.Padding.Vertical.SMALL
-        );
-        // grid-template-columns is set entirely in theme.css (#search-results)
+        resultsContainer.getStyle()
+                .set("display", "grid")
+                .set("gap", "0.75rem")
+                .set("padding-top", "0.25rem");
+        // grid-template-columns is set in theme.css (#search-results)
 
         add(title, searchLayout, loadingBar, resultsContainer);
     }
@@ -188,7 +186,7 @@ public class SearchView extends VerticalLayout {
         icon.addClassName("search-empty-icon");
 
         Paragraph msg = new Paragraph("No results found for: " + query);
-        msg.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.Margin.NONE);
+        msg.getStyle().set("color", "var(--vaadin-text-color-secondary)").set("margin", "0");
 
         empty.add(icon, msg);
         return empty;
