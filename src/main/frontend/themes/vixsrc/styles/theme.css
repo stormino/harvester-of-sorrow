@@ -1,54 +1,36 @@
 /* =====================================================
    VixSrc – custom styles layered on top of Aura.
+   Uses --vaadin-* and --aura-* variables from aura.css.
    ===================================================== */
-
-/* Instrument Sans — same declaration as aura.css but pointing to the
-   Spring Boot static resource path so it resolves correctly regardless
-   of how aura.css is bundled by Vite. */
-@font-face {
-    font-display: swap;
-    font-family: 'Instrument Sans';
-    font-style: normal;
-    font-weight: 400 700;
-    src: url('/aura/fonts/InstrumentSans/InstrumentSans.woff2') format('woff2');
-}
-
-:root {
-    --lumo-font-family: 'Instrument Sans', sans-serif;
-}
 
 /* ── Card ────────────────────────────────────────── */
 vaadin-vertical-layout[theme~="card"] {
-    background-color: var(--lumo-contrast-5pct);
-    border-radius: var(--lumo-border-radius-l);
-    padding: var(--lumo-space-l);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background-color: var(--vaadin-background-container);
+    border-radius: var(--vaadin-radius-l);
+    padding: var(--vaadin-gap-l);
+    box-shadow: var(--aura-shadow-s);
     transition: box-shadow 0.2s ease;
 }
 
 vaadin-vertical-layout[theme~="card"]:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--aura-shadow-m);
 }
 
 /* ── Grid ────────────────────────────────────────── */
 vaadin-grid-cell-content {
-    padding: var(--lumo-space-xs) var(--lumo-space-s);
+    padding: var(--vaadin-gap-xs) var(--vaadin-gap-s);
 }
 
 /* ── Progress bar ────────────────────────────────── */
 vaadin-progress-bar {
     height: 8px;
-    border-radius: var(--lumo-border-radius-m);
+    border-radius: var(--vaadin-radius-m);
     overflow: hidden;
 }
 
 vaadin-progress-bar::part(bar) {
     transition: width 0.3s ease;
-    background: linear-gradient(
-        90deg,
-        var(--lumo-primary-color) 0%,
-        var(--lumo-primary-color-50pct) 100%
-    );
+    background: var(--vaadin-progress-bar-value-background, var(--aura-accent-color));
 }
 
 /* ── Badge ───────────────────────────────────────── */
@@ -56,9 +38,9 @@ vaadin-progress-bar::part(bar) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--lumo-space-xs) var(--lumo-space-s);
-    border-radius: var(--lumo-border-radius-s);
-    font-size: var(--lumo-font-size-xs);
+    padding: var(--vaadin-gap-xs) var(--vaadin-gap-s);
+    border-radius: var(--vaadin-radius-s);
+    font-size: var(--aura-font-size-xs);
     font-weight: 500;
     line-height: 1;
     text-transform: uppercase;
@@ -66,50 +48,50 @@ vaadin-progress-bar::part(bar) {
 }
 
 [theme~="badge"][theme~="success"] {
-    background-color: var(--lumo-success-color-10pct);
-    color: var(--lumo-success-text-color);
+    background-color: color-mix(in srgb, var(--aura-green) 12%, transparent);
+    color: var(--aura-green-text);
 }
 
 [theme~="badge"][theme~="error"] {
-    background-color: var(--lumo-error-color-10pct);
-    color: var(--lumo-error-text-color);
+    background-color: color-mix(in srgb, var(--aura-red) 12%, transparent);
+    color: var(--aura-red-text);
 }
 
 [theme~="badge"][theme~="contrast"] {
-    background-color: var(--lumo-contrast-10pct);
-    color: var(--lumo-contrast-90pct);
+    background-color: var(--vaadin-background-container-strong);
+    color: var(--vaadin-text-color);
 }
 
 [theme~="badge"][theme~="primary"] {
-    background-color: var(--lumo-primary-color-10pct);
-    color: var(--lumo-primary-text-color);
+    background-color: var(--aura-accent-surface);
+    color: var(--aura-accent-text-color);
 }
 
 /* ── Notification ────────────────────────────────── */
 vaadin-notification-card {
-    border-radius: var(--lumo-border-radius-m);
+    border-radius: var(--vaadin-radius-m);
 }
 
 /* ── Search result cards ─────────────────────────── */
 .result-card {
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    background: var(--lumo-base-color);
-    border: 1px solid var(--lumo-contrast-10pct);
+    background: var(--vaadin-background-color);
+    border: 1px solid var(--vaadin-border-color);
     border-left-width: 3px;
 }
 
 .result-card--movie {
-    border-left-color: var(--lumo-primary-color);
+    border-left-color: var(--aura-accent-color);
 }
 
 .result-card--tv {
-    border-left-color: var(--lumo-success-color);
+    border-left-color: var(--aura-green);
 }
 
 .result-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--lumo-box-shadow-s);
+    box-shadow: var(--aura-shadow-s);
 }
 
 .result-card:active {
@@ -135,16 +117,16 @@ vaadin-notification-card {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--lumo-space-m);
-    padding: var(--lumo-space-xl) var(--lumo-space-l);
-    color: var(--lumo-secondary-text-color);
+    gap: var(--vaadin-gap-m);
+    padding: var(--vaadin-gap-xl) var(--vaadin-gap-l);
+    color: var(--vaadin-text-color-secondary);
     text-align: center;
 }
 
 .search-empty-icon {
     width: 48px;
     height: 48px;
-    color: var(--lumo-contrast-30pct);
+    color: color-mix(in srgb, var(--vaadin-text-color) 30%, transparent);
 }
 
 /* ── Search results container ────────────────────── */
@@ -160,32 +142,32 @@ vaadin-dialog-overlay::part(overlay) {
 
 /* ── TreeGrid ────────────────────────────────────── */
 vaadin-grid-tree-toggle {
-    margin-inline-start: calc(var(--lumo-space-s) * -1);
+    margin-inline-start: calc(var(--vaadin-gap-s) * -1);
 }
 
 vaadin-grid-tree-grid::part(row)[level="1"] {
-    background-color: var(--lumo-contrast-5pct);
-    border-left: 3px solid var(--lumo-primary-color-10pct);
+    background-color: var(--vaadin-background-container);
+    border-left: 3px solid color-mix(in srgb, var(--aura-accent-color) 12%, transparent);
 }
 
 vaadin-grid-tree-grid::part(cell)[level="1"] {
-    font-size: var(--lumo-font-size-s);
-    color: var(--lumo-secondary-text-color);
-    padding-left: calc(var(--lumo-space-m) + 3px);
+    font-size: var(--aura-font-size-s);
+    color: var(--vaadin-text-color-secondary);
+    padding-left: calc(var(--vaadin-gap-m) + 3px);
 }
 
 vaadin-grid-tree-toggle::part(toggle) {
-    color: var(--lumo-contrast-60pct);
+    color: color-mix(in srgb, var(--vaadin-text-color) 60%, transparent);
     transition: all 0.2s ease;
 }
 
 vaadin-grid-tree-toggle:hover::part(toggle) {
-    color: var(--lumo-contrast-80pct);
+    color: color-mix(in srgb, var(--vaadin-text-color) 80%, transparent);
     transform: scale(1.1);
 }
 
 vaadin-grid-tree-toggle[expanded]::part(toggle) {
-    color: var(--lumo-primary-color);
+    color: var(--aura-accent-color);
     transform: rotate(90deg);
 }
 
@@ -194,12 +176,12 @@ vaadin-grid-tree-grid::part(row) {
 }
 
 vaadin-grid-tree-grid::part(row):hover {
-    background-color: var(--lumo-contrast-10pct);
+    background-color: var(--vaadin-background-container-strong);
     cursor: pointer;
 }
 
 vaadin-grid-tree-grid::part(row):nth-child(even) {
-    background-color: var(--lumo-contrast-5pct);
+    background-color: var(--vaadin-background-container);
 }
 
 /* ── Buttons / interactive elements ─────────────── */
@@ -213,15 +195,14 @@ vaadin-combo-box {
 
 vaadin-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--aura-shadow-s);
 }
 
 vaadin-button:active {
     transform: scale(0.98);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--aura-shadow-xs);
 }
 
-/* Ensure tappable targets are large enough for touch */
 vaadin-button[theme~="small"] {
     min-height: 36px;
 }
@@ -238,8 +219,8 @@ vaadin-button[theme~="small"] {
 
 /* ── Download queue status bar ───────────────────── */
 .queue-status-row {
-    font-size: var(--lumo-font-size-s);
-    color: var(--lumo-secondary-text-color);
+    font-size: var(--aura-font-size-s);
+    color: var(--vaadin-text-color-secondary);
 }
 
 /* ── Mobile bottom navigation ────────────────────── */
@@ -254,7 +235,7 @@ vaadin-button[theme~="small"] {
     justify-content: center;
     gap: 2px;
     text-decoration: none;
-    color: var(--lumo-secondary-text-color);
+    color: var(--vaadin-text-color-secondary);
     transition: color 0.2s;
     min-height: 44px;
     flex: 1;
@@ -272,7 +253,7 @@ vaadin-button[theme~="small"] {
 }
 
 .mobile-bottom-nav-item.active {
-    color: var(--lumo-primary-color);
+    color: var(--aura-accent-color);
 }
 
 /* =====================================================
@@ -291,8 +272,8 @@ vaadin-button[theme~="small"] {
         left: 0;
         right: 0;
         height: 56px;
-        background: var(--lumo-base-color);
-        border-top: 1px solid var(--lumo-contrast-10pct);
+        background: var(--vaadin-background-color);
+        border-top: 1px solid var(--vaadin-border-color);
         box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
         z-index: 300;
         padding-bottom: env(safe-area-inset-bottom);
@@ -303,13 +284,12 @@ vaadin-button[theme~="small"] {
         padding-bottom: calc(56px + env(safe-area-inset-bottom));
     }
 
-    /* Hide Speed / ETA / Created columns — part names set via setPartNameGenerator */
+    /* Hide Speed / ETA / Created columns */
     .download-queue-view-grid-1::part(col-speed),
     .download-queue-view-grid-1::part(col-eta),
     .download-queue-view-grid-1::part(col-created) {
         display: none;
     }
-    /* Hide header cells by slot index (part names only apply to data cells) */
     .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-4"],
     .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-5"],
     .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-6"] {
@@ -318,12 +298,10 @@ vaadin-button[theme~="small"] {
 
     #search-results {
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-        gap: var(--lumo-space-m);
-        padding: var(--lumo-space-m);
+        gap: var(--vaadin-gap-m);
+        padding: var(--vaadin-gap-m);
     }
 
-    /* On mobile the search bar stacks: field takes full width, then
-       the filter group and button share the next row. */
     .search-bar {
         flex-direction: column;
         align-items: stretch;
@@ -347,39 +325,22 @@ vaadin-button[theme~="small"] {
     }
 
     vaadin-grid-cell-content {
-        padding: calc(var(--lumo-space-xs) * 0.75) var(--lumo-space-xs);
+        padding: calc(var(--vaadin-gap-xs) * 0.75) var(--vaadin-gap-xs);
     }
 
     #search-results {
         grid-template-columns: 1fr;
-        gap: var(--lumo-space-s);
-        padding: var(--lumo-space-s);
+        gap: var(--vaadin-gap-s);
+        padding: var(--vaadin-gap-s);
     }
 
     vaadin-vertical-layout[theme~="card"] {
-        padding: var(--lumo-space-m);
+        padding: var(--vaadin-gap-m);
     }
 
     vaadin-dialog-overlay::part(overlay) {
         max-width: 100vw;
         margin: 0;
-        border-radius: var(--lumo-border-radius-l) var(--lumo-border-radius-l) 0 0;
-    }
-}
-
-/* =====================================================
-   DARK MODE  —  system preference
-   ===================================================== */
-@media (prefers-color-scheme: dark) {
-    vaadin-vertical-layout[theme~="card"] {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    vaadin-vertical-layout[theme~="card"]:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
-    }
-
-    vaadin-button:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        border-radius: var(--vaadin-radius-l) var(--vaadin-radius-l) 0 0;
     }
 }
