@@ -71,7 +71,6 @@ public class SearchView extends VerticalLayout {
 
         contentTypeGroup = new RadioButtonGroup<>();
         contentTypeGroup.setId("content-type-filter");
-        contentTypeGroup.setLabel("Type");
         contentTypeGroup.setItems("Movies", "TV Shows", "Both");
         contentTypeGroup.setValue("Both");
 

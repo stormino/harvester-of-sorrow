@@ -5,7 +5,7 @@
 /* ── Font ────────────────────────────────────────── */
 :root {
     --aura-font-family: 'Roboto', sans-serif;
-    --aura-base-font-size: 13;
+    --aura-base-font-size: 12;
 }
 
 /* ── Search result cards: left border accent ─────── */
@@ -145,8 +145,18 @@ vaadin-dialog-overlay::part(overlay) {
         align-items: stretch;
     }
 
+    /* Radio group shrinks to content width and sits left-aligned */
+    .search-bar vaadin-radio-button-group {
+        align-self: flex-start;
+    }
+
     .search-bar .search-button {
         width: 100%;
+    }
+
+    /* Source tag in download queue title column is noise on small screens */
+    .title-source-tag {
+        display: none;
     }
 }
 
