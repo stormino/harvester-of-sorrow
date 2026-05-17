@@ -8,6 +8,7 @@ import com.vaadin.flow.theme.aura.Aura;
 
 @Push
 @StyleSheet(Aura.STYLESHEET)
+@StyleSheet("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap")
 @Theme("vixsrc")
 public class AppShell implements AppShellConfigurator {
 }

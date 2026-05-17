@@ -1,84 +1,21 @@
 /* =====================================================
-   VixSrc – custom styles layered on top of Aura.
-   Uses --vaadin-* and --aura-* variables from aura.css.
+   VixSrc – minimal overrides on top of Aura.
    ===================================================== */
 
-/* ── Card ────────────────────────────────────────── */
-vaadin-vertical-layout[theme~="card"] {
-    background-color: var(--vaadin-background-container);
-    border-radius: var(--vaadin-radius-l);
-    padding: var(--vaadin-gap-l);
-    box-shadow: var(--aura-shadow-s);
-    transition: box-shadow 0.2s ease;
+/* ── Font ────────────────────────────────────────── */
+:root {
+    --aura-font-family: 'Roboto', sans-serif;
 }
 
-vaadin-vertical-layout[theme~="card"]:hover {
-    box-shadow: var(--aura-shadow-m);
-}
-
-/* ── Grid ────────────────────────────────────────── */
-vaadin-grid-cell-content {
-    padding: var(--vaadin-gap-xs) var(--vaadin-gap-s);
-}
-
-/* ── Progress bar ────────────────────────────────── */
-vaadin-progress-bar {
-    height: 8px;
-    border-radius: var(--vaadin-radius-m);
-    overflow: hidden;
-}
-
-vaadin-progress-bar::part(bar) {
-    transition: width 0.3s ease;
-    background: var(--vaadin-progress-bar-value-background, var(--aura-accent-color));
-}
-
-/* ── Badge ───────────────────────────────────────── */
-[theme~="badge"] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--vaadin-gap-xs) var(--vaadin-gap-s);
-    border-radius: var(--vaadin-radius-s);
-    font-size: var(--aura-font-size-xs);
-    font-weight: 500;
-    line-height: 1;
-    text-transform: uppercase;
-    transition: all 0.2s ease;
-}
-
-[theme~="badge"][theme~="success"] {
-    background-color: color-mix(in srgb, var(--aura-green) 12%, transparent);
-    color: var(--aura-green-text);
-}
-
-[theme~="badge"][theme~="error"] {
-    background-color: color-mix(in srgb, var(--aura-red) 12%, transparent);
-    color: var(--aura-red-text);
-}
-
-[theme~="badge"][theme~="contrast"] {
-    background-color: var(--vaadin-background-container-strong);
-    color: var(--vaadin-text-color);
-}
-
-[theme~="badge"][theme~="primary"] {
-    background-color: var(--aura-accent-surface);
-    color: var(--aura-accent-text-color);
-}
-
-/* ── Notification ────────────────────────────────── */
-vaadin-notification-card {
-    border-radius: var(--vaadin-radius-m);
-}
-
-/* ── Search result cards ─────────────────────────── */
+/* ── Search result cards: left border accent ─────── */
 .result-card {
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    background: var(--vaadin-background-color);
     border: 1px solid var(--vaadin-border-color);
     border-left-width: 3px;
+    transition: transform 0.15s ease;
+}
+
+.result-card:hover {
+    transform: translateY(-1px);
 }
 
 .result-card--movie {
@@ -87,20 +24,6 @@ vaadin-notification-card {
 
 .result-card--tv {
     border-left-color: var(--aura-green);
-}
-
-.result-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--aura-shadow-s);
-}
-
-.result-card:active {
-    transform: scale(0.99);
-}
-
-/* ── Search bar ──────────────────────────────────── */
-.search-bar .search-button {
-    white-space: nowrap;
 }
 
 /* ── Search loading bar ──────────────────────────── */
@@ -117,8 +40,8 @@ vaadin-notification-card {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--vaadin-gap-m);
-    padding: var(--vaadin-gap-xl) var(--vaadin-gap-l);
+    gap: var(--vaadin-gap-m, 1rem);
+    padding: var(--vaadin-gap-xl, 2rem) var(--vaadin-gap-l, 1.5rem);
     color: var(--vaadin-text-color-secondary);
     text-align: center;
 }
@@ -126,7 +49,7 @@ vaadin-notification-card {
 .search-empty-icon {
     width: 48px;
     height: 48px;
-    color: color-mix(in srgb, var(--vaadin-text-color) 30%, transparent);
+    opacity: 0.3;
 }
 
 /* ── Search results container ────────────────────── */
@@ -134,93 +57,10 @@ vaadin-notification-card {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
 }
 
-/* ── Dialog ──────────────────────────────────────── */
+/* ── Dialog max-width ────────────────────────────── */
 vaadin-dialog-overlay::part(overlay) {
     max-width: min(460px, 95vw);
     width: 100%;
-}
-
-/* ── TreeGrid ────────────────────────────────────── */
-vaadin-grid-tree-toggle {
-    margin-inline-start: calc(var(--vaadin-gap-s) * -1);
-}
-
-vaadin-grid-tree-grid::part(row)[level="1"] {
-    background-color: var(--vaadin-background-container);
-    border-left: 3px solid color-mix(in srgb, var(--aura-accent-color) 12%, transparent);
-}
-
-vaadin-grid-tree-grid::part(cell)[level="1"] {
-    font-size: var(--aura-font-size-s);
-    color: var(--vaadin-text-color-secondary);
-    padding-left: calc(var(--vaadin-gap-m) + 3px);
-}
-
-vaadin-grid-tree-toggle::part(toggle) {
-    color: color-mix(in srgb, var(--vaadin-text-color) 60%, transparent);
-    transition: all 0.2s ease;
-}
-
-vaadin-grid-tree-toggle:hover::part(toggle) {
-    color: color-mix(in srgb, var(--vaadin-text-color) 80%, transparent);
-    transform: scale(1.1);
-}
-
-vaadin-grid-tree-toggle[expanded]::part(toggle) {
-    color: var(--aura-accent-color);
-    transform: rotate(90deg);
-}
-
-vaadin-grid-tree-grid::part(row) {
-    transition: background-color 0.15s ease;
-}
-
-vaadin-grid-tree-grid::part(row):hover {
-    background-color: var(--vaadin-background-container-strong);
-    cursor: pointer;
-}
-
-vaadin-grid-tree-grid::part(row):nth-child(even) {
-    background-color: var(--vaadin-background-container);
-}
-
-/* ── Buttons / interactive elements ─────────────── */
-vaadin-button,
-vaadin-text-field,
-vaadin-select,
-vaadin-combo-box {
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-vaadin-button:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--aura-shadow-s);
-}
-
-vaadin-button:active {
-    transform: scale(0.98);
-    box-shadow: var(--aura-shadow-xs);
-}
-
-vaadin-button[theme~="small"] {
-    min-height: 36px;
-}
-
-/* ── Fade-in ─────────────────────────────────────── */
-.fade-in {
-    animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-/* ── Download queue status bar ───────────────────── */
-.queue-status-row {
-    font-size: var(--aura-font-size-s);
-    color: var(--vaadin-text-color-secondary);
 }
 
 /* ── Mobile bottom navigation ────────────────────── */
@@ -249,7 +89,6 @@ vaadin-button[theme~="small"] {
 .mobile-bottom-nav-item span {
     font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.02em;
 }
 
 .mobile-bottom-nav-item.active {
@@ -260,7 +99,6 @@ vaadin-button[theme~="small"] {
    RESPONSIVE  —  Tablet  ≤768 px
    ===================================================== */
 @media (max-width: 768px) {
-    /* Bottom nav visible; drawer toggle hidden */
     vaadin-drawer-toggle {
         display: none;
     }
@@ -279,7 +117,6 @@ vaadin-button[theme~="small"] {
         padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* Push content up so it's not obscured by the bottom nav */
     vaadin-app-layout::part(content) {
         padding-bottom: calc(56px + env(safe-area-inset-bottom));
     }
@@ -298,8 +135,8 @@ vaadin-button[theme~="small"] {
 
     #search-results {
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-        gap: var(--vaadin-gap-m);
-        padding: var(--vaadin-gap-m);
+        gap: var(--vaadin-gap-m, 1rem);
+        padding: var(--vaadin-gap-m, 1rem);
     }
 
     .search-bar {
@@ -324,23 +161,15 @@ vaadin-button[theme~="small"] {
         display: none;
     }
 
-    vaadin-grid-cell-content {
-        padding: calc(var(--vaadin-gap-xs) * 0.75) var(--vaadin-gap-xs);
-    }
-
     #search-results {
         grid-template-columns: 1fr;
-        gap: var(--vaadin-gap-s);
-        padding: var(--vaadin-gap-s);
-    }
-
-    vaadin-vertical-layout[theme~="card"] {
-        padding: var(--vaadin-gap-m);
+        gap: var(--vaadin-gap-s, 0.75rem);
+        padding: var(--vaadin-gap-s, 0.75rem);
     }
 
     vaadin-dialog-overlay::part(overlay) {
         max-width: 100vw;
         margin: 0;
-        border-radius: var(--vaadin-radius-l) var(--vaadin-radius-l) 0 0;
+        border-radius: var(--vaadin-radius-l, 0.75rem) var(--vaadin-radius-l, 0.75rem) 0 0;
     }
 }

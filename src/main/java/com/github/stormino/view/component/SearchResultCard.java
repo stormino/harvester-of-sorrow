@@ -7,12 +7,10 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
@@ -23,11 +21,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
-/**
- * Card component for displaying search results
- */
 public class SearchResultCard extends VerticalLayout {
-    
+
     private static final List<String> ALL_LANGUAGES =
             List.of("en", "it", "es", "fr", "de", "pt", "ja", "ko", "ru", "zh");
 
@@ -66,7 +61,7 @@ public class SearchResultCard extends VerticalLayout {
 
         createCard();
     }
-    
+
     private void createCard() {
         getElement().setAttribute("data-testid", "result-card");
         MediaSource cardSource = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
@@ -77,81 +72,71 @@ public class SearchResultCard extends VerticalLayout {
         }
 
         String typeClass = type == DownloadTask.ContentType.MOVIE ? "result-card--movie" : "result-card--tv";
-        addClassNames(
-                "result-card",
-                typeClass,
-                LumoUtility.BorderRadius.MEDIUM,
-                LumoUtility.Padding.SMALL,
-                LumoUtility.BoxShadow.SMALL
-        );
+        addClassNames("result-card", typeClass);
         setSpacing(false);
-        getStyle().set("gap", "0.5rem");
+        setPadding(false);
+        getStyle()
+                .set("padding", "var(--vaadin-gap-m, 0.75rem)")
+                .set("gap", "0.4rem");
 
-        // Title row
+        // ── Title row ──────────────────────────────────────────────
         HorizontalLayout titleRow = new HorizontalLayout();
         titleRow.setSpacing(false);
-        titleRow.setAlignItems(Alignment.CENTER);
-        titleRow.addClassNames(LumoUtility.Gap.XSMALL);
         titleRow.setPadding(false);
-        titleRow.getStyle().set("flex-wrap", "wrap");
+        titleRow.setAlignItems(Alignment.CENTER);
+        titleRow.getStyle().set("flex-wrap", "wrap").set("gap", "0.4rem");
 
         H3 title = new H3(content.getTitle());
-        title.addClassNames(LumoUtility.Margin.NONE);
         title.getStyle()
+                .set("margin", "0")
                 .set("line-height", "1.3")
+                .set("font-size", "1rem")
                 .set("font-weight", "600");
         titleRow.add(title);
 
-        // Source tag
+        // Source badge — compact, visually secondary
         MediaSource source = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
         Span sourceTag = new Span(source.getDisplayName());
-        sourceTag.addClassNames(LumoUtility.FontSize.XSMALL);
         sourceTag.getStyle()
+                .set("font-size", "0.6rem")
+                .set("font-weight", "700")
+                .set("letter-spacing", "0.04em")
+                .set("padding", "0.1rem 0.35rem")
+                .set("border-radius", "0.2rem")
+                .set("line-height", "1.6")
+                .set("align-self", "center")
+                .set("white-space", "nowrap")
                 .set("background", switch (source) {
-                    case VIXSRC -> "#1976D2";
+                    case VIXSRC  -> "#1976D2";
                     case RAIPLAY -> "#0066B3";
                 })
-                .set("color", "#fff")
-                .set("padding", "0.15rem 0.4rem")
-                .set("border-radius", "0.25rem")
-                .set("font-weight", "600");
+                .set("color", "#fff");
         titleRow.add(sourceTag);
 
-        // TV-specific info as badge
+        // TV-specific season/episode count chips
         if (type == DownloadTask.ContentType.TV && content.getNumberOfSeasons() != null
                 && content.getNumberOfSeasons() > 0) {
-            Span badge = new Span(content.getNumberOfSeasons() + "S");
-            badge.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
-            badge.getStyle()
-                    .set("background", "rgba(0,0,0,0.1)")
-                    .set("padding", "0.15rem 0.4rem")
-                    .set("border-radius", "0.25rem")
-                    .set("font-weight", "500");
-            titleRow.add(badge);
-
+            titleRow.add(smallChip(content.getNumberOfSeasons() + "S"));
             if (content.getTotalEpisodes() != null) {
-                Span epBadge = new Span(content.getTotalEpisodes() + "E");
-                epBadge.addClassNames(LumoUtility.FontSize.XSMALL, LumoUtility.TextColor.SECONDARY);
-                epBadge.getStyle()
-                        .set("background", "rgba(0,0,0,0.1)")
-                        .set("padding", "0.15rem 0.4rem")
-                        .set("border-radius", "0.25rem")
-                        .set("font-weight", "500");
-                titleRow.add(epBadge);
+                titleRow.add(smallChip(content.getTotalEpisodes() + "E"));
             }
         }
 
-        // Metadata row: Year, Rating, TMDB ID
+        // ── Metadata row: Year · Rating · TMDB ID ─────────────────
         HorizontalLayout metaRow = new HorizontalLayout();
         metaRow.setSpacing(false);
-        metaRow.addClassNames(LumoUtility.Gap.SMALL, LumoUtility.FontSize.SMALL);
         metaRow.setPadding(false);
-        metaRow.getStyle().set("flex-wrap", "wrap");
+        metaRow.getStyle()
+                .set("flex-wrap", "wrap")
+                .set("gap", "0.5rem")
+                .set("align-items", "center")
+                .set("font-size", "var(--aura-font-size-s, 0.875rem)");
 
         if (content.getYear() != null) {
             Span year = new Span(content.getYear().toString());
-            year.addClassNames(LumoUtility.TextColor.SECONDARY);
-            year.getStyle().set("font-weight", "500");
+            year.getStyle()
+                    .set("color", "var(--vaadin-text-color-secondary)")
+                    .set("font-weight", "500");
             metaRow.add(year);
         }
 
@@ -163,22 +148,22 @@ public class SearchResultCard extends VerticalLayout {
 
         if (content.getTmdbId() != null) {
             Span tmdbId = new Span("ID: " + content.getTmdbId());
-            tmdbId.addClassNames(LumoUtility.TextColor.TERTIARY, LumoUtility.FontSize.XSMALL);
+            tmdbId.getStyle()
+                    .set("color", "var(--vaadin-text-color-secondary)")
+                    .set("font-size", "var(--aura-font-size-xs, 0.75rem)");
             metaRow.add(tmdbId);
         }
-        
-        // Overview
+
+        // ── Overview ───────────────────────────────────────────────
         Paragraph overview = new Paragraph(truncateOverview(content.getOverview()));
-        overview.addClassNames(
-                LumoUtility.TextColor.SECONDARY,
-                LumoUtility.FontSize.SMALL
-        );
         overview.getStyle()
                 .set("margin", "0")
-                .set("line-height", "1.4");
+                .set("line-height", "1.4")
+                .set("color", "var(--vaadin-text-color-secondary)")
+                .set("font-size", "var(--aura-font-size-s, 0.875rem)");
 
-        // Download button
-        Button downloadBtn = new Button("Download", VaadinIcon.DOWNLOAD.create());
+        // ── Download button ────────────────────────────────────────
+        Button downloadBtn = new Button("Download");
         downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
         downloadBtn.getElement().setAttribute("data-testid", "result-card-download");
         if (content.getTmdbId() != null) {
@@ -190,12 +175,25 @@ public class SearchResultCard extends VerticalLayout {
 
         add(titleRow, metaRow, overview, downloadBtn);
 
-        // Make card clickable to open the source's public web page.
         String externalUrl = externalUrlFor(source);
         if (externalUrl != null) {
             getElement().addEventListener("click", e ->
                     getElement().executeJs("window.open($0, '_blank')", externalUrl));
         }
+    }
+
+    private static Span smallChip(String text) {
+        Span chip = new Span(text);
+        chip.getStyle()
+                .set("font-size", "0.6rem")
+                .set("font-weight", "500")
+                .set("padding", "0.1rem 0.35rem")
+                .set("border-radius", "0.2rem")
+                .set("line-height", "1.6")
+                .set("align-self", "center")
+                .set("background", "var(--vaadin-background-container-strong, rgba(0,0,0,0.08))")
+                .set("color", "var(--vaadin-text-color-secondary)");
+        return chip;
     }
 
     private String externalUrlFor(MediaSource source) {
@@ -208,7 +206,7 @@ public class SearchResultCard extends VerticalLayout {
                     ? m.webUrl() : null;
         };
     }
-    
+
     private void openDownloadDialog() {
         if (downloadDialog == null) {
             buildDownloadDialog();
@@ -225,7 +223,6 @@ public class SearchResultCard extends VerticalLayout {
         layout.setPadding(false);
         layout.setSpacing(true);
 
-        // Language selector — restricted to languages this source actually serves
         dialogLanguageSelector = new MultiSelectComboBox<>("Languages");
         dialogLanguageSelector.setId("dialog-language-selector");
         List<String> languageItems = ALL_LANGUAGES.stream()
@@ -236,7 +233,6 @@ public class SearchResultCard extends VerticalLayout {
         dialogLanguageSelector.setItems(languageItems);
         dialogLanguageSelector.setWidthFull();
 
-        // Quality selector
         dialogQualitySelector = new Select<>();
         dialogQualitySelector.setId("dialog-quality-selector");
         dialogQualitySelector.setLabel("Quality");
@@ -245,7 +241,6 @@ public class SearchResultCard extends VerticalLayout {
 
         layout.add(dialogLanguageSelector, dialogQualitySelector);
 
-        // TV-specific: Season/Episode selectors
         if (type == DownloadTask.ContentType.TV) {
             dialogSeasonField = new IntegerField("Season");
             dialogSeasonField.setId("dialog-season-field");
@@ -267,7 +262,7 @@ public class SearchResultCard extends VerticalLayout {
 
             layout.add(dialogSeasonField, dialogEpisodeField);
 
-            Button downloadBtn = new Button("Add to Queue", e -> {
+            Button confirmBtn = new Button("Add to Queue", e -> {
                 downloadHandler.onDownload(
                         content, type,
                         dialogSeasonField.getValue(),
@@ -277,12 +272,11 @@ public class SearchResultCard extends VerticalLayout {
                 );
                 downloadDialog.close();
             });
-            downloadBtn.setId("dialog-confirm-download");
-            downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            downloadDialog.getFooter().add(downloadBtn);
-
+            confirmBtn.setId("dialog-confirm-download");
+            confirmBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            downloadDialog.getFooter().add(confirmBtn);
         } else {
-            Button downloadBtn = new Button("Add to Queue", e -> {
+            Button confirmBtn = new Button("Add to Queue", e -> {
                 downloadHandler.onDownload(
                         content, type,
                         null, null,
@@ -291,9 +285,9 @@ public class SearchResultCard extends VerticalLayout {
                 );
                 downloadDialog.close();
             });
-            downloadBtn.setId("dialog-confirm-download");
-            downloadBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            downloadDialog.getFooter().add(downloadBtn);
+            confirmBtn.setId("dialog-confirm-download");
+            confirmBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            downloadDialog.getFooter().add(confirmBtn);
         }
 
         Button cancelBtn = new Button("Cancel", e -> downloadDialog.close());
@@ -303,10 +297,7 @@ public class SearchResultCard extends VerticalLayout {
     }
 
     private void resetDialogFields() {
-        // Reset quality to current default
         dialogQualitySelector.setValue(defaultQualitySupplier.get());
-
-        // Reset language to current default, intersected with supported languages
         dialogLanguageSelector.deselectAll();
         Set<String> defaultLanguages = defaultLanguagesSupplier.get();
         if (defaultLanguages != null && !defaultLanguages.isEmpty()) {
@@ -321,12 +312,10 @@ public class SearchResultCard extends VerticalLayout {
             }
             applicable.forEach(dialogLanguageSelector::select);
         }
-
-        // Clear season/episode so a previous selection never bleeds into the next open
         if (dialogSeasonField != null) dialogSeasonField.clear();
         if (dialogEpisodeField != null) dialogEpisodeField.clear();
     }
-    
+
     private String truncateOverview(String overview) {
         if (overview == null || overview.isBlank()) {
             return "No overview available.";
