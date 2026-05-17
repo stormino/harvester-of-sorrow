@@ -1,37 +1,11 @@
 /* =====================================================
-   VixSrc – minimal overrides on top of Aura.
+   VixSrc – structural layout only.
+   All visual styling deferred to Aura defaults.
    ===================================================== */
 
-/* ── Font ────────────────────────────────────────── */
-:root {
-    --aura-font-family: 'Roboto', sans-serif;
-    --aura-base-font-size: 12;
-}
-
-/* ── Search result cards: left border accent ─────── */
-.result-card {
-    border: 1px solid var(--vaadin-border-color);
-    border-left-width: 3px;
-    transition: transform 0.15s ease;
-}
-
-.result-card:hover {
-    transform: translateY(-1px);
-}
-
-.result-card--movie {
-    border-left-color: var(--aura-accent-color);
-}
-
-.result-card--tv {
-    border-left-color: var(--aura-green);
-}
-
-/* ── Search loading bar ──────────────────────────── */
-.search-loading-bar {
-    height: 3px;
-    border-radius: 0;
-    margin: 0;
+/* ── Search results grid layout ──────────────────── */
+#search-results {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
 }
 
 /* ── Search empty state ──────────────────────────── */
@@ -41,21 +15,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--vaadin-gap-m, 1rem);
-    padding: var(--vaadin-gap-xl, 2rem) var(--vaadin-gap-l, 1.5rem);
-    color: var(--vaadin-text-color-secondary);
+    gap: 1rem;
+    padding: 2rem 1.5rem;
     text-align: center;
 }
 
-.search-empty-icon {
-    width: 48px;
-    height: 48px;
-    opacity: 0.3;
-}
-
-/* ── Search results container ────────────────────── */
-#search-results {
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+/* ── Search loading bar ──────────────────────────── */
+.search-loading-bar {
+    height: 3px;
+    border-radius: 0;
+    margin: 0;
 }
 
 /* ── Dialog max-width ────────────────────────────── */
@@ -113,7 +82,6 @@ vaadin-dialog-overlay::part(overlay) {
         height: 56px;
         background: var(--vaadin-background-color);
         border-top: 1px solid var(--vaadin-border-color);
-        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
         z-index: 300;
         padding-bottom: env(safe-area-inset-bottom);
     }
@@ -134,10 +102,15 @@ vaadin-dialog-overlay::part(overlay) {
         display: none;
     }
 
+    /* Hide source tag in download queue title — title needs the space */
+    .title-source-tag {
+        display: none;
+    }
+
     #search-results {
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-        gap: var(--vaadin-gap-m, 1rem);
-        padding: var(--vaadin-gap-m, 1rem);
+        gap: 1rem;
+        padding: 1rem;
     }
 
     .search-bar {
@@ -145,7 +118,6 @@ vaadin-dialog-overlay::part(overlay) {
         align-items: stretch;
     }
 
-    /* Radio group shrinks to content width and sits left-aligned */
     .search-bar vaadin-radio-button-group {
         align-self: flex-start;
     }
@@ -153,18 +125,12 @@ vaadin-dialog-overlay::part(overlay) {
     .search-bar .search-button {
         width: 100%;
     }
-
-    /* Source tag in download queue title column is noise on small screens */
-    .title-source-tag {
-        display: none;
-    }
 }
 
 /* =====================================================
    RESPONSIVE  —  Mobile  ≤480 px
    ===================================================== */
 @media (max-width: 480px) {
-    /* Additionally hide Downloaded on small phones */
     .download-queue-view-grid-1::part(col-size) {
         display: none;
     }
@@ -174,13 +140,12 @@ vaadin-dialog-overlay::part(overlay) {
 
     #search-results {
         grid-template-columns: 1fr;
-        gap: var(--vaadin-gap-s, 0.75rem);
-        padding: var(--vaadin-gap-s, 0.75rem);
+        gap: 0.75rem;
+        padding: 0.75rem;
     }
 
     vaadin-dialog-overlay::part(overlay) {
         max-width: 100vw;
         margin: 0;
-        border-radius: var(--vaadin-radius-l, 0.75rem) var(--vaadin-radius-l, 0.75rem) 0 0;
     }
 }

@@ -33,7 +33,6 @@ public class SearchResultCard extends VerticalLayout {
     private final Set<String> supportedLanguages;
     private final DownloadHandler downloadHandler;
 
-    // Built once per card; fields reset on each open to avoid Vaadin overlay ID conflicts
     private Dialog downloadDialog;
     private MultiSelectComboBox<String> dialogLanguageSelector;
     private Select<String> dialogQualitySelector;
@@ -58,26 +57,21 @@ public class SearchResultCard extends VerticalLayout {
         this.defaultQualitySupplier = defaultQualitySupplier;
         this.supportedLanguages = supportedLanguages;
         this.downloadHandler = downloadHandler;
-
         createCard();
     }
 
     private void createCard() {
         getElement().setAttribute("data-testid", "result-card");
-        MediaSource cardSource = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
-        getElement().setAttribute("data-source", cardSource.name().toLowerCase());
+        MediaSource source = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
+        getElement().setAttribute("data-source", source.name().toLowerCase());
         getElement().setAttribute("data-type", type.name());
         if (content.getTitle() != null) {
             getElement().setAttribute("data-title", content.getTitle());
         }
 
-        String typeClass = type == DownloadTask.ContentType.MOVIE ? "result-card--movie" : "result-card--tv";
-        addClassNames("result-card", typeClass);
         setSpacing(false);
-        setPadding(false);
-        getStyle()
-                .set("padding", "var(--vaadin-gap-m, 0.75rem)")
-                .set("gap", "0.4rem");
+        setPadding(true);
+        getStyle().set("gap", "0.4rem");
 
         // ── Title row ──────────────────────────────────────────────
         HorizontalLayout titleRow = new HorizontalLayout();
@@ -87,80 +81,46 @@ public class SearchResultCard extends VerticalLayout {
         titleRow.getStyle().set("flex-wrap", "wrap").set("gap", "0.4rem");
 
         H3 title = new H3(content.getTitle());
-        title.getStyle()
-                .set("margin", "0")
-                .set("line-height", "1.3")
-                .set("font-size", "1rem")
-                .set("font-weight", "600");
+        title.getStyle().set("margin", "0");
         titleRow.add(title);
 
-        // Source badge — compact, visually secondary
-        MediaSource source = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
+        // Source badge using Vaadin theme attribute
         Span sourceTag = new Span(source.getDisplayName());
-        sourceTag.getStyle()
-                .set("font-size", "0.6rem")
-                .set("font-weight", "700")
-                .set("letter-spacing", "0.04em")
-                .set("padding", "0.1rem 0.35rem")
-                .set("border-radius", "0.2rem")
-                .set("line-height", "1.6")
-                .set("align-self", "center")
-                .set("white-space", "nowrap")
-                .set("background", switch (source) {
-                    case VIXSRC  -> "#1976D2";
-                    case RAIPLAY -> "#0066B3";
-                })
-                .set("color", "#fff");
+        sourceTag.getElement().getThemeList().add("badge");
+        sourceTag.getElement().getThemeList().add("primary");
         titleRow.add(sourceTag);
 
-        // TV-specific season/episode count chips
+        // TV season/episode chips
         if (type == DownloadTask.ContentType.TV && content.getNumberOfSeasons() != null
                 && content.getNumberOfSeasons() > 0) {
-            titleRow.add(smallChip(content.getNumberOfSeasons() + "S"));
+            titleRow.add(chip(content.getNumberOfSeasons() + "S"));
             if (content.getTotalEpisodes() != null) {
-                titleRow.add(smallChip(content.getTotalEpisodes() + "E"));
+                titleRow.add(chip(content.getTotalEpisodes() + "E"));
             }
         }
 
-        // ── Metadata row: Year · Rating · TMDB ID ─────────────────
+        // ── Metadata row ───────────────────────────────────────────
         HorizontalLayout metaRow = new HorizontalLayout();
         metaRow.setSpacing(false);
         metaRow.setPadding(false);
-        metaRow.getStyle()
-                .set("flex-wrap", "wrap")
-                .set("gap", "0.5rem")
-                .set("align-items", "center")
-                .set("font-size", "var(--aura-font-size-s, 0.875rem)");
+        metaRow.getStyle().set("flex-wrap", "wrap").set("gap", "0.5rem").set("align-items", "center");
 
         if (content.getYear() != null) {
-            Span year = new Span(content.getYear().toString());
-            year.getStyle()
-                    .set("color", "var(--vaadin-text-color-secondary)")
-                    .set("font-weight", "500");
-            metaRow.add(year);
+            metaRow.add(new Span(content.getYear().toString()));
         }
-
         if (content.getVoteAverage() != null) {
-            Span rating = new Span(String.format("⭐ %.1f", content.getVoteAverage()));
-            rating.getStyle().set("color", "#FFA000");
-            metaRow.add(rating);
+            metaRow.add(new Span(String.format("⭐ %.1f", content.getVoteAverage())));
         }
-
         if (content.getTmdbId() != null) {
             Span tmdbId = new Span("ID: " + content.getTmdbId());
-            tmdbId.getStyle()
-                    .set("color", "var(--vaadin-text-color-secondary)")
-                    .set("font-size", "var(--aura-font-size-xs, 0.75rem)");
+            tmdbId.getElement().getThemeList().add("badge");
+            tmdbId.getElement().getThemeList().add("contrast");
             metaRow.add(tmdbId);
         }
 
         // ── Overview ───────────────────────────────────────────────
         Paragraph overview = new Paragraph(truncateOverview(content.getOverview()));
-        overview.getStyle()
-                .set("margin", "0")
-                .set("line-height", "1.4")
-                .set("color", "var(--vaadin-text-color-secondary)")
-                .set("font-size", "var(--aura-font-size-s, 0.875rem)");
+        overview.getStyle().set("margin", "0");
 
         // ── Download button ────────────────────────────────────────
         Button downloadBtn = new Button("Download");
@@ -170,7 +130,6 @@ public class SearchResultCard extends VerticalLayout {
             downloadBtn.setId("result-card-download-" + content.getTmdbId());
         }
         downloadBtn.addClickListener(e -> openDownloadDialog());
-        downloadBtn.getStyle().set("margin-top", "0.25rem");
         downloadBtn.getElement().addEventListener("click", e -> {}).addEventData("event.stopPropagation()");
 
         add(titleRow, metaRow, overview, downloadBtn);
@@ -182,17 +141,10 @@ public class SearchResultCard extends VerticalLayout {
         }
     }
 
-    private static Span smallChip(String text) {
+    private static Span chip(String text) {
         Span chip = new Span(text);
-        chip.getStyle()
-                .set("font-size", "0.6rem")
-                .set("font-weight", "500")
-                .set("padding", "0.1rem 0.35rem")
-                .set("border-radius", "0.2rem")
-                .set("line-height", "1.6")
-                .set("align-self", "center")
-                .set("background", "var(--vaadin-background-container-strong, rgba(0,0,0,0.08))")
-                .set("color", "var(--vaadin-text-color-secondary)");
+        chip.getElement().getThemeList().add("badge");
+        chip.getElement().getThemeList().add("contrast");
         return chip;
     }
 
@@ -263,13 +215,9 @@ public class SearchResultCard extends VerticalLayout {
             layout.add(dialogSeasonField, dialogEpisodeField);
 
             Button confirmBtn = new Button("Add to Queue", e -> {
-                downloadHandler.onDownload(
-                        content, type,
-                        dialogSeasonField.getValue(),
-                        dialogEpisodeField.getValue(),
-                        dialogLanguageSelector.getValue(),
-                        dialogQualitySelector.getValue()
-                );
+                downloadHandler.onDownload(content, type,
+                        dialogSeasonField.getValue(), dialogEpisodeField.getValue(),
+                        dialogLanguageSelector.getValue(), dialogQualitySelector.getValue());
                 downloadDialog.close();
             });
             confirmBtn.setId("dialog-confirm-download");
@@ -277,12 +225,8 @@ public class SearchResultCard extends VerticalLayout {
             downloadDialog.getFooter().add(confirmBtn);
         } else {
             Button confirmBtn = new Button("Add to Queue", e -> {
-                downloadHandler.onDownload(
-                        content, type,
-                        null, null,
-                        dialogLanguageSelector.getValue(),
-                        dialogQualitySelector.getValue()
-                );
+                downloadHandler.onDownload(content, type, null, null,
+                        dialogLanguageSelector.getValue(), dialogQualitySelector.getValue());
                 downloadDialog.close();
             });
             confirmBtn.setId("dialog-confirm-download");
@@ -290,9 +234,7 @@ public class SearchResultCard extends VerticalLayout {
             downloadDialog.getFooter().add(confirmBtn);
         }
 
-        Button cancelBtn = new Button("Cancel", e -> downloadDialog.close());
-        downloadDialog.getFooter().add(cancelBtn);
-
+        downloadDialog.getFooter().add(new Button("Cancel", e -> downloadDialog.close()));
         downloadDialog.add(layout);
     }
 
@@ -305,11 +247,8 @@ public class SearchResultCard extends VerticalLayout {
             if (supportedLanguages != null && !supportedLanguages.isEmpty()) {
                 applicable.retainAll(supportedLanguages);
             }
-            List<String> languageItems = dialogLanguageSelector.getListDataView()
-                    .getItems().toList();
-            if (applicable.isEmpty() && !languageItems.isEmpty()) {
-                applicable.add(languageItems.get(0));
-            }
+            List<String> items = dialogLanguageSelector.getListDataView().getItems().toList();
+            if (applicable.isEmpty() && !items.isEmpty()) applicable.add(items.get(0));
             applicable.forEach(dialogLanguageSelector::select);
         }
         if (dialogSeasonField != null) dialogSeasonField.clear();
@@ -317,12 +256,7 @@ public class SearchResultCard extends VerticalLayout {
     }
 
     private String truncateOverview(String overview) {
-        if (overview == null || overview.isBlank()) {
-            return "No overview available.";
-        }
-        if (overview.length() > 120) {
-            return overview.substring(0, 117) + "...";
-        }
-        return overview;
+        if (overview == null || overview.isBlank()) return "No overview available.";
+        return overview.length() > 120 ? overview.substring(0, 117) + "..." : overview;
     }
 }

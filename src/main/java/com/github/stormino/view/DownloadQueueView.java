@@ -82,20 +82,8 @@ public class DownloadQueueView extends VerticalLayout {
 
         // Status spans
         statusCountsSpan = new Span();
-        statusCountsSpan.getStyle()
-                .set("font-size", "var(--aura-font-size-s)")
-                .set("color", "var(--vaadin-text-color-secondary)");
-
         overallSpeedSpan = new Span();
-        overallSpeedSpan.getStyle()
-                .set("font-size", "var(--aura-font-size-s)")
-                .set("font-weight", "600")
-                .set("color", "var(--vaadin-text-color-secondary)");
-
         diskSpaceSpan = new Span();
-        diskSpaceSpan.getStyle()
-                .set("font-size", "var(--aura-font-size-s)")
-                .set("color", "var(--vaadin-text-color-secondary)");
 
         HorizontalLayout statusRow = new HorizontalLayout(statusCountsSpan, overallSpeedSpan, diskSpaceSpan);
         statusRow.setSpacing(false);
@@ -579,20 +567,8 @@ public class DownloadQueueView extends VerticalLayout {
             MediaSource source = item.getTask().getSource();
             Span sourceTag = new Span(source.getDisplayName());
             sourceTag.addClassName("title-source-tag");
-            sourceTag.getStyle()
-                    .set("font-size", "0.55rem")
-                    .set("font-weight", "700")
-                    .set("letter-spacing", "0.03em")
-                    .set("padding", "0.05rem 0.25rem")
-                    .set("border-radius", "0.2rem")
-                    .set("line-height", "1.5")
-                    .set("align-self", "center")
-                    .set("white-space", "nowrap")
-                    .set("background", switch (source) {
-                        case VIXSRC -> "#1976D2";
-                        case RAIPLAY -> "#0066B3";
-                    })
-                    .set("color", "#fff");
+            sourceTag.getElement().getThemeList().add("badge");
+            sourceTag.getElement().getThemeList().add("primary");
             row.add(sourceTag);
         }
 
@@ -701,9 +677,6 @@ public class DownloadQueueView extends VerticalLayout {
 
         Span badge = new Span(status.getDisplayName());
         badge.getElement().getThemeList().add("badge");
-        badge.getStyle()
-                .set("font-size", "0.6rem")
-                .set("padding", "0.1rem 0.3rem");
         badge.getElement().setAttribute("data-testid", "queue-row-status");
         badge.getElement().setAttribute("data-status", status.name());
         if (item.isParent()) {
@@ -760,10 +733,7 @@ public class DownloadQueueView extends VerticalLayout {
 
         // Create text showing percentage
         Span progressText = new Span();
-        progressText.getStyle()
-                .set("font-size", "var(--aura-font-size-s)")
-                .set("color", "var(--vaadin-text-color-secondary)")
-                .set("margin-top", "0.15rem");
+        progressText.getStyle().set("margin-top", "0.15rem");
 
         if (progress != null) {
             progressText.setText(String.format("%.1f%%", progress));
