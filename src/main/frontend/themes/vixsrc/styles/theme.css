@@ -5,7 +5,7 @@
 /* ── Font ────────────────────────────────────────── */
 :root {
     --aura-font-family: 'Roboto', sans-serif;
-    --aura-base-font-size: 0.875rem;
+    --aura-base-font-size: 13;
 }
 
 /* ── Search result cards: left border accent ─────── */
