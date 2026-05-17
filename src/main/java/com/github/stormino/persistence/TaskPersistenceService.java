@@ -1,7 +1,7 @@
 package com.github.stormino.persistence;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.model.DownloadTask;
@@ -149,7 +149,7 @@ public class TaskPersistenceService {
         }
         try {
             return objectMapper.writeValueAsString(metadata);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to serialize SourceMetadata", e);
         }
     }
@@ -160,7 +160,7 @@ public class TaskPersistenceService {
         }
         try {
             return objectMapper.readValue(json, SourceMetadata.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Failed to deserialize SourceMetadata from {}: {}", json, e.getMessage());
             return null;
         }

@@ -1,14 +1,14 @@
 package com.github.stormino.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jdbc.core.dialect.JdbcArrayColumns;
+import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 import org.springframework.data.relational.core.dialect.AnsiDialect;
-import org.springframework.data.relational.core.dialect.Dialect;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,11 +42,18 @@ public class DatabaseConfig {
     }
 
     /**
-     * Registers AnsiDialect for SQLite, which lacks a dedicated Spring Data JDBC dialect.
-     * AnsiDialect covers all standard CRUD and @Modifying @Query operations used in this app.
+     * SQLite has no built-in Spring Data JDBC dialect. Extend AnsiDialect and implement
+     * JdbcDialect so Spring Data JDBC 4 can build the mapping context for this database.
      */
     @Bean
-    Dialect jdbcDialect() {
-        return AnsiDialect.INSTANCE;
+    JdbcDialect jdbcDialect() {
+        return new SqliteJdbcDialect();
+    }
+
+    static class SqliteJdbcDialect extends AnsiDialect implements JdbcDialect {
+        @Override
+        public JdbcArrayColumns getArraySupport() {
+            return JdbcArrayColumns.Unsupported.INSTANCE;
+        }
     }
 }

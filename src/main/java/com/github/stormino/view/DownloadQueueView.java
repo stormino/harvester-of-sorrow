@@ -19,7 +19,6 @@ import com.vaadin.flow.data.provider.hierarchy.TreeData;
 import com.vaadin.flow.data.provider.hierarchy.TreeDataProvider;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.model.DownloadTask;
@@ -70,27 +69,27 @@ public class DownloadQueueView extends VerticalLayout {
         this.properties = properties;
         
         setSizeFull();
-        setPadding(true);
-        setSpacing(true);
-        
+        setPadding(false);
+        setSpacing(false);
+        getStyle()
+                .set("padding", "1rem")
+                .set("gap", "0.75rem")
+                .set("box-sizing", "border-box");
+
         // Header
         H2 title = new H2("Download Queue");
-        title.addClassNames(LumoUtility.Margin.Bottom.NONE);
+        title.getStyle().set("margin", "0");
 
         // Status spans
         statusCountsSpan = new Span();
-        statusCountsSpan.addClassNames(LumoUtility.FontSize.SMALL);
-        statusCountsSpan.getStyle().set("color", "var(--lumo-secondary-text-color)");
-
         overallSpeedSpan = new Span();
-        overallSpeedSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
-        overallSpeedSpan.getStyle().set("color", "var(--lumo-secondary-text-color)");
-
         diskSpaceSpan = new Span();
-        diskSpaceSpan.addClassNames(LumoUtility.FontSize.SMALL);
-        diskSpaceSpan.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
-        VerticalLayout titleAndStatus = new VerticalLayout(title, statusCountsSpan, overallSpeedSpan, diskSpaceSpan);
+        HorizontalLayout statusRow = new HorizontalLayout(statusCountsSpan, overallSpeedSpan, diskSpaceSpan);
+        statusRow.setSpacing(false);
+        statusRow.getStyle().set("flex-wrap", "wrap").set("gap", "var(--vaadin-gap-s, 0.5rem)");
+
+        VerticalLayout titleAndStatus = new VerticalLayout(title, statusRow);
         titleAndStatus.setSpacing(false);
         titleAndStatus.setPadding(false);
 
@@ -140,31 +139,36 @@ public class DownloadQueueView extends VerticalLayout {
         treeGrid.addColumn(this::getItemSize)
                 .setHeader("Downloaded")
                 .setWidth("120px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-size");
 
         treeGrid.addColumn(this::getItemSpeed)
                 .setHeader("Speed")
                 .setWidth("120px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-speed");
 
         treeGrid.addColumn(this::getItemEta)
                 .setHeader("ETA")
                 .setWidth("100px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-eta");
 
         treeGrid.addColumn(this::getItemCreatedTime)
                 .setHeader("Created")
                 .setWidth("100px")
-                .setResizable(true);
+                .setResizable(true)
+                .setPartNameGenerator(item -> "col-created");
 
         treeGrid.addComponentColumn(this::createActionButtons)
                 .setHeader("Actions")
                 .setWidth("100px")
                 .setResizable(true);
 
-        treeGrid.setHeight("600px");
+        treeGrid.setSizeFull();
 
         add(header, treeGrid);
+        expand(treeGrid);
         addClassName("fade-in");
 
         refreshGrid();
@@ -558,20 +562,13 @@ public class DownloadQueueView extends VerticalLayout {
 
         Span titleLabel = new Span(getItemDisplayName(item));
 
-        // Source tag — only on parent rows
+        // Source tag — only on parent rows; hidden on mobile via .title-source-tag CSS class
         if (item.isParent() && item.getTask().getSource() != null) {
             MediaSource source = item.getTask().getSource();
             Span sourceTag = new Span(source.getDisplayName());
-            sourceTag.addClassNames(LumoUtility.FontSize.XSMALL);
-            sourceTag.getStyle()
-                    .set("background", switch (source) {
-                        case VIXSRC -> "#1976D2";
-                        case RAIPLAY -> "#0066B3";
-                    })
-                    .set("color", "#fff")
-                    .set("padding", "0.1rem 0.35rem")
-                    .set("border-radius", "0.25rem")
-                    .set("font-weight", "600");
+            sourceTag.addClassName("title-source-tag");
+            sourceTag.getElement().getThemeList().add("badge");
+            sourceTag.getElement().getThemeList().add("primary");
             row.add(sourceTag);
         }
 
@@ -736,10 +733,7 @@ public class DownloadQueueView extends VerticalLayout {
 
         // Create text showing percentage
         Span progressText = new Span();
-        progressText.getStyle()
-                .set("font-size", "0.875rem")
-                .set("color", "var(--lumo-secondary-text-color)")
-                .set("margin-top", "0.25rem");
+        progressText.getStyle().set("margin-top", "0.15rem");
 
         if (progress != null) {
             progressText.setText(String.format("%.1f%%", progress));

@@ -3,13 +3,13 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copy pom.xml and download dependencies (cached layer)
+# Copy pom.xml and npm manifests; download dependencies (cached layer)
 COPY pom.xml .
+COPY package*.json ./
 RUN mvn dependency:go-offline -B
 
-# Copy source and frontend theme files
+# Copy source (includes src/main/frontend/ for Vaadin 25)
 COPY src ./src
-COPY frontend ./frontend
 
 # Build with production profile
 RUN mvn clean package -DskipTests -Pproduction

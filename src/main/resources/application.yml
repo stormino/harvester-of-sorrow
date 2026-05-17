@@ -56,6 +56,10 @@ spring:
   vaadin:
     launch-browser: false
 
+  devtools:
+    livereload:
+      enabled: true
+
   # Servlet configuration for large file handling
   servlet:
     multipart:

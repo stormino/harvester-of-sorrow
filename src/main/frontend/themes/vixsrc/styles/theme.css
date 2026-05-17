@@ -1,0 +1,151 @@
+/* =====================================================
+   VixSrc – structural layout only.
+   All visual styling deferred to Aura defaults.
+   ===================================================== */
+
+/* ── Search results grid layout ──────────────────── */
+#search-results {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+/* ── Search empty state ──────────────────────────── */
+.search-empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+/* ── Search loading bar ──────────────────────────── */
+.search-loading-bar {
+    height: 3px;
+    border-radius: 0;
+    margin: 0;
+}
+
+/* ── Dialog max-width ────────────────────────────── */
+vaadin-dialog-overlay::part(overlay) {
+    max-width: min(460px, 95vw);
+    width: 100%;
+}
+
+/* ── Mobile bottom navigation ────────────────────── */
+.mobile-bottom-nav {
+    display: none;
+}
+
+.mobile-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-decoration: none;
+    color: var(--vaadin-text-color-secondary);
+    transition: color 0.2s;
+    min-height: 44px;
+    flex: 1;
+}
+
+.mobile-bottom-nav-item vaadin-icon {
+    width: 22px;
+    height: 22px;
+}
+
+.mobile-bottom-nav-item span {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.mobile-bottom-nav-item.active {
+    color: var(--aura-accent-color);
+}
+
+/* =====================================================
+   RESPONSIVE  —  Tablet  ≤768 px
+   ===================================================== */
+@media (max-width: 768px) {
+    vaadin-drawer-toggle {
+        display: none;
+    }
+
+    .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        background: var(--vaadin-background-color);
+        border-top: 1px solid var(--vaadin-border-color);
+        z-index: 300;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    vaadin-app-layout::part(content) {
+        padding-bottom: calc(56px + env(safe-area-inset-bottom));
+    }
+
+    /* Hide Speed / ETA / Created columns */
+    .download-queue-view-grid-1::part(col-speed),
+    .download-queue-view-grid-1::part(col-eta),
+    .download-queue-view-grid-1::part(col-created) {
+        display: none;
+    }
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-4"],
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-5"],
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-6"] {
+        display: none;
+    }
+
+    /* Hide source tag in download queue title — title needs the space */
+    .title-source-tag {
+        display: none;
+    }
+
+    #search-results {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .search-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-bar vaadin-radio-button-group {
+        align-self: flex-start;
+    }
+
+    .search-bar .search-button {
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   RESPONSIVE  —  Mobile  ≤480 px
+   ===================================================== */
+@media (max-width: 480px) {
+    .download-queue-view-grid-1::part(col-size) {
+        display: none;
+    }
+    .download-queue-view-grid-1 vaadin-grid-cell-content[slot^="vaadin-grid-column-3"] {
+        display: none;
+    }
+
+    #search-results {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    vaadin-dialog-overlay::part(overlay) {
+        max-width: 100vw;
+        margin: 0;
+    }
+}
