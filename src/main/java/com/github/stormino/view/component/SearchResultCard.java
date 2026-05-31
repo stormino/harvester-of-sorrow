@@ -337,7 +337,7 @@ public class SearchResultCard extends VerticalLayout {
             Button downloadBtn = new Button("Add to Queue", e -> {
                 downloadHandler.onDownload(
                         content, type,
-                        null, null,
+                        Set.of(), Set.of(),
                         dialogLanguageSelector.getValue(),
                         dialogQualitySelector.getValue()
                 );

@@ -201,8 +201,8 @@ public class SearchView extends VerticalLayout {
         CompletableFuture.supplyAsync(() ->
                 downloadQueueService.addDownload(
                         content, type,
-                        seasons.isEmpty() ? null : new ArrayList<>(seasons),
-                        episodes.isEmpty() ? null : new ArrayList<>(episodes),
+                        (seasons == null || seasons.isEmpty()) ? null : new ArrayList<>(seasons),
+                        (episodes == null || episodes.isEmpty()) ? null : new ArrayList<>(episodes),
                         List.copyOf(languages), quality)
         ).thenAccept(task -> getUI().ifPresent(ui -> ui.access(() -> {
             int added = downloadQueueService.getAllTasks().size() - taskCountBefore;
@@ -221,6 +221,8 @@ public class SearchView extends VerticalLayout {
     }
 
     private static String buildQueueMessage(DownloadTask.ContentType type, Set<Integer> seasons, Set<Integer> episodes) {
+        if (seasons == null) seasons = Set.of();
+        if (episodes == null) episodes = Set.of();
         if (type == DownloadTask.ContentType.TV) {
             if (seasons.isEmpty() && episodes.isEmpty()) return "Adding entire show to queue...";
             if (!seasons.isEmpty() && episodes.isEmpty())
