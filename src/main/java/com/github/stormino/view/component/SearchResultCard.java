@@ -11,7 +11,6 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
-import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadTask;
@@ -22,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 /**
  * Card component for displaying search results
@@ -42,12 +42,12 @@ public class SearchResultCard extends VerticalLayout {
     private Dialog downloadDialog;
     private MultiSelectComboBox<String> dialogLanguageSelector;
     private Select<String> dialogQualitySelector;
-    private IntegerField dialogSeasonField;
-    private IntegerField dialogEpisodeField;
+    private MultiSelectComboBox<Integer> dialogSeasonSelector;
+    private MultiSelectComboBox<Integer> dialogEpisodeSelector;
 
     public interface DownloadHandler {
         void onDownload(ContentMetadata content, DownloadTask.ContentType type,
-                       Integer season, Integer episode,
+                       Set<Integer> seasons, Set<Integer> episodes,
                        Set<String> languages, String quality);
     }
 
@@ -265,33 +265,46 @@ public class SearchResultCard extends VerticalLayout {
 
         layout.add(dialogLanguageSelector, dialogQualitySelector);
 
-        // TV-specific: Season/Episode selectors
+        // TV-specific: Season/Episode multi-selectors
         if (type == DownloadTask.ContentType.TV) {
-            dialogSeasonField = new IntegerField("Season");
-            dialogSeasonField.setId("dialog-season-field");
-            dialogSeasonField.setPlaceholder("All seasons");
-            dialogSeasonField.setHelperText("Leave blank to download all seasons");
-            dialogSeasonField.setMin(1);
-            dialogSeasonField.setStepButtonsVisible(true);
-            dialogSeasonField.setClearButtonVisible(true);
-            dialogSeasonField.setWidthFull();
+            dialogSeasonSelector = new MultiSelectComboBox<>("Seasons");
+            dialogSeasonSelector.setId("dialog-season-field");
+            dialogSeasonSelector.setPlaceholder("All seasons");
+            dialogSeasonSelector.setHelperText("Leave empty to download all seasons");
+            dialogSeasonSelector.setWidthFull();
+            dialogSeasonSelector.setAllowCustomValue(true);
+            dialogSeasonSelector.addCustomValueSetListener(e -> {
+                try {
+                    int val = Integer.parseInt(e.getDetail());
+                    if (val >= 1) dialogSeasonSelector.select(val);
+                } catch (NumberFormatException ignored) {}
+            });
+            if (content.getNumberOfSeasons() != null && content.getNumberOfSeasons() > 0) {
+                List<Integer> seasons = IntStream.rangeClosed(1, content.getNumberOfSeasons())
+                        .boxed().toList();
+                dialogSeasonSelector.setItems(seasons);
+            }
 
-            dialogEpisodeField = new IntegerField("Episode");
-            dialogEpisodeField.setId("dialog-episode-field");
-            dialogEpisodeField.setPlaceholder("All episodes");
-            dialogEpisodeField.setHelperText("Leave blank to download all episodes in season");
-            dialogEpisodeField.setMin(1);
-            dialogEpisodeField.setStepButtonsVisible(true);
-            dialogEpisodeField.setClearButtonVisible(true);
-            dialogEpisodeField.setWidthFull();
+            dialogEpisodeSelector = new MultiSelectComboBox<>("Episodes");
+            dialogEpisodeSelector.setId("dialog-episode-field");
+            dialogEpisodeSelector.setPlaceholder("All episodes");
+            dialogEpisodeSelector.setHelperText("Leave empty to download all episodes in selected seasons");
+            dialogEpisodeSelector.setWidthFull();
+            dialogEpisodeSelector.setAllowCustomValue(true);
+            dialogEpisodeSelector.addCustomValueSetListener(e -> {
+                try {
+                    int val = Integer.parseInt(e.getDetail());
+                    if (val >= 1) dialogEpisodeSelector.select(val);
+                } catch (NumberFormatException ignored) {}
+            });
 
-            layout.add(dialogSeasonField, dialogEpisodeField);
+            layout.add(dialogSeasonSelector, dialogEpisodeSelector);
 
             Button downloadBtn = new Button("Add to Queue", e -> {
                 downloadHandler.onDownload(
                         content, type,
-                        dialogSeasonField.getValue(),
-                        dialogEpisodeField.getValue(),
+                        dialogSeasonSelector.getValue(),
+                        dialogEpisodeSelector.getValue(),
                         dialogLanguageSelector.getValue(),
                         dialogQualitySelector.getValue()
                 );
@@ -343,8 +356,8 @@ public class SearchResultCard extends VerticalLayout {
         }
 
         // Clear season/episode so a previous selection never bleeds into the next open
-        if (dialogSeasonField != null) dialogSeasonField.clear();
-        if (dialogEpisodeField != null) dialogEpisodeField.clear();
+        if (dialogSeasonSelector != null) dialogSeasonSelector.deselectAll();
+        if (dialogEpisodeSelector != null) dialogEpisodeSelector.deselectAll();
     }
     
     private String truncateOverview(String overview) {

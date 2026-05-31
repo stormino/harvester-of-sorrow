@@ -51,16 +51,43 @@ export async function enqueueMovie(page: Page): Promise<void> {
 }
 
 /**
- * In an open download dialog: fills season/episode, optionally sets quality,
- * then clicks "Add to Queue".
+ * Types a value into a vaadin-multi-select-combo-box and confirms it with Enter
+ * so the custom value is accepted as a chip/tag.
+ */
+async function selectComboValue(page: Page, fieldId: string, value: number): Promise<void> {
+  const input = page.locator(`#${fieldId}`).locator('input');
+  await input.fill(String(value));
+  // Accept the custom value — Vaadin fires a custom-value-set event on Enter
+  await input.press('Enter');
+}
+
+/**
+ * In an open download dialog: selects a single season and single episode using
+ * the multi-select combo boxes, then clicks "Add to Queue".
  */
 export async function enqueueEpisode(
   page: Page,
   opts: { season: number; episode: number },
 ): Promise<void> {
-  // vaadin-integer-field is also a Web Component — pierce to the inner <input>
-  await page.locator('#dialog-season-field').locator('input').fill(String(opts.season));
-  await page.locator('#dialog-episode-field').locator('input').fill(String(opts.episode));
+  await selectComboValue(page, 'dialog-season-field', opts.season);
+  await selectComboValue(page, 'dialog-episode-field', opts.episode);
+  await page.locator('#dialog-confirm-download').click();
+}
+
+/**
+ * In an open download dialog: selects multiple seasons and/or multiple episodes,
+ * then clicks "Add to Queue". Pass empty arrays to leave a field blank (= all).
+ */
+export async function enqueueMultipleEpisodes(
+  page: Page,
+  opts: { seasons: number[]; episodes: number[] },
+): Promise<void> {
+  for (const s of opts.seasons) {
+    await selectComboValue(page, 'dialog-season-field', s);
+  }
+  for (const e of opts.episodes) {
+    await selectComboValue(page, 'dialog-episode-field', e);
+  }
   await page.locator('#dialog-confirm-download').click();
 }
 

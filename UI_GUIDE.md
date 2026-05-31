@@ -26,7 +26,7 @@ Layout
 - **Result Cards** - Grid layout with metadata
 - **Download Dialog** - Per-item language/quality selection
   - Movies: Direct download
-  - TV: Season/Episode selectors
+  - TV: Multi-select Season/Episode combo boxes (select one or more seasons and/or episodes; leave empty to download all)
 
 ### DownloadQueueView ✅
 - **Real-time Updates** - SSE subscription for live progress
@@ -132,7 +132,7 @@ Custom theme: `frontend/themes/vixsrc/`
 3. **Configure** → Download dialog
    - Adjust languages (multi-select)
    - Select quality (best/1080/720/worst)
-   - For TV: Choose season/episode
+   - For TV: Choose one or more seasons and/or episodes (leave blank = download all)
    - Click "Add to Queue"
 
 4. **Monitor** → Navigate to `/downloads`
@@ -206,7 +206,7 @@ Tested on:
 ## Next Steps
 
 Potential enhancements:
-- [ ] Bulk TV download UI (entire seasons)
+- [x] Bulk TV download UI (multi-select seasons and episodes)
 - [ ] Download queue persistence view
 - [ ] Custom download directory per task
 - [ ] Subtitle language selection
