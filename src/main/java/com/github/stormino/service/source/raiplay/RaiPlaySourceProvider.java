@@ -20,7 +20,9 @@ import org.springframework.stereotype.Component;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -128,6 +130,10 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
             pageOpt.map(RaiPlaySourceProvider::totalEpisodes)
                    .filter(n -> n > 0)
                    .ifPresent(builder::totalEpisodes);
+            pageOpt.ifPresent(page -> {
+                Map<Integer, Integer> eps = buildEpisodesPerSeason(page);
+                if (!eps.isEmpty()) builder.episodesPerSeason(eps);
+            });
         }
         return builder.build();
     }
@@ -137,6 +143,24 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
      * block. The program page reports this per season ("12 episodi"), so
      * totalling them gives the show-wide episode count.
      */
+    /** Builds season → episode-count map from the sets already in the program page. */
+    private static Map<Integer, Integer> buildEpisodesPerSeason(RaiPlayProgramPage page) {
+        return page.episodesBlock()
+                .map(b -> {
+                    if (b.sets() == null) return Map.<Integer, Integer>of();
+                    Map<Integer, Integer> map = new LinkedHashMap<>();
+                    for (int i = 0; i < b.sets().size(); i++) {
+                        RaiPlayProgramPage.ContentSet set = b.sets().get(i);
+                        if (set.episodeSize() != null && set.episodeSize().number() != null
+                                && set.episodeSize().number() > 0) {
+                            map.put(i + 1, set.episodeSize().number());
+                        }
+                    }
+                    return map;
+                })
+                .orElse(Map.of());
+    }
+
     private static int totalEpisodes(RaiPlayProgramPage page) {
         return page.episodesBlock()
                 .map(b -> b.sets() == null ? 0 : b.sets().stream()
