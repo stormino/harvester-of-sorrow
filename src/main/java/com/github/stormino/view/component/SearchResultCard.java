@@ -287,15 +287,27 @@ public class SearchResultCard extends VerticalLayout {
 
             dialogEpisodeSelector = new MultiSelectComboBox<>("Episodes");
             dialogEpisodeSelector.setId("dialog-episode-field");
-            dialogEpisodeSelector.setPlaceholder("All episodes");
-            dialogEpisodeSelector.setHelperText("Leave empty to download all episodes in selected seasons");
+            dialogEpisodeSelector.setPlaceholder("Select a single season first");
+            dialogEpisodeSelector.setHelperText("Leave empty to download all episodes");
             dialogEpisodeSelector.setWidthFull();
-            dialogEpisodeSelector.setAllowCustomValue(true);
-            dialogEpisodeSelector.addCustomValueSetListener(e -> {
-                try {
-                    int val = Integer.parseInt(e.getDetail());
-                    if (val >= 1) dialogEpisodeSelector.select(val);
-                } catch (NumberFormatException ignored) {}
+            dialogEpisodeSelector.setEnabled(false);
+
+            // Enable episodes selector only when exactly one season is selected,
+            // and populate it with episode numbers from the pre-loaded metadata.
+            dialogSeasonSelector.addValueChangeListener(e -> {
+                Set<Integer> selected = e.getValue();
+                if (selected.size() == 1) {
+                    int season = selected.iterator().next();
+                    List<Integer> episodes = buildEpisodeList(season);
+                    dialogEpisodeSelector.setItems(episodes);
+                    dialogEpisodeSelector.setPlaceholder("All episodes");
+                    dialogEpisodeSelector.setEnabled(true);
+                } else {
+                    dialogEpisodeSelector.deselectAll();
+                    dialogEpisodeSelector.setItems(List.of());
+                    dialogEpisodeSelector.setPlaceholder("Select a single season first");
+                    dialogEpisodeSelector.setEnabled(false);
+                }
             });
 
             layout.add(dialogSeasonSelector, dialogEpisodeSelector);
@@ -357,9 +369,25 @@ public class SearchResultCard extends VerticalLayout {
 
         // Clear season/episode so a previous selection never bleeds into the next open
         if (dialogSeasonSelector != null) dialogSeasonSelector.deselectAll();
-        if (dialogEpisodeSelector != null) dialogEpisodeSelector.deselectAll();
+        if (dialogEpisodeSelector != null) {
+            dialogEpisodeSelector.deselectAll();
+            dialogEpisodeSelector.setItems(List.of());
+            dialogEpisodeSelector.setPlaceholder("Select a single season first");
+            dialogEpisodeSelector.setEnabled(false);
+        }
     }
     
+    /** Returns the episode list for the given season using pre-loaded metadata. */
+    private List<Integer> buildEpisodeList(int season) {
+        if (content.getEpisodesPerSeason() != null) {
+            Integer count = content.getEpisodesPerSeason().get(season);
+            if (count != null && count > 0) {
+                return IntStream.rangeClosed(1, count).boxed().toList();
+            }
+        }
+        return List.of();
+    }
+
     private String truncateOverview(String overview) {
         if (overview == null || overview.isBlank()) {
             return "No overview available.";
