@@ -64,12 +64,17 @@ async function selectComboValue(page: Page, fieldId: string, value: number): Pro
 /**
  * In an open download dialog: selects a single season and single episode using
  * the multi-select combo boxes, then clicks "Add to Queue".
+ *
+ * Selecting a season triggers a Vaadin server round-trip that enables the episode
+ * field, so we wait for it to become editable before filling it.
  */
 export async function enqueueEpisode(
   page: Page,
   opts: { season: number; episode: number },
 ): Promise<void> {
   await selectComboValue(page, 'dialog-season-field', opts.season);
+  // Wait for the server to enable the episode field after the season selection
+  await page.locator('#dialog-episode-field:not([disabled])').waitFor({ state: 'attached', timeout: 5_000 });
   await selectComboValue(page, 'dialog-episode-field', opts.episode);
   await page.locator('#dialog-confirm-download').click();
 }
@@ -77,6 +82,9 @@ export async function enqueueEpisode(
 /**
  * In an open download dialog: selects multiple seasons and/or multiple episodes,
  * then clicks "Add to Queue". Pass empty arrays to leave a field blank (= all).
+ *
+ * Note: episode selection is only available when exactly one season is selected.
+ * If multiple seasons are passed, episodes are ignored (selecting entire seasons).
  */
 export async function enqueueMultipleEpisodes(
   page: Page,
@@ -85,8 +93,12 @@ export async function enqueueMultipleEpisodes(
   for (const s of opts.seasons) {
     await selectComboValue(page, 'dialog-season-field', s);
   }
-  for (const e of opts.episodes) {
-    await selectComboValue(page, 'dialog-episode-field', e);
+  if (opts.seasons.length === 1 && opts.episodes.length > 0) {
+    // Wait for episode field to be enabled after the single season selection
+    await page.locator('#dialog-episode-field:not([disabled])').waitFor({ state: 'attached', timeout: 5_000 });
+    for (const e of opts.episodes) {
+      await selectComboValue(page, 'dialog-episode-field', e);
+    }
   }
   await page.locator('#dialog-confirm-download').click();
 }

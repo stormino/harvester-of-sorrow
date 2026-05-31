@@ -291,6 +291,13 @@ public class SearchResultCard extends VerticalLayout {
             dialogEpisodeSelector.setHelperText("Leave empty to download all episodes");
             dialogEpisodeSelector.setWidthFull();
             dialogEpisodeSelector.setEnabled(false);
+            dialogEpisodeSelector.setAllowCustomValue(true);
+            dialogEpisodeSelector.addCustomValueSetListener(e -> {
+                try {
+                    int val = Integer.parseInt(e.getDetail());
+                    if (val >= 1) dialogEpisodeSelector.select(val);
+                } catch (NumberFormatException ignored) {}
+            });
 
             // Enable episodes selector only when exactly one season is selected,
             // and populate it with episode numbers from the pre-loaded metadata.
