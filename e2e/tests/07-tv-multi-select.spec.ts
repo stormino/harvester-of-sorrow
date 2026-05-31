@@ -16,8 +16,8 @@ test('vixsrc TV — multi-episode selection (S01E01 and S01E02) queues both epis
   await gotoQueue(page);
 
   // Both tasks should appear in the queue
-  const taskRows = page.locator('[data-testid="task-row"]');
-  await expect(taskRows).toHaveCount(2, { timeout: 10_000 });
+  const taskBadges = page.locator('[data-testid="queue-row-status"][data-task-id]');
+  await expect(taskBadges).toHaveCount(2, { timeout: 10_000 });
 
   // Wait for the first episode task to reach a download milestone
   const firstTaskId = await findLatestTaskId(page, { source: 'vixsrc' });
