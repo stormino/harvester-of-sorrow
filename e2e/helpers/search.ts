@@ -51,16 +51,55 @@ export async function enqueueMovie(page: Page): Promise<void> {
 }
 
 /**
- * In an open download dialog: fills season/episode, optionally sets quality,
- * then clicks "Add to Queue".
+ * Types a value into a vaadin-multi-select-combo-box and confirms it with Enter
+ * so the custom value is accepted as a chip/tag.
+ */
+async function selectComboValue(page: Page, fieldId: string, value: number): Promise<void> {
+  const input = page.locator(`#${fieldId}`).locator('input');
+  await input.fill(String(value));
+  // Accept the custom value — Vaadin fires a custom-value-set event on Enter
+  await input.press('Enter');
+}
+
+/**
+ * In an open download dialog: selects a single season and single episode using
+ * the multi-select combo boxes, then clicks "Add to Queue".
+ *
+ * Selecting a season triggers a Vaadin server round-trip that enables the episode
+ * field, so we wait for it to become editable before filling it.
  */
 export async function enqueueEpisode(
   page: Page,
   opts: { season: number; episode: number },
 ): Promise<void> {
-  // vaadin-integer-field is also a Web Component — pierce to the inner <input>
-  await page.locator('#dialog-season-field').locator('input').fill(String(opts.season));
-  await page.locator('#dialog-episode-field').locator('input').fill(String(opts.episode));
+  await selectComboValue(page, 'dialog-season-field', opts.season);
+  // Wait for the server to enable the episode field after the season selection
+  await page.locator('#dialog-episode-field:not([disabled])').waitFor({ state: 'attached', timeout: 5_000 });
+  await selectComboValue(page, 'dialog-episode-field', opts.episode);
+  await page.locator('#dialog-confirm-download').click();
+}
+
+/**
+ * In an open download dialog: selects multiple seasons and/or multiple episodes,
+ * then clicks "Add to Queue". Pass empty arrays to leave a field blank (= all).
+ *
+ * Note: episode selection is only available when exactly one season is selected.
+ * If multiple seasons are passed, episodes are ignored (selecting entire seasons).
+ */
+export async function enqueueMultipleEpisodes(
+  page: Page,
+  opts: { seasons: number[]; episodes: number[] },
+): Promise<void> {
+  for (const s of opts.seasons) {
+    await selectComboValue(page, 'dialog-season-field', s);
+  }
+  if (opts.seasons.length === 1 && opts.episodes.length > 0) {
+    // Wait for episode field to be enabled after the single season selection
+    await page.locator('#dialog-episode-field:not([disabled])').waitFor({ state: 'attached', timeout: 5_000 });
+    for (const e of opts.episodes) {
+      await selectComboValue(page, 'dialog-episode-field', e);
+    }
+  }
   await page.locator('#dialog-confirm-download').click();
 }
 

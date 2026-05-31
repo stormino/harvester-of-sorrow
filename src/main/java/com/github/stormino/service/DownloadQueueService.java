@@ -116,6 +116,38 @@ public class DownloadQueueService {
     }
 
     /**
+     * Multi-selection overload: accepts lists of seasons and episodes.
+     * Expands the selection into individual addDownload calls:
+     * - empty seasons + empty episodes → entire show
+     * - specific seasons + empty episodes → each selected season in full
+     * - specific seasons + specific episodes → cartesian product (season, episode) pairs
+     */
+    public DownloadTask addDownload(ContentMetadata content, DownloadTask.ContentType contentType,
+                                   List<Integer> seasons, List<Integer> episodes,
+                                   List<String> languages, String quality) {
+        if (contentType != DownloadTask.ContentType.TV || (seasons == null || seasons.isEmpty())) {
+            // Fall back to single-value path for movies or "all seasons" case
+            Integer singleSeason = (seasons != null && seasons.size() == 1) ? seasons.get(0) : null;
+            Integer singleEpisode = (episodes != null && episodes.size() == 1) ? episodes.get(0) : null;
+            return addDownload(content, contentType, singleSeason, singleEpisode, languages, quality);
+        }
+
+        DownloadTask first = null;
+        for (Integer season : seasons) {
+            if (episodes == null || episodes.isEmpty()) {
+                DownloadTask t = addDownload(content, contentType, season, null, languages, quality);
+                if (first == null) first = t;
+            } else {
+                for (Integer episode : episodes) {
+                    DownloadTask t = addDownload(content, contentType, season, episode, languages, quality);
+                    if (first == null) first = t;
+                }
+            }
+        }
+        return first;
+    }
+
+    /**
      * Add a download task using pre-populated {@link ContentMetadata}. Use this for
      * sources that are not TMDB-keyed (e.g. RaiPlay). For VIXSRC content with a
      * known tmdbId the call is forwarded to the tmdbId-based path so that batch

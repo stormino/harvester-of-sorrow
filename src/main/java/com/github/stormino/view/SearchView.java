@@ -191,16 +191,18 @@ public class SearchView extends VerticalLayout {
     }
 
     private void handleDownload(ContentMetadata content, DownloadTask.ContentType type,
-                                Integer season, Integer episode,
+                                Set<Integer> seasons, Set<Integer> episodes,
                                 Set<String> languages, String quality) {
-        String feedbackMessage = buildQueueMessage(type, season, episode);
+        String feedbackMessage = buildQueueMessage(type, seasons, episodes);
         Notification.show(feedbackMessage, 2000, Notification.Position.BOTTOM_END);
 
         int taskCountBefore = downloadQueueService.getAllTasks().size();
 
         CompletableFuture.supplyAsync(() ->
                 downloadQueueService.addDownload(
-                        content, type, season, episode,
+                        content, type,
+                        (seasons == null || seasons.isEmpty()) ? null : new ArrayList<>(seasons),
+                        (episodes == null || episodes.isEmpty()) ? null : new ArrayList<>(episodes),
                         List.copyOf(languages), quality)
         ).thenAccept(task -> getUI().ifPresent(ui -> ui.access(() -> {
             int added = downloadQueueService.getAllTasks().size() - taskCountBefore;
@@ -218,10 +220,15 @@ public class SearchView extends VerticalLayout {
         });
     }
 
-    private static String buildQueueMessage(DownloadTask.ContentType type, Integer season, Integer episode) {
+    private static String buildQueueMessage(DownloadTask.ContentType type, Set<Integer> seasons, Set<Integer> episodes) {
+        if (seasons == null) seasons = Set.of();
+        if (episodes == null) episodes = Set.of();
         if (type == DownloadTask.ContentType.TV) {
-            if (season == null && episode == null) return "Adding entire show to queue...";
-            if (season != null && episode == null) return "Adding season " + season + " to queue...";
+            if (seasons.isEmpty() && episodes.isEmpty()) return "Adding entire show to queue...";
+            if (!seasons.isEmpty() && episodes.isEmpty())
+                return "Adding season(s) " + seasons + " to queue...";
+            if (!seasons.isEmpty())
+                return "Adding " + episodes.size() + " episode(s) from season(s) " + seasons + " to queue...";
         }
         return "Adding to queue...";
     }

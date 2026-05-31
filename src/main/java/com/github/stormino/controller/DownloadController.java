@@ -157,7 +157,7 @@ public class DownloadController {
                 .year(year)
                 .build();
         DownloadTask task = downloadQueueService.addDownload(
-                meta, DownloadTask.ContentType.MOVIE, null, null, List.of("it"), null);
+                meta, DownloadTask.ContentType.MOVIE, (Integer) null, (Integer) null, List.of("it"), null);
         return ResponseEntity.ok(task);
     }
 

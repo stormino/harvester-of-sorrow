@@ -22,7 +22,9 @@ import retrofit2.Response;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -239,6 +241,7 @@ public class TmdbMetadataService {
                     Integer numberOfSeasons = null;
 
                     TvShow detail = detailResponse.body();
+                    Map<Integer, Integer> episodesPerSeason = null;
                     if (detailResponse.isSuccessful() && detail != null) {
                         if (detail.first_air_date != null) {
                             SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
@@ -247,6 +250,16 @@ public class TmdbMetadataService {
 
                         numberOfSeasons = detail.number_of_seasons;
                         totalEpisodes = detail.number_of_episodes;
+
+                        if (detail.seasons != null) {
+                            episodesPerSeason = new LinkedHashMap<>();
+                            for (TvSeason s : detail.seasons) {
+                                if (s.season_number != null && s.season_number > 0
+                                        && s.episode_count != null) {
+                                    episodesPerSeason.put(s.season_number, s.episode_count);
+                                }
+                            }
+                        }
                     }
 
                     results.add(ContentMetadata.builder()
@@ -258,6 +271,7 @@ public class TmdbMetadataService {
                             .year(year)
                             .numberOfSeasons(numberOfSeasons)
                             .totalEpisodes(totalEpisodes)
+                            .episodesPerSeason(episodesPerSeason)
                             .overview(show.overview)
                             .voteAverage(show.vote_average)
                             .build());

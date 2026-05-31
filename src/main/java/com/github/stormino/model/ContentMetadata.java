@@ -4,6 +4,8 @@ import com.github.stormino.model.source.SourceMetadata;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 @Builder
 public class ContentMetadata {
@@ -25,7 +27,9 @@ public class ContentMetadata {
     private String episodeName;
     private Integer numberOfSeasons;
     private Integer totalEpisodes;
-    
+    /** Maps season number → episode count; populated at search time for vixsrc (TMDB). */
+    private Map<Integer, Integer> episodesPerSeason;
+
     public String generateFilename(String language, String extension) {
         StringBuilder filename = new StringBuilder();
         

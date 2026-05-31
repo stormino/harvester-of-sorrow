@@ -15,6 +15,7 @@ A production-ready video downloader for vixsrc.to with web UI, built with Spring
 - **Real-time Progress** - Server-Sent Events (SSE) for live download progress
 - **Multi-language Support** - Download with multiple audio tracks (per-download selection)
 - **Smart File Organization** - Automatic directory structure (Show/Season/Episode)
+- **Flexible TV Selection** - Multi-select seasons and episodes in the download dialog (select multiple, or leave blank for all)
 - **Production Ready** - Docker support, proper error handling, logging
 
 ## Requirements
@@ -425,7 +426,7 @@ See `k8s/` directory for deployment manifests (coming soon).
 
 ### Phase 3 - Production Features (Future)
 - [ ] Multi-language download implementation
-- [ ] Bulk TV download UI (entire seasons)
+- [x] Bulk TV download UI (multi-select seasons and episodes)
 - [ ] Download queue persistence (H2/PostgreSQL)
 - [x] Retry mechanisms (Spring Retry for file copy)
 - [x] NFS-safe file copy (rsync with checksum verification)
