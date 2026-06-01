@@ -7,6 +7,7 @@ A production-ready video downloader for vixsrc.to with web UI, built with Spring
 - **Modern Web UI** - Vaadin-based interface with real-time updates
   - Search movies and TV shows (TMDB integration)
   - Download queue with live progress bars
+  - Library view with TV show monitoring
   - Settings and configuration view
 - **REST API** - Complete API for automation
 - **TMDB Integration** - Search movies and TV shows, auto-generate filenames
@@ -16,6 +17,7 @@ A production-ready video downloader for vixsrc.to with web UI, built with Spring
 - **Multi-language Support** - Download with multiple audio tracks (per-download selection)
 - **Smart File Organization** - Automatic directory structure (Show/Season/Episode)
 - **Flexible TV Selection** - Multi-select seasons and episodes in the download dialog (select multiple, or leave blank for all)
+- **TV Show Monitoring** - Library view to track downloaded shows and auto-enqueue new episodes when they appear on the source
 - **Production Ready** - Docker support, proper error handling, logging
 
 ## Requirements
@@ -77,6 +79,8 @@ java -jar target/vixsrc-downloader-1.0.0.jar
 | `SEGMENT_CONCURRENCY` | HLS segment download concurrency | `5` |
 | `DEFAULT_QUALITY` | Default quality (best/720/1080) | `best` |
 | `DEFAULT_LANGUAGE` | Default language | `en` |
+| `MONITORING_ENABLED` | Enable periodic monitoring scheduler | `true` |
+| `MONITORING_INTERVAL_MS` | Monitoring check interval in milliseconds | `3600000` (1 hour) |
 | `SERVER_PORT` | Web server port | `8080` |
 | `LOG_LEVEL` | Logging level | `INFO` |
 
@@ -116,6 +120,7 @@ See `src/main/resources/application.yml` for all configuration options.
 ├── Views
 │   ├── SearchView - TMDB search interface (/)
 │   ├── DownloadQueueView - Queue with real-time progress (/downloads)
+│   ├── LibraryView - TV show library and monitoring (/library)
 │   └── SettingsView - Configuration display (/settings)
 ├── Components
 │   └── SearchResultCard - Movie/TV search result card
@@ -132,6 +137,7 @@ The application provides a modern web interface accessible at `http://localhost:
 **Views:**
 - `/` - Search movies and TV shows
 - `/downloads` - View download queue with real-time progress
+- `/library` - TV show library and monitoring management
 - `/settings` - View configuration and system info
 
 **Features:**

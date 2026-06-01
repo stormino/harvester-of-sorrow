@@ -11,6 +11,10 @@ vixsrc:
   tmdb:
     api-key: ${TMDB_API_KEY:}
 
+  monitoring:
+    enabled: ${MONITORING_ENABLED:true}
+    interval-ms: ${MONITORING_INTERVAL_MS:3600000}
+
   extractor:
     base-url: https://vixsrc.to
 

@@ -7,6 +7,8 @@ Views (Routes)
 ├── SearchView (/)           - TMDB search with result cards
 ├── DownloadQueueView        - Real-time download queue with SSE
 │   (/downloads)
+├── LibraryView              - TV show library and monitoring
+│   (/library)
 └── SettingsView             - Configuration display
     (/settings)
 
@@ -40,6 +42,21 @@ Layout
   - Actions (cancel/info)
 - **Auto-refresh** - Updates from SSE stream
 - **Manual refresh** - Refresh button
+
+### LibraryView ✅
+
+- **Shows on Disk** - Scans `DOWNLOAD_TV_SHOWS_PATH` for show directories; displays season and episode counts
+- **Monitoring Status** - Each row shows whether the show is monitored, paused, or unmonitored
+- **Add to Monitoring** - "Monitor" button opens a configure dialog:
+  - Select source (VixSrc / RaiPlay)
+  - Search the show by title on the selected source
+  - Pick the correct match from the dropdown
+  - Save links the directory to the source and enables periodic checks
+- **Edit Source** - Change source or re-link a monitored show at any time via the "Edit" button
+- **Pause / Resume** - Temporarily suspend or re-enable monitoring without removing configuration
+- **Check Now** - Manually trigger an immediate episode check for a specific show
+- **Remove** - Stop monitoring and unlink the show (downloaded files are kept)
+- **New Episode Notification** - A success notification appears when new episodes are enqueued, whether from a manual "Check Now" or the automatic scheduler
 
 ### SettingsView ✅
 - **TMDB Configuration** - API key display
@@ -141,7 +158,13 @@ Custom theme: `frontend/themes/vixsrc/`
    - Cancel active downloads
    - View error details for failed downloads
 
-5. **Settings** → Navigate to `/settings`
+5. **Library** → Navigate to `/library`
+   - See all TV show directories on disk
+   - Add a show to monitoring by clicking "Monitor", choosing a source, and searching for the show
+   - "Check Now" to immediately look for new episodes on the source
+   - New episodes are automatically enqueued every hour (configurable via `MONITORING_INTERVAL_MS`)
+
+6. **Settings** → Navigate to `/settings`
    - View configuration
    - Check TMDB API key status
    - Verify ffmpeg availability
