@@ -131,27 +131,60 @@ public class VixSrcAvailabilityService {
      * Uses {@code /api/list/episode?tmdb_id={id}} which returns the authoritative episode index.
      * Returns an empty set on any error so callers can fall back gracefully.
      */
+    /**
+     * Returns the set of (season, episode) pairs that VixSrc actually has for the given show.
+     * The endpoint returns the full catalogue; we filter client-side by tmdb_id.
+     * The full list is cached so repeated calls for different shows in the same hour
+     * only pay one network round-trip.
+     */
     public Set<EpisodeKey> fetchAvailableEpisodes(int tmdbId) {
-        String url = String.format("%s/api/list/episode?tmdb_id=%d",
-                properties.getExtractor().getBaseUrl(), tmdbId);
-        Request request = new Request.Builder().url(url).build();
+        List<EpisodeEntry> all = getOrFetchEpisodeList();
+        Set<EpisodeKey> keys = all.stream()
+                .filter(e -> Objects.equals(e.tmdbId(), tmdbId) && e.season() != null && e.episode() != null)
+                .map(e -> new EpisodeKey(e.season(), e.episode()))
+                .collect(Collectors.toSet());
+        log.debug("VixSrc episode list tmdbId={}: {} episode(s) available", tmdbId, keys.size());
+        return keys;
+    }
 
+    private volatile List<EpisodeEntry> episodeListCache = null;
+    private volatile Instant episodeListFetchedAt = Instant.EPOCH;
+    private final Object episodeListLock = new Object();
+
+    private List<EpisodeEntry> getOrFetchEpisodeList() {
+        if (episodeListCache != null && !isExpiredInstant(episodeListFetchedAt)) {
+            return episodeListCache;
+        }
+        synchronized (episodeListLock) {
+            if (episodeListCache != null && !isExpiredInstant(episodeListFetchedAt)) {
+                return episodeListCache;
+            }
+            List<EpisodeEntry> fresh = fetchEpisodeList();
+            episodeListCache = fresh;
+            episodeListFetchedAt = Instant.now();
+            return fresh;
+        }
+    }
+
+    private boolean isExpiredInstant(Instant fetchedAt) {
+        return Duration.between(fetchedAt, Instant.now()).compareTo(CACHE_TTL) >= 0;
+    }
+
+    private List<EpisodeEntry> fetchEpisodeList() {
+        String url = properties.getExtractor().getBaseUrl() + "/api/list/episode";
+        Request request = new Request.Builder().url(url).build();
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                log.warn("VixSrc episode list returned HTTP {} for tmdbId={}", response.code(), tmdbId);
-                return Set.of();
+                log.warn("VixSrc episode list returned HTTP {}", response.code());
+                return List.of();
             }
             String body = response.body() != null ? response.body().string() : "[]";
             List<EpisodeEntry> entries = objectMapper.readValue(body, new TypeReference<>() {});
-            Set<EpisodeKey> keys = entries.stream()
-                    .filter(e -> e.season() != null && e.episode() != null)
-                    .map(e -> new EpisodeKey(e.season(), e.episode()))
-                    .collect(Collectors.toSet());
-            log.debug("VixSrc episode list tmdbId={}: {} episode(s) available", tmdbId, keys.size());
-            return keys;
+            log.info("VixSrc episode list: {} total entries", entries.size());
+            return entries;
         } catch (Exception e) {
-            log.error("Failed to fetch VixSrc episode list for tmdbId={}: {}", tmdbId, e.getMessage());
-            return Set.of();
+            log.error("Failed to fetch VixSrc episode list: {}", e.getMessage());
+            return List.of();
         }
     }
 
@@ -162,8 +195,9 @@ public class VixSrcAvailabilityService {
                              @JsonProperty("imdb_id") String imdbId) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record EpisodeEntry(@JsonProperty("season") Integer season,
-                                @JsonProperty("episode") Integer episode) {}
+    private record EpisodeEntry(@JsonProperty("tmdb_id") Integer tmdbId,
+                                @JsonProperty("s") Integer season,
+                                @JsonProperty("e") Integer episode) {}
 
     private record CacheKey(String type, String language) {}
 
