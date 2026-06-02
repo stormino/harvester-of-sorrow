@@ -12,6 +12,7 @@ import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.VixSrcExtractorService;
 import com.github.stormino.model.source.VixSrcMetadata;
+import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import lombok.RequiredArgsConstructor;
@@ -111,11 +112,24 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
             return List.of();
         }
 
+        // Fetch which episodes VixSrc actually has — TMDB may list more episodes than are
+        // available on the source (e.g. future/unaired episodes).  If the endpoint returns
+        // empty (error or truly empty show) we fall back to the full TMDB list so monitoring
+        // still works rather than silently producing nothing.
+        var available = availabilityService.fetchAvailableEpisodes(show.getTmdbId());
+        boolean filterByAvailability = !available.isEmpty();
+
         List<EpisodeRef> result = new ArrayList<>();
         var seasons = tmdbService.getSeasons(show.getTmdbId());
         for (var season : seasons) {
             var episodes = tmdbService.getEpisodes(show.getTmdbId(), season.season_number);
             for (var ep : episodes) {
+                if (filterByAvailability &&
+                        !available.contains(new VixSrcAvailabilityService.EpisodeKey(season.season_number, ep.episode_number))) {
+                    log.debug("Skipping {}: S{}E{} not available on VixSrc",
+                            show.getTitle(), season.season_number, ep.episode_number);
+                    continue;
+                }
                 result.add(new EpisodeRef(
                         season.season_number,
                         ep.episode_number,
@@ -124,7 +138,8 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
                 ));
             }
         }
-        log.debug("Listed {} episode(s) for '{}' (tmdbId={})", result.size(), show.getTitle(), show.getTmdbId());
+        log.debug("Listed {} episode(s) for '{}' (tmdbId={}, vixsrcAvailable={}, filtered={})",
+                result.size(), show.getTitle(), show.getTmdbId(), available.size(), filterByAvailability);
         return result;
     }
 }

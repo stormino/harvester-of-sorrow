@@ -126,9 +126,44 @@ public class VixSrcAvailabilityService {
         }
     }
 
+    /**
+     * Returns the set of (season, episode) pairs that VixSrc actually has for a given TV show.
+     * Uses {@code /api/list/episode?tmdb_id={id}} which returns the authoritative episode index.
+     * Returns an empty set on any error so callers can fall back gracefully.
+     */
+    public Set<EpisodeKey> fetchAvailableEpisodes(int tmdbId) {
+        String url = String.format("%s/api/list/episode?tmdb_id=%d",
+                properties.getExtractor().getBaseUrl(), tmdbId);
+        Request request = new Request.Builder().url(url).build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                log.warn("VixSrc episode list returned HTTP {} for tmdbId={}", response.code(), tmdbId);
+                return Set.of();
+            }
+            String body = response.body() != null ? response.body().string() : "[]";
+            List<EpisodeEntry> entries = objectMapper.readValue(body, new TypeReference<>() {});
+            Set<EpisodeKey> keys = entries.stream()
+                    .filter(e -> e.season() != null && e.episode() != null)
+                    .map(e -> new EpisodeKey(e.season(), e.episode()))
+                    .collect(Collectors.toSet());
+            log.debug("VixSrc episode list tmdbId={}: {} episode(s) available", tmdbId, keys.size());
+            return keys;
+        } catch (Exception e) {
+            log.error("Failed to fetch VixSrc episode list for tmdbId={}: {}", tmdbId, e.getMessage());
+            return Set.of();
+        }
+    }
+
+    public record EpisodeKey(int season, int episode) {}
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record ListEntry(@JsonProperty("tmdb_id") Integer tmdbId,
                              @JsonProperty("imdb_id") String imdbId) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record EpisodeEntry(@JsonProperty("season") Integer season,
+                                @JsonProperty("episode") Integer episode) {}
 
     private record CacheKey(String type, String language) {}
 
