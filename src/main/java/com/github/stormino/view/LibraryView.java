@@ -82,19 +82,31 @@ public class LibraryView extends VerticalLayout {
 
         grid.addColumn(LibraryEntry::directoryName)
                 .setHeader("Show Directory")
-                .setFlexGrow(3)
+                .setFlexGrow(1)
+                .setResizable(true)
                 .setSortable(true)
                 .setKey("directory");
 
+        grid.addColumn(new ComponentRenderer<>(this::buildActionsColumn))
+                .setHeader("Actions")
+                .setWidth("320px")
+                .setFlexGrow(0)
+                .setResizable(true)
+                .setKey("actions");
+
         grid.addColumn(LibraryEntry::seasonCount)
                 .setHeader("Seasons")
-                .setFlexGrow(1)
+                .setWidth("90px")
+                .setFlexGrow(0)
+                .setResizable(true)
                 .setSortable(true)
                 .setKey("seasons");
 
         grid.addColumn(LibraryEntry::episodeCount)
                 .setHeader("Episodes")
-                .setFlexGrow(1)
+                .setWidth("90px")
+                .setFlexGrow(0)
+                .setResizable(true)
                 .setSortable(true)
                 .setKey("episodes");
 
@@ -108,25 +120,20 @@ public class LibraryView extends VerticalLayout {
             Span badge = new Span(show.isEnabled() ? "Monitoring" : "Paused");
             badge.getElement().getThemeList().add(show.isEnabled() ? "badge success" : "badge");
             return badge;
-        })).setHeader("Status").setFlexGrow(1).setKey("status");
+        })).setHeader("Status").setWidth("130px").setFlexGrow(0).setResizable(true).setKey("status");
 
         grid.addColumn(new ComponentRenderer<>(entry -> {
             if (!entry.isMonitored()) return new Span("-");
             MonitoredShow show = entry.monitoredShow();
             return new Span(show.getSource().getDisplayName());
-        })).setHeader("Source").setFlexGrow(1).setKey("source");
+        })).setHeader("Source").setWidth("100px").setFlexGrow(0).setResizable(true).setKey("source");
 
         grid.addColumn(new ComponentRenderer<>(entry -> {
             if (!entry.isMonitored() || entry.monitoredShow().getLastCheckedAt() == null) {
                 return new Span("-");
             }
             return new Span(entry.monitoredShow().getLastCheckedAt().format(DT_FORMAT));
-        })).setHeader("Last Checked").setFlexGrow(2).setKey("lastChecked");
-
-        grid.addColumn(new ComponentRenderer<>(this::buildActionsColumn))
-                .setHeader("Actions")
-                .setFlexGrow(2)
-                .setKey("actions");
+        })).setHeader("Last Checked").setWidth("150px").setFlexGrow(0).setResizable(true).setKey("lastChecked");
 
         add(header, subtitle, grid);
         setFlexGrow(1, grid);
