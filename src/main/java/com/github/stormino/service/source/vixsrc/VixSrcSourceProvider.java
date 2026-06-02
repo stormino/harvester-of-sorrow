@@ -11,6 +11,8 @@ import com.github.stormino.service.HlsParserService;
 import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.VixSrcExtractorService;
+import com.github.stormino.model.source.VixSrcMetadata;
+import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -100,5 +102,29 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
     @Override
     public Set<String> supportedLanguages() {
         return SUPPORTED_LANGUAGES;
+    }
+
+    @Override
+    public List<EpisodeRef> listEpisodes(ContentMetadata show) {
+        if (!tmdbService.isAvailable() || show.getTmdbId() == null) {
+            log.debug("TMDB not configured or no tmdbId; cannot list episodes for '{}'", show.getTitle());
+            return List.of();
+        }
+
+        List<EpisodeRef> result = new ArrayList<>();
+        var seasons = tmdbService.getSeasons(show.getTmdbId());
+        for (var season : seasons) {
+            var episodes = tmdbService.getEpisodes(show.getTmdbId(), season.season_number);
+            for (var ep : episodes) {
+                result.add(new EpisodeRef(
+                        season.season_number,
+                        ep.episode_number,
+                        ep.name,
+                        new VixSrcMetadata(show.getTmdbId(), season.season_number, ep.episode_number)
+                ));
+            }
+        }
+        log.debug("Listed {} episode(s) for '{}' (tmdbId={})", result.size(), show.getTitle(), show.getTmdbId());
+        return result;
     }
 }
