@@ -136,7 +136,7 @@ public class VixSrcAvailabilityService {
                 .filter(e -> Objects.equals(e.tmdbId(), tmdbId))
                 .map(e -> new EpisodeKey(e.season(), e.episode()))
                 .collect(Collectors.toSet());
-        log.debug("VixSrc episode list tmdbId={} lang={}: {} episode(s) available", tmdbId, language, keys.size());
+        log.info("VixSrc episode list filtered tmdbId={} lang={}: {} episode(s) matched", tmdbId, language, keys.size());
         return keys;
     }
 

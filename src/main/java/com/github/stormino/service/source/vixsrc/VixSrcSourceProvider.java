@@ -119,6 +119,13 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
         // empty (error or truly empty show) we fall back to the full TMDB list so monitoring
         // still works rather than silently producing nothing.
         var available = availabilityService.fetchAvailableEpisodes(show.getTmdbId(), EPISODE_LIST_LANG);
+        if (available.isEmpty()) {
+            log.warn("VixSrc episode availability list returned empty for '{}' (tmdbId={}); falling back to full TMDB list",
+                    show.getTitle(), show.getTmdbId());
+        } else {
+            log.info("VixSrc episode availability for '{}' (tmdbId={}): {} episode(s) available",
+                    show.getTitle(), show.getTmdbId(), available.size());
+        }
         boolean filterByAvailability = !available.isEmpty();
 
         List<EpisodeRef> result = new ArrayList<>();
@@ -128,7 +135,7 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
             for (var ep : episodes) {
                 if (filterByAvailability &&
                         !available.contains(new VixSrcAvailabilityService.EpisodeKey(season.season_number, ep.episode_number))) {
-                    log.debug("Skipping {}: S{}E{} not available on VixSrc",
+                    log.info("Skipping {}: S{}E{} not in VixSrc episode list",
                             show.getTitle(), season.season_number, ep.episode_number);
                     continue;
                 }
@@ -140,8 +147,8 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
                 ));
             }
         }
-        log.debug("Listed {} episode(s) for '{}' (tmdbId={}, vixsrcAvailable={}, filtered={})",
-                result.size(), show.getTitle(), show.getTmdbId(), available.size(), filterByAvailability);
+        log.info("listEpisodes for '{}': {} episode(s) returned (tmdbId={}, vixsrcAvailable={}, filtered={})",
+                show.getTitle(), result.size(), show.getTmdbId(), available.size(), filterByAvailability);
         return result;
     }
 }
