@@ -185,6 +185,8 @@ public class VixSrcAvailabilityService {
         }
     }
 
+    public static final String EPISODE_LIST_LANG = "it";
+
     public record EpisodeKey(int season, int episode) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -6,6 +6,7 @@ import com.github.stormino.model.ContentTypeFilter;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.service.DownloadQueueService;
+import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.view.component.SearchResultCard;
@@ -40,6 +41,7 @@ public class SearchView extends VerticalLayout {
     private final DownloadQueueService downloadQueueService;
     private final VixSrcProperties properties;
     private final MediaSourceRegistry sourceRegistry;
+    private final VixSrcAvailabilityService availabilityService;
 
     private final TextField searchField;
     private final RadioButtonGroup<String> contentTypeGroup;
@@ -48,10 +50,12 @@ public class SearchView extends VerticalLayout {
 
     public SearchView(DownloadQueueService downloadQueueService,
                       VixSrcProperties properties,
-                      MediaSourceRegistry sourceRegistry) {
+                      MediaSourceRegistry sourceRegistry,
+                      VixSrcAvailabilityService availabilityService) {
         this.downloadQueueService = downloadQueueService;
         this.properties = properties;
         this.sourceRegistry = sourceRegistry;
+        this.availabilityService = availabilityService;
 
         setSizeFull();
         setPadding(false);
@@ -179,15 +183,54 @@ public class SearchView extends VerticalLayout {
         MediaSource source = content.getSource() != null ? content.getSource() : MediaSource.VIXSRC;
         MediaSourceProvider provider = sourceRegistry.get(source);
 
+        java.util.function.Function<Integer, List<Integer>> episodeListProvider =
+                buildEpisodeListProvider(content, source, type);
+
         SearchResultCard card = new SearchResultCard(
                 content,
                 type,
                 () -> Set.of(properties.getDownload().getDefaultLanguage()),
                 () -> properties.getDownload().getDefaultQuality(),
                 provider.supportedLanguages(),
-                this::handleDownload
+                this::handleDownload,
+                episodeListProvider
         );
         resultsContainer.add(card);
+    }
+
+    private java.util.function.Function<Integer, List<Integer>> buildEpisodeListProvider(
+            ContentMetadata content, MediaSource source, DownloadTask.ContentType type) {
+        if (type != DownloadTask.ContentType.TV) {
+            return season -> List.of();
+        }
+        if (source == MediaSource.VIXSRC && content.getTmdbId() != null) {
+            // Fetch VixSrc-available episodes once (cached) and filter per season
+            return season -> {
+                var available = availabilityService.fetchAvailableEpisodes(
+                        content.getTmdbId(), VixSrcAvailabilityService.EPISODE_LIST_LANG);
+                if (available.isEmpty()) {
+                    // Fall back to TMDB count if the endpoint didn't return data
+                    return tmdbEpisodesForSeason(content, season);
+                }
+                return available.stream()
+                        .filter(e -> e.season() == season)
+                        .map(VixSrcAvailabilityService.EpisodeKey::episode)
+                        .sorted()
+                        .toList();
+            };
+        }
+        // Non-VixSrc sources: use TMDB episode counts pre-loaded at search time
+        return season -> tmdbEpisodesForSeason(content, season);
+    }
+
+    private static List<Integer> tmdbEpisodesForSeason(ContentMetadata content, int season) {
+        if (content.getEpisodesPerSeason() != null) {
+            Integer count = content.getEpisodesPerSeason().get(season);
+            if (count != null && count > 0) {
+                return java.util.stream.IntStream.rangeClosed(1, count).boxed().toList();
+            }
+        }
+        return List.of();
     }
 
     private void handleDownload(ContentMetadata content, DownloadTask.ContentType type,

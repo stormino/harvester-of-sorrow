@@ -20,6 +20,7 @@ import com.github.stormino.model.source.RaiPlayMetadata;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -37,6 +38,8 @@ public class SearchResultCard extends VerticalLayout {
     private final Supplier<String> defaultQualitySupplier;
     private final Set<String> supportedLanguages;
     private final DownloadHandler downloadHandler;
+    /** Given a season number, returns the available episode numbers for that season. */
+    private final Function<Integer, List<Integer>> episodeListProvider;
 
     // Built once per card; fields reset on each open to avoid Vaadin overlay ID conflicts
     private Dialog downloadDialog;
@@ -56,13 +59,15 @@ public class SearchResultCard extends VerticalLayout {
                            Supplier<Set<String>> defaultLanguagesSupplier,
                            Supplier<String> defaultQualitySupplier,
                            Set<String> supportedLanguages,
-                           DownloadHandler downloadHandler) {
+                           DownloadHandler downloadHandler,
+                           Function<Integer, List<Integer>> episodeListProvider) {
         this.content = content;
         this.type = type;
         this.defaultLanguagesSupplier = defaultLanguagesSupplier;
         this.defaultQualitySupplier = defaultQualitySupplier;
         this.supportedLanguages = supportedLanguages;
         this.downloadHandler = downloadHandler;
+        this.episodeListProvider = episodeListProvider;
 
         createCard();
     }
@@ -305,7 +310,7 @@ public class SearchResultCard extends VerticalLayout {
                 Set<Integer> selected = e.getValue();
                 if (selected.size() == 1) {
                     int season = selected.iterator().next();
-                    List<Integer> episodes = buildEpisodeList(season);
+                    List<Integer> episodes = episodeListProvider.apply(season);
                     dialogEpisodeSelector.setItems(episodes);
                     dialogEpisodeSelector.setPlaceholder("All episodes");
                     dialogEpisodeSelector.setEnabled(true);
@@ -384,17 +389,6 @@ public class SearchResultCard extends VerticalLayout {
         }
     }
     
-    /** Returns the episode list for the given season using pre-loaded metadata. */
-    private List<Integer> buildEpisodeList(int season) {
-        if (content.getEpisodesPerSeason() != null) {
-            Integer count = content.getEpisodesPerSeason().get(season);
-            if (count != null && count > 0) {
-                return IntStream.rangeClosed(1, count).boxed().toList();
-            }
-        }
-        return List.of();
-    }
-
     private String truncateOverview(String overview) {
         if (overview == null || overview.isBlank()) {
             return "No overview available.";

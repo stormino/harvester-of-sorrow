@@ -34,8 +34,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class VixSrcSourceProvider implements MediaSourceProvider {
 
-    private static final String EPISODE_LIST_LANG = "it";
-
     private static final Set<String> SUPPORTED_LANGUAGES = Set.of(
             "en", "it", "es", "fr", "de", "pt", "ja", "ko", "ru", "zh"
     );
@@ -118,7 +116,7 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
         // available on the source (e.g. future/unaired episodes).  If the endpoint returns
         // empty (error or truly empty show) we fall back to the full TMDB list so monitoring
         // still works rather than silently producing nothing.
-        var available = availabilityService.fetchAvailableEpisodes(show.getTmdbId(), EPISODE_LIST_LANG);
+        var available = availabilityService.fetchAvailableEpisodes(show.getTmdbId(), VixSrcAvailabilityService.EPISODE_LIST_LANG);
         if (available.isEmpty()) {
             log.warn("VixSrc episode availability list returned empty for '{}' (tmdbId={}); falling back to full TMDB list",
                     show.getTitle(), show.getTmdbId());
