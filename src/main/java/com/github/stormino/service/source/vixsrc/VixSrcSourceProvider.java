@@ -116,7 +116,7 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
         // available on the source (e.g. future/unaired episodes).  If the endpoint returns
         // empty (error or truly empty show) we fall back to the full TMDB list so monitoring
         // still works rather than silently producing nothing.
-        var available = availabilityService.fetchAvailableEpisodes(show.getTmdbId());
+        var available = availabilityService.fetchAvailableEpisodes(show.getTmdbId(), "en");
         boolean filterByAvailability = !available.isEmpty();
 
         List<EpisodeRef> result = new ArrayList<>();
