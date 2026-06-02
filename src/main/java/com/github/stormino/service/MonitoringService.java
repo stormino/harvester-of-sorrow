@@ -204,6 +204,17 @@ public class MonitoringService {
     public int checkForNewEpisodes(MonitoredShow show) {
         log.info("Checking for new episodes: {} (source={})", show.getTitle(), show.getSource());
 
+        Path base = Paths.get(properties.getDownload().getTvShowsPath());
+        Path showDir = base.resolve(show.getDirectoryName());
+
+        // Feature: disable monitoring if the directory has been deleted
+        if (!Files.isDirectory(showDir)) {
+            log.warn("Show directory no longer exists for '{}' ({}), disabling monitoring",
+                    show.getTitle(), showDir);
+            setEnabled(show.getId(), false);
+            return 0;
+        }
+
         ContentMetadata content = buildContentMetadata(show);
         MediaSourceProvider provider;
         try {
@@ -227,14 +238,28 @@ public class MonitoringService {
             return 0;
         }
 
-        Path base = Paths.get(properties.getDownload().getTvShowsPath());
-        Path showDir = base.resolve(show.getDirectoryName());
+        // Feature: only enqueue episodes that come AFTER the latest one already on disk.
+        // This prevents filling gaps in a back-catalogue the user intentionally skipped.
+        EpisodeKey latestOnDisk = findLatestEpisodeOnDisk(showDir);
+        if (latestOnDisk != null) {
+            log.info("Latest episode on disk for '{}': S{}E{} — will only enqueue subsequent episodes",
+                    show.getTitle(), latestOnDisk.season(), latestOnDisk.episode());
+        } else {
+            log.info("No episodes found on disk for '{}' — skipping enqueue to avoid downloading entire back-catalogue",
+                    show.getTitle());
+            updateCheckTimestamp(show, null);
+            return 0;
+        }
 
         List<String> defaultLanguages = properties.getDownload().getDefaultLanguageList();
         String quality = properties.getDownload().getDefaultQuality();
 
         int enqueued = 0;
         for (EpisodeRef ep : episodes) {
+            // Skip anything not strictly after the latest on-disk episode
+            if (!isAfter(ep, latestOnDisk)) {
+                continue;
+            }
             if (isAlreadyPresent(showDir, show.getTitle(), ep)) {
                 log.debug("Already present: {} S{}E{}", show.getTitle(), ep.season(), ep.episode());
                 continue;
@@ -271,6 +296,48 @@ public class MonitoringService {
         log.info("Check complete for '{}': {} new episode(s) enqueued", show.getTitle(), enqueued);
         return enqueued;
     }
+
+    /**
+     * Scans the show directory and returns the highest (season, episode) found on disk,
+     * or null if no episodes are present.
+     */
+    private EpisodeKey findLatestEpisodeOnDisk(Path showDir) {
+        EpisodeKey latest = null;
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("S(\\d+)E(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE);
+        try (var seasonStream = Files.list(showDir)) {
+            List<Path> seasonDirs = seasonStream.filter(Files::isDirectory).toList();
+            for (Path seasonDir : seasonDirs) {
+                try (var epStream = Files.list(seasonDir)) {
+                    List<Path> files = epStream
+                            .filter(p -> p.toString().endsWith(DownloadConstants.VIDEO_EXTENSION))
+                            .toList();
+                    for (Path file : files) {
+                        var matcher = pattern.matcher(file.getFileName().toString());
+                        if (matcher.find()) {
+                            int s = Integer.parseInt(matcher.group(1));
+                            int e = Integer.parseInt(matcher.group(2));
+                            if (latest == null || s > latest.season() || (s == latest.season() && e > latest.episode())) {
+                                latest = new EpisodeKey(s, e);
+                            }
+                        }
+                    }
+                } catch (IOException ex) {
+                    log.debug("Could not read season dir {}: {}", seasonDir, ex.getMessage());
+                }
+            }
+        } catch (IOException ex) {
+            log.debug("Could not read show dir {}: {}", showDir, ex.getMessage());
+        }
+        return latest;
+    }
+
+    /** Returns true if {@code ep} comes strictly after {@code anchor} in watch order. */
+    private boolean isAfter(EpisodeRef ep, EpisodeKey anchor) {
+        return ep.season() > anchor.season()
+                || (ep.season() == anchor.season() && ep.episode() > anchor.episode());
+    }
+
+    private record EpisodeKey(int season, int episode) {}
 
     private boolean isAlreadyPresent(Path showDir, String showTitle, EpisodeRef ep) {
         // Check all season subdirectories for a file matching S{nn}E{nn}
