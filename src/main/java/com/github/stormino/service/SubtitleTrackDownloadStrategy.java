@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +43,7 @@ public class SubtitleTrackDownloadStrategy implements TrackDownloadStrategy {
                 request.getMaxConcurrency(),
                 request.getSubTask(),
                 request.getParentTaskId(),
+                request.getIsCancelled(),
                 request.getProgressCallback()
         );
     }
@@ -62,6 +64,7 @@ public class SubtitleTrackDownloadStrategy implements TrackDownloadStrategy {
             int maxConcurrent,
             @NonNull DownloadSubTask subTask,
             @NonNull String parentTaskId,
+            Supplier<Boolean> isCancelled,
             Consumer<ProgressUpdate> progressCallback) {
 
         log.debug("Starting subtitle track download for language: {}", language);
@@ -131,6 +134,7 @@ public class SubtitleTrackDownloadStrategy implements TrackDownloadStrategy {
                     referer,
                     maxConcurrent,
                     encryption,
+                    isCancelled,
                     progress -> {
                         // Update sub-task progress
                         subTask.setProgress(progress.getPercentage());

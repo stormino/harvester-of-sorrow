@@ -7,6 +7,7 @@ import lombok.Data;
 
 import java.nio.file.Path;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Request object encapsulating all parameters needed for track download.
@@ -62,4 +63,10 @@ public class TrackDownloadRequest {
      * Callback for progress updates.
      */
     private final Consumer<ProgressUpdate> progressCallback;
+
+    /**
+     * Returns true when the parent task has been cancelled and the download should abort.
+     */
+    @Builder.Default
+    private final Supplier<Boolean> isCancelled = () -> false;
 }

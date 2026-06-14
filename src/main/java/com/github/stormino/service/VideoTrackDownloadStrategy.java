@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +44,7 @@ public class VideoTrackDownloadStrategy implements TrackDownloadStrategy {
                 request.getMaxConcurrency(),
                 request.getSubTask(),
                 request.getParentTaskId(),
+                request.getIsCancelled(),
                 request.getProgressCallback()
         );
     }
@@ -63,6 +65,7 @@ public class VideoTrackDownloadStrategy implements TrackDownloadStrategy {
             int maxConcurrent,
             @NonNull DownloadSubTask subTask,
             @NonNull String parentTaskId,
+            Supplier<Boolean> isCancelled,
             Consumer<ProgressUpdate> progressCallback) {
 
         log.debug("Starting video track download from: {}", playlistUrl);
@@ -126,6 +129,7 @@ public class VideoTrackDownloadStrategy implements TrackDownloadStrategy {
                     referer,
                     maxConcurrent,
                     encryption,
+                    isCancelled,
                     progress -> {
                         // Update sub-task progress
                         subTask.setProgress(progress.getPercentage());
@@ -170,6 +174,10 @@ public class VideoTrackDownloadStrategy implements TrackDownloadStrategy {
                         }
                     }
             );
+
+            if (isCancelled.get()) {
+                return DownloadResult.failure("Cancelled");
+            }
 
             if (!result.isSuccess()) {
                 log.error("Video segment download failed: {}", result.getErrorMessage());

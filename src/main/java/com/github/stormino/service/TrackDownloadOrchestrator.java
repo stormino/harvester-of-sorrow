@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +57,9 @@ public class TrackDownloadOrchestrator {
      */
     public boolean downloadWithTracks(DownloadTask task) {
         log.debug("Starting concurrent track download for: {}", task.getDisplayName());
+
+        AtomicBoolean isCancelled = new AtomicBoolean(false);
+        executorService.registerCancellationFlag(task.getId(), isCancelled);
 
         try (TempFileManager tempFileManager = new TempFileManager()) {
             // 1. Create temp directory
@@ -101,7 +105,7 @@ public class TrackDownloadOrchestrator {
             // 4. Download tracks concurrently (1 video + N audio + N subtitle)
             final ResolvedMedia rm = resolvedMedia; // effectively final for lambda capture
             List<CompletableFuture<Boolean>> downloadFutures = subTasks.stream()
-                    .map(subTask -> downloadTrackAsync(task, subTask, tempDir, languages.get(0), rm))
+                    .map(subTask -> downloadTrackAsync(task, subTask, tempDir, languages.get(0), rm, isCancelled))
                     .toList();
 
             // 5. Wait for all downloads
@@ -167,9 +171,21 @@ public class TrackDownloadOrchestrator {
                 return false;
             }
 
+            // Abort if cancelled during download phase
+            if (task.getStatus() == DownloadStatus.CANCELLED) {
+                log.info("Task cancelled before merge phase: {}", task.getId());
+                return false;
+            }
+
             // 6. Merge tracks
             boolean mergeSuccess = mergeTracks(task, subTasks, tempDir);
             if (!mergeSuccess) {
+                return false;
+            }
+
+            // Abort if cancelled during merge phase
+            if (task.getStatus() == DownloadStatus.CANCELLED) {
+                log.info("Task cancelled during merge phase: {}", task.getId());
                 return false;
             }
 
@@ -186,6 +202,8 @@ public class TrackDownloadOrchestrator {
 
             // 8. Cleanup happens automatically via try-with-resources
             return true;
+        } finally {
+            executorService.unregisterCancellationFlag(task.getId());
         }
     }
 
@@ -299,7 +317,7 @@ public class TrackDownloadOrchestrator {
      */
     private CompletableFuture<Boolean> downloadTrackAsync(DownloadTask task, DownloadSubTask subTask,
                                                           Path tempDir, String primaryLanguage,
-                                                          ResolvedMedia resolvedMedia) {
+                                                          ResolvedMedia resolvedMedia, AtomicBoolean isCancelled) {
         return CompletableFuture.supplyAsync(() -> {
             subTask.setStartedAt(LocalDateTime.now());
             subTask.setStatus(DownloadStatus.DOWNLOADING);
@@ -359,6 +377,7 @@ public class TrackDownloadOrchestrator {
                         maxConcurrent,
                         subTask,
                         task.getId(),
+                        isCancelled::get,
                         update -> progressBroadcast.broadcastProgress(update)
                 );
             } else if (isAudio) {
@@ -370,6 +389,7 @@ public class TrackDownloadOrchestrator {
                         maxConcurrent,
                         subTask,
                         task.getId(),
+                        isCancelled::get,
                         update -> progressBroadcast.broadcastProgress(update)
                 );
             } else {
@@ -382,6 +402,7 @@ public class TrackDownloadOrchestrator {
                         maxConcurrent,
                         subTask,
                         task.getId(),
+                        isCancelled::get,
                         update -> progressBroadcast.broadcastProgress(update)
                 );
             }

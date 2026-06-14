@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +43,7 @@ public class AudioTrackDownloadStrategy implements TrackDownloadStrategy {
                 request.getMaxConcurrency(),
                 request.getSubTask(),
                 request.getParentTaskId(),
+                request.getIsCancelled(),
                 request.getProgressCallback()
         );
     }
@@ -62,6 +64,7 @@ public class AudioTrackDownloadStrategy implements TrackDownloadStrategy {
             int maxConcurrent,
             @NonNull DownloadSubTask subTask,
             @NonNull String parentTaskId,
+            Supplier<Boolean> isCancelled,
             Consumer<ProgressUpdate> progressCallback) {
 
         log.debug("Starting audio track download for language: {}", language);
@@ -128,6 +131,7 @@ public class AudioTrackDownloadStrategy implements TrackDownloadStrategy {
                     referer,
                     maxConcurrent,
                     encryption,
+                    isCancelled,
                     progress -> {
                         // Update sub-task progress
                         subTask.setProgress(progress.getPercentage());
@@ -172,6 +176,10 @@ public class AudioTrackDownloadStrategy implements TrackDownloadStrategy {
                         }
                     }
             );
+
+            if (isCancelled.get()) {
+                return DownloadResult.failure("Cancelled");
+            }
 
             if (!result.isSuccess()) {
                 log.error("Audio segment download failed: {}", result.getErrorMessage());

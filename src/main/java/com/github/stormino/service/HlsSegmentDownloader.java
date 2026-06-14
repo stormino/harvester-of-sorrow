@@ -19,8 +19,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -59,7 +61,7 @@ public class HlsSegmentDownloader {
             String referer,
             int maxConcurrent,
             Consumer<DownloadProgress> progressCallback) {
-        return downloadSegments(segmentUrls, outputFile, referer, maxConcurrent, null, progressCallback);
+        return downloadSegments(segmentUrls, outputFile, referer, maxConcurrent, null, () -> false, progressCallback);
     }
 
     /**
@@ -71,6 +73,20 @@ public class HlsSegmentDownloader {
             String referer,
             int maxConcurrent,
             HlsParserService.EncryptionInfo encryptionInfo,
+            Consumer<DownloadProgress> progressCallback) {
+        return downloadSegments(segmentUrls, outputFile, referer, maxConcurrent, encryptionInfo, () -> false, progressCallback);
+    }
+
+    /**
+     * Download all segments with optional decryption, cancellation support, and concatenate to output file
+     */
+    public SegmentDownloadResult downloadSegments(
+            List<String> segmentUrls,
+            Path outputFile,
+            String referer,
+            int maxConcurrent,
+            HlsParserService.EncryptionInfo encryptionInfo,
+            Supplier<Boolean> isCancelled,
             Consumer<DownloadProgress> progressCallback) {
 
         log.debug("Starting download of {} segments to {}", segmentUrls.size(), outputFile);
@@ -95,9 +111,23 @@ public class HlsSegmentDownloader {
                 log.debug("Successfully downloaded encryption key ({} bytes)", decryptionKey.length);
             }
 
+            if (isCancelled.get()) {
+                return SegmentDownloadResult.builder()
+                        .success(false)
+                        .errorMessage("Cancelled")
+                        .build();
+            }
+
             // Download segments concurrently
             List<Path> segmentFiles = downloadSegmentsConcurrently(
-                    segmentUrls, tempDir, referer, maxConcurrent, encryptionInfo, decryptionKey, progressCallback);
+                    segmentUrls, tempDir, referer, maxConcurrent, encryptionInfo, decryptionKey, isCancelled, progressCallback);
+
+            if (isCancelled.get()) {
+                return SegmentDownloadResult.builder()
+                        .success(false)
+                        .errorMessage("Cancelled")
+                        .build();
+            }
 
             if (segmentFiles.size() != segmentUrls.size()) {
                 return SegmentDownloadResult.builder()
@@ -148,6 +178,7 @@ public class HlsSegmentDownloader {
             int maxConcurrent,
             HlsParserService.EncryptionInfo encryptionInfo,
             byte[] decryptionKey,
+            Supplier<Boolean> isCancelled,
             Consumer<DownloadProgress> progressCallback) throws InterruptedException, ExecutionException {
 
         ExecutorService executor = Executors.newFixedThreadPool(maxConcurrent);
@@ -164,9 +195,15 @@ public class HlsSegmentDownloader {
             final Path segmentFile = tempDir.resolve(String.format("segment_%05d.ts", segmentIndex));
 
             CompletableFuture<Path> future = CompletableFuture.supplyAsync(() -> {
+                if (isCancelled.get()) {
+                    return null;
+                }
                 try {
                     // Download segment
-                    byte[] encryptedData = downloadSegmentData(segmentUrl, referer);
+                    byte[] encryptedData = downloadSegmentData(segmentUrl, referer, isCancelled);
+                    if (isCancelled.get()) {
+                        return null;
+                    }
 
                     // Decrypt if needed
                     byte[] data;
@@ -235,8 +272,21 @@ public class HlsSegmentDownloader {
             futures.add(future);
         }
 
-        // Wait for all downloads
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+        // Wait for all downloads, polling for cancellation
+        CompletableFuture<Void> all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        try {
+            while (!all.isDone()) {
+                if (isCancelled.get()) {
+                    log.debug("Cancellation detected — shutting down segment download executor");
+                    executor.shutdownNow();
+                    futures.forEach(f -> f.cancel(true));
+                    return new ArrayList<>();
+                }
+                all.get(200, TimeUnit.MILLISECONDS);
+            }
+        } catch (TimeoutException ignored) {
+            // loop continues
+        }
         executor.shutdown();
 
         // Filter out failed downloads
@@ -255,11 +305,14 @@ public class HlsSegmentDownloader {
         return segmentFiles;
     }
 
-    private byte[] downloadSegmentData(String url, String referer) throws IOException {
-        int maxRetries = Integer.MAX_VALUE;
+    private byte[] downloadSegmentData(String url, String referer, Supplier<Boolean> isCancelled) throws IOException {
+        int maxRetries = 10;
         int retryDelayMs = 500;
 
         for (int attempt = 0; attempt <= maxRetries; attempt++) {
+            if (isCancelled.get() || Thread.currentThread().isInterrupted()) {
+                throw new IOException("Download cancelled");
+            }
             try {
                 Request.Builder requestBuilder = new Request.Builder()
                         .url(url)
@@ -278,7 +331,7 @@ public class HlsSegmentDownloader {
 
                     // Retry on server errors (5xx) and rate limiting (429)
                     if (attempt < maxRetries && (code == 429 || code == 503 || code >= 500)) {
-                        long delay = retryDelayMs * (long) Math.pow(2, attempt); // Exponential backoff
+                        long delay = retryDelayMs * (long) Math.pow(2, attempt);
                         log.debug("HTTP {} for segment, retrying in {}ms (attempt {}/{})", code, delay, attempt + 1, maxRetries);
                         try {
                             Thread.sleep(delay);
@@ -292,7 +345,8 @@ public class HlsSegmentDownloader {
                     throw new IOException("HTTP " + code);
                 }
             } catch (IOException e) {
-                if (attempt < maxRetries && (e.getMessage().contains("timeout") || e.getMessage().contains("reset"))) {
+                if (attempt < maxRetries && !isCancelled.get() && !Thread.currentThread().isInterrupted()
+                        && (e.getMessage().contains("timeout") || e.getMessage().contains("reset"))) {
                     long delay = retryDelayMs * (long) Math.pow(2, attempt);
                     log.debug("Network error for segment: {}, retrying in {}ms (attempt {}/{})",
                             e.getMessage(), delay, attempt + 1, maxRetries);
@@ -313,7 +367,7 @@ public class HlsSegmentDownloader {
 
     private byte[] downloadEncryptionKey(String keyUrl, String referer) {
         try {
-            return downloadSegmentData(keyUrl, referer);
+            return downloadSegmentData(keyUrl, referer, () -> false);
         } catch (IOException e) {
             log.error("Failed to download encryption key from {}: {}", keyUrl, e.getMessage(), e);
             return null;
