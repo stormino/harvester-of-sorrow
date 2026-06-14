@@ -31,6 +31,17 @@ public class DownloadExecutorService {
 
     // Track running processes per task
     private final java.util.concurrent.ConcurrentHashMap<String, Process> runningProcesses = new java.util.concurrent.ConcurrentHashMap<>();
+
+    // Cancellation flags registered by the orchestrator for each active task
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicBoolean> cancellationFlags = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public void registerCancellationFlag(String taskId, java.util.concurrent.atomic.AtomicBoolean flag) {
+        cancellationFlags.put(taskId, flag);
+    }
+
+    public void unregisterCancellationFlag(String taskId) {
+        cancellationFlags.remove(taskId);
+    }
     
     // Progress parsing patterns
     private static final Pattern FFMPEG_TIME_PATTERN = Pattern.compile("time=(\\d{2}):(\\d{2}):(\\d{2}\\.\\d+)");
@@ -42,7 +53,13 @@ public class DownloadExecutorService {
      * Cancel a running download
      */
     public void cancelDownload(String taskId) {
-        // Find all processes for this task (parent + sub-tasks)
+        // Signal the cancellation flag so HLS segment downloaders stop immediately
+        java.util.concurrent.atomic.AtomicBoolean flag = cancellationFlags.get(taskId);
+        if (flag != null) {
+            flag.set(true);
+        }
+
+        // Kill any tracked ffmpeg processes for this task
         runningProcesses.entrySet().stream()
                 .filter(e -> e.getKey().startsWith(taskId))
                 .forEach(e -> {
