@@ -64,6 +64,7 @@ public class MainLayout extends AppLayout {
         
         nav.addItem(new SideNavItem("Search", SearchView.class, VaadinIcon.SEARCH.create()));
         nav.addItem(new SideNavItem("Downloads", DownloadQueueView.class, VaadinIcon.DOWNLOAD.create()));
+        nav.addItem(new SideNavItem("Library", LibraryView.class, VaadinIcon.FILM.create()));
         nav.addItem(new SideNavItem("Settings", SettingsView.class, VaadinIcon.COG.create()));
         
         addToDrawer(nav);

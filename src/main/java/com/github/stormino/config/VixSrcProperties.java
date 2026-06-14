@@ -18,6 +18,7 @@ public class VixSrcProperties {
     private Download download = new Download();
     private Tmdb tmdb = new Tmdb();
     private Extractor extractor = new Extractor();
+    private Monitoring monitoring = new Monitoring();
     
     @Data
     public static class Download {
@@ -56,6 +57,14 @@ public class VixSrcProperties {
         }
     }
     
+    @Data
+    public static class Monitoring {
+        private boolean enabled = true;
+        /** Interval between monitoring checks in milliseconds (default 60 minutes). */
+        @Min(60000)
+        private long intervalMs = 3_600_000L;
+    }
+
     @Data
     public static class Extractor {
         @NotBlank

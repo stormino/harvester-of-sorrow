@@ -11,6 +11,9 @@ import com.github.stormino.service.HlsParserService;
 import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.VixSrcExtractorService;
+import com.github.stormino.model.source.VixSrcMetadata;
+import com.github.stormino.service.VixSrcAvailabilityService;
+import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -100,5 +103,50 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
     @Override
     public Set<String> supportedLanguages() {
         return SUPPORTED_LANGUAGES;
+    }
+
+    @Override
+    public List<EpisodeRef> listEpisodes(ContentMetadata show) {
+        if (!tmdbService.isAvailable() || show.getTmdbId() == null) {
+            log.debug("TMDB not configured or no tmdbId; cannot list episodes for '{}'", show.getTitle());
+            return List.of();
+        }
+
+        // Fetch which episodes VixSrc actually has — TMDB may list more episodes than are
+        // available on the source (e.g. future/unaired episodes).  If the endpoint returns
+        // empty (error or truly empty show) we fall back to the full TMDB list so monitoring
+        // still works rather than silently producing nothing.
+        var available = availabilityService.fetchAvailableEpisodes(show.getTmdbId(), VixSrcAvailabilityService.EPISODE_LIST_LANG);
+        if (available.isEmpty()) {
+            log.warn("VixSrc episode availability list returned empty for '{}' (tmdbId={}); falling back to full TMDB list",
+                    show.getTitle(), show.getTmdbId());
+        } else {
+            log.info("VixSrc episode availability for '{}' (tmdbId={}): {} episode(s) available",
+                    show.getTitle(), show.getTmdbId(), available.size());
+        }
+        boolean filterByAvailability = !available.isEmpty();
+
+        List<EpisodeRef> result = new ArrayList<>();
+        var seasons = tmdbService.getSeasons(show.getTmdbId());
+        for (var season : seasons) {
+            var episodes = tmdbService.getEpisodes(show.getTmdbId(), season.season_number);
+            for (var ep : episodes) {
+                if (filterByAvailability &&
+                        !available.contains(new VixSrcAvailabilityService.EpisodeKey(season.season_number, ep.episode_number))) {
+                    log.info("Skipping {}: S{}E{} not in VixSrc episode list",
+                            show.getTitle(), season.season_number, ep.episode_number);
+                    continue;
+                }
+                result.add(new EpisodeRef(
+                        season.season_number,
+                        ep.episode_number,
+                        ep.name,
+                        new VixSrcMetadata(show.getTmdbId(), season.season_number, ep.episode_number)
+                ));
+            }
+        }
+        log.info("listEpisodes for '{}': {} episode(s) returned (tmdbId={}, vixsrcAvailable={}, filtered={})",
+                show.getTitle(), result.size(), show.getTmdbId(), available.size(), filterByAvailability);
+        return result;
     }
 }
