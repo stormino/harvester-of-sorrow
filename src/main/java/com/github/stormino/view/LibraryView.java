@@ -27,7 +27,9 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -47,6 +49,7 @@ public class LibraryView extends VerticalLayout {
     private final MediaSourceRegistry sourceRegistry;
 
     private final Grid<LibraryEntry> grid;
+    private ListDataProvider<LibraryEntry> dataProvider;
 
     public LibraryView(MonitoringService monitoringService,
                        MediaSourceRegistry sourceRegistry) {
@@ -65,14 +68,22 @@ public class LibraryView extends VerticalLayout {
                 "Downloaded TV shows detected on disk. Add them to monitoring to automatically enqueue new episodes.");
         subtitle.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.Margin.Top.NONE);
 
+        TextField filterField = new TextField();
+        filterField.setId("library-filter-input");
+        filterField.setPlaceholder("Filter by title...");
+        filterField.setPrefixComponent(VaadinIcon.SEARCH.create());
+        filterField.setClearButtonVisible(true);
+        filterField.setValueChangeMode(ValueChangeMode.LAZY);
+        filterField.addValueChangeListener(e -> applyFilter(e.getValue()));
+
         Button refreshButton = new Button("Refresh", VaadinIcon.REFRESH.create());
         refreshButton.setId("library-refresh-button");
         refreshButton.addClickListener(e -> refresh());
 
-        HorizontalLayout header = new HorizontalLayout(title, refreshButton);
+        HorizontalLayout header = new HorizontalLayout(title, filterField, refreshButton);
         header.setWidthFull();
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
-        header.expand(title);
+        header.expand(filterField);
 
         grid = new Grid<>();
         grid.setId("library-grid");
@@ -334,7 +345,15 @@ public class LibraryView extends VerticalLayout {
 
     private void refresh() {
         List<LibraryEntry> entries = monitoringService.scanLibrary();
-        grid.setItems(entries);
+        dataProvider = new ListDataProvider<>(entries);
+        grid.setDataProvider(dataProvider);
+    }
+
+    private void applyFilter(String value) {
+        if (dataProvider == null) return;
+        String filter = value == null ? "" : value.trim().toLowerCase();
+        dataProvider.setFilter(entry ->
+                filter.isEmpty() || entry.directoryName().toLowerCase().contains(filter));
     }
 
     private void showNotification(String message, boolean error) {
