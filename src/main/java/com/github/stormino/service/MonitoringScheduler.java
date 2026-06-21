@@ -13,12 +13,12 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "vixsrc.monitoring.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "hos.monitoring.enabled", havingValue = "true", matchIfMissing = true)
 public class MonitoringScheduler {
 
     private final MonitoringService monitoringService;
 
-    @Scheduled(fixedDelayString = "${vixsrc.monitoring.interval-ms:3600000}")
+    @Scheduled(fixedDelayString = "${hos.monitoring.interval-ms:3600000}")
     public void checkAllMonitoredShows() {
         List<MonitoredShow> shows = monitoringService.listAll().stream()
                 .filter(MonitoredShow::isEnabled)

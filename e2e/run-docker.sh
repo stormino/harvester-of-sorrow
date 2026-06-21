@@ -13,4 +13,4 @@ docker run --rm \
   --env-file "$SCRIPT_DIR/.env.e2e" \
   -v "$RESULTS_DIR/target:/app/target/e2e" \
   -v "$RESULTS_DIR/report:/app/e2e/test-results" \
-  vixsrc-e2e "$@"
+  hos-e2e "$@"

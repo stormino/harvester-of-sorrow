@@ -12,14 +12,14 @@ import java.util.List;
 @Data
 @Validated
 @Configuration
-@ConfigurationProperties(prefix = "vixsrc")
-public class VixSrcProperties {
-    
+@ConfigurationProperties(prefix = "hos")
+public class AppProperties {
+
     private Download download = new Download();
     private Tmdb tmdb = new Tmdb();
     private Extractor extractor = new Extractor();
     private Monitoring monitoring = new Monitoring();
-    
+
     @Data
     public static class Download {
         @NotBlank
@@ -47,16 +47,16 @@ public class VixSrcProperties {
             return List.of(defaultLanguage);
         }
     }
-    
+
     @Data
     public static class Tmdb {
         private String apiKey;
-        
+
         public boolean isConfigured() {
             return apiKey != null && !apiKey.isBlank();
         }
     }
-    
+
     @Data
     public static class Monitoring {
         private boolean enabled = true;

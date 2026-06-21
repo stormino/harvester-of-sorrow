@@ -25,7 +25,7 @@ import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.ProgressUpdate;
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.service.DownloadQueueService;
 import com.github.stormino.service.ProgressBroadcastService;
 import lombok.Data;
@@ -46,7 +46,7 @@ public class DownloadQueueView extends VerticalLayout {
 
     private final DownloadQueueService downloadQueueService;
     private final ProgressBroadcastService progressBroadcastService;
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final TreeGrid<DownloadItem> treeGrid;
     private Consumer<ProgressUpdate> progressListener;
 
@@ -64,7 +64,7 @@ public class DownloadQueueView extends VerticalLayout {
 
     public DownloadQueueView(DownloadQueueService downloadQueueService,
                              ProgressBroadcastService progressBroadcastService,
-                             VixSrcProperties properties) {
+                             AppProperties properties) {
         this.downloadQueueService = downloadQueueService;
         this.progressBroadcastService = progressBroadcastService;
         this.properties = properties;

@@ -1,6 +1,6 @@
 package com.github.stormino.service;
 
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.DownloadResult;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadSubTask;
@@ -40,7 +40,7 @@ public class TrackDownloadOrchestrator {
 
     private final MediaSourceRegistry sourceRegistry;
     private final ProgressBroadcastService progressBroadcast;
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final VideoTrackDownloadStrategy videoStrategy;
     private final AudioTrackDownloadStrategy audioStrategy;
     private final SubtitleTrackDownloadStrategy subtitleStrategy;

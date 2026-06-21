@@ -1,6 +1,6 @@
 package com.github.stormino.service;
 
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.DownloadResult;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.ProgressUpdate;
@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class DownloadExecutorService {
 
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final ProgressEventBuilder progressBuilder;
 
     // Track running processes per task

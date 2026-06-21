@@ -23,7 +23,7 @@ fi
 # versions).
 exec mvn spring-boot:run \
   -DSERVER_PORT="${SERVER_PORT:-8089}" \
-  -DSQLITE_DB_PATH="${SQLITE_DB_PATH:-target/e2e/vixsrc.db}" \
+  -DSQLITE_DB_PATH="${SQLITE_DB_PATH:-target/e2e/hos.db}" \
   -DDOWNLOAD_MOVIES_PATH="${DOWNLOAD_MOVIES_PATH:-target/e2e/movies}" \
   -DDOWNLOAD_TV_SHOWS_PATH="${DOWNLOAD_TV_SHOWS_PATH:-target/e2e/tvshows}" \
   -DDOWNLOAD_TEMP_PATH="${DOWNLOAD_TEMP_PATH:-target/e2e/temp}" \

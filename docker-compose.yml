@@ -1,14 +1,14 @@
 services:
-  vixsrc-downloader:
+  harvester-of-sorrow:
     # Use pre-built image from GitHub Container Registry
-    # image: ghcr.io/stormino/vixsrc-downloader-java:latest
+    # image: ghcr.io/stormino/harvester-of-sorrow:latest
     # Or build locally
     build:
       context: .
       args:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
-    container_name: vixsrc-downloader
+    container_name: harvester-of-sorrow
     ports:
       - "8080:8080"
     environment:
@@ -28,7 +28,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ${DOWNLOAD_PATH:-./downloads}:/downloads
-      - vixsrc-data:/app/data
+      - hos-data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
@@ -38,4 +38,4 @@ services:
       start_period: 60s
 
 volumes:
-  vixsrc-data:
+  hos-data:

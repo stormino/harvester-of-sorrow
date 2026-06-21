@@ -17,8 +17,8 @@ RUN mvn clean package -DskipTests -Pproduction
 # Stage 2: Runtime image
 FROM eclipse-temurin:21-jre-jammy
 
-LABEL org.opencontainers.image.source="https://github.com/stormino/vixsrc-downloader-java"
-LABEL org.opencontainers.image.description="VixSrc Video Downloader - Spring Boot + Vaadin"
+LABEL org.opencontainers.image.source="https://github.com/stormino/harvester-of-sorrow"
+LABEL org.opencontainers.image.description="Harvester of Sorrow (HOS) - Multi-source video downloader"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Install ffmpeg and wget (for healthcheck)
@@ -33,7 +33,7 @@ RUN apt-get update && \
 # Create non-root user for security
 ARG UID=1000
 ARG GID=1000
-RUN groupadd -g ${GID} vixsrc && useradd -u ${UID} -g vixsrc vixsrc
+RUN groupadd -g ${GID} hos && useradd -u ${UID} -g hos hos
 
 WORKDIR /app
 
@@ -42,7 +42,7 @@ COPY --from=build /app/target/*.jar app.jar
 
 # Create downloads and data directories and set permissions
 RUN mkdir -p /downloads/movies /downloads/tvshows /downloads/temp /app/data && \
-    chown -R vixsrc:vixsrc /app /downloads
+    chown -R hos:hos /app /downloads
 
 # Set environment variables
 ENV DOWNLOAD_MOVIES_PATH=/downloads/movies
@@ -52,7 +52,7 @@ ENV SERVER_PORT=8080
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
 # Switch to non-root user
-USER vixsrc
+USER hos
 
 EXPOSE 8080
 

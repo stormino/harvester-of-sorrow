@@ -1,4 +1,4 @@
-vixsrc:
+hos:
   download:
     movies-path: ${DOWNLOAD_MOVIES_PATH:downloads/movies}
     tv-shows-path: ${DOWNLOAD_TV_SHOWS_PATH:downloads/tvshows}
@@ -42,10 +42,10 @@ app:
 
 spring:
   application:
-    name: vixsrc-downloader
+    name: harvester-of-sorrow
 
   datasource:
-    url: jdbc:sqlite:${SQLITE_DB_PATH:data/vixsrc.db}
+    url: jdbc:sqlite:${SQLITE_DB_PATH:data/hos.db}
     driver-class-name: org.sqlite.JDBC
 
   flyway:
@@ -81,7 +81,7 @@ logging:
   #   console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: ${LOG_FILE:logs/vixsrc-downloader.log}
+    name: ${LOG_FILE:logs/harvester-of-sorrow.log}
 
 # Management endpoints
 management:

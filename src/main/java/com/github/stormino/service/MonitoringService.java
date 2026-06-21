@@ -2,7 +2,7 @@ package com.github.stormino.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadTask;
@@ -39,7 +39,7 @@ public class MonitoringService {
     private final MonitoredShowRepository repository;
     private final DownloadQueueService downloadQueueService;
     private final MediaSourceRegistry sourceRegistry;
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final ObjectMapper objectMapper;
 
     // -------------------------------------------------------------------------

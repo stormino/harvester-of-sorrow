@@ -1,6 +1,6 @@
-# VixSrc Video Downloader - Java/Spring Boot + Vaadin
+# Harvester of Sorrow (HOS) - Java/Spring Boot + Vaadin
 
-A production-ready video downloader for vixsrc.to with web UI, built with Spring Boot and Vaadin.
+A production-ready multi-source video downloader with web UI, built with Spring Boot and Vaadin. Supports VixSrc, RaiPlay, and more.
 
 ## Features
 
@@ -35,7 +35,7 @@ A production-ready video downloader for vixsrc.to with web UI, built with Spring
 ```bash
 # 1. Clone repository
 git clone <repo>
-cd vixsrc-downloader-java
+cd harvester-of-sorrow
 
 # 2. Create .env file
 cp .env.example .env
@@ -63,7 +63,7 @@ export TMDB_API_KEY="your_api_key_here"
 
 # 3. Build and run
 mvn clean package -DskipTests
-java -jar target/vixsrc-downloader-1.0.0.jar
+java -jar target/harvester-of-sorrow-*.jar
 ```
 
 ## Configuration
@@ -214,10 +214,11 @@ mvn clean package -Pproduction
 mvn spring-boot:run
 
 # Run JAR
-java -jar target/vixsrc-downloader-1.0.0.jar
+java -jar target/harvester-of-sorrow-*.jar
 
 # Run with specific profile
-java -jar target/vixsrc-downloader-1.0.0.jar --spring.profiles.active=dev
+java -jar target/harvester-of-sorrow-*.jar --spring.profiles.active=dev
+
 ```
 
 ### Testing
@@ -314,33 +315,33 @@ The easiest way to run the application is using the pre-built image from GitHub 
 
 ```bash
 docker run -d \
-  --name vixsrc-downloader \
+  --name harvester-of-sorrow \
   -p 8080:8080 \
   -e TMDB_API_KEY="your_tmdb_api_key" \
   -v /path/to/downloads:/downloads \
-  ghcr.io/stormino/vixsrc-downloader-java:latest
+  ghcr.io/stormino/harvester-of-sorrow:latest
 ```
 
 ### Docker (Build Locally)
 
 ```bash
 # Build image
-docker build -t vixsrc-downloader .
+docker build -t harvester-of-sorrow .
 
 # Run container
 docker run -d \
-  --name vixsrc-downloader \
+  --name harvester-of-sorrow \
   -p 8080:8080 \
   -e TMDB_API_KEY="your_tmdb_api_key" \
   -v /path/to/downloads:/downloads \
-  vixsrc-downloader
+  harvester-of-sorrow
 ```
 
 ### Docker Run - All Options
 
 ```bash
 docker run -d \
-  --name vixsrc-downloader \
+  --name harvester-of-sorrow \
   -p 8080:8080 \
   -e TMDB_API_KEY="your_tmdb_api_key" \
   -e PARALLEL_DOWNLOADS=3 \
@@ -351,7 +352,7 @@ docker run -d \
   -e JAVA_OPTS="-Xmx512m -Xms256m" \
   -v /path/to/downloads:/downloads \
   --restart unless-stopped \
-  ghcr.io/stormino/vixsrc-downloader-java:latest
+  ghcr.io/stormino/harvester-of-sorrow:latest
 ```
 
 ### Docker Compose

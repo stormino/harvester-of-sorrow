@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class TmdbConfig {
     
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     
     @Bean
     public Tmdb tmdb() {
