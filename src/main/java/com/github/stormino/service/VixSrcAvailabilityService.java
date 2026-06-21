@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.AvailabilityResult;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
@@ -41,14 +41,14 @@ public class VixSrcAvailabilityService {
     private static final Duration CACHE_TTL = Duration.ofHours(1);
 
     private final OkHttpClient httpClient;
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final ObjectMapper objectMapper;
 
     private final ConcurrentHashMap<CacheKey, CachedList> cache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<CacheKey, Object>     fetchLocks = new ConcurrentHashMap<>();
 
     public VixSrcAvailabilityService(OkHttpClient httpClient,
-                                     VixSrcProperties properties,
+                                     AppProperties properties,
                                      ObjectMapper objectMapper) {
         this.httpClient = httpClient;
         this.properties = properties;

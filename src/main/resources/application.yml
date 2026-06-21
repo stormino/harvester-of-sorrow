@@ -1,4 +1,4 @@
-vixsrc:
+hos:
   download:
     movies-path: ${DOWNLOAD_MOVIES_PATH:downloads/movies}
     tv-shows-path: ${DOWNLOAD_TV_SHOWS_PATH:downloads/tvshows}

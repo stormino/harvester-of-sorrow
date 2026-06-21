@@ -1,6 +1,6 @@
 package com.github.stormino.view;
 
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.ContentTypeFilter;
 import com.github.stormino.model.DownloadTask;
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class SearchView extends VerticalLayout {
 
     private final DownloadQueueService downloadQueueService;
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final MediaSourceRegistry sourceRegistry;
     private final VixSrcAvailabilityService availabilityService;
 
@@ -49,7 +49,7 @@ public class SearchView extends VerticalLayout {
     private final Div resultsContainer;
 
     public SearchView(DownloadQueueService downloadQueueService,
-                      VixSrcProperties properties,
+                      AppProperties properties,
                       MediaSourceRegistry sourceRegistry,
                       VixSrcAvailabilityService availabilityService) {
         this.downloadQueueService = downloadQueueService;

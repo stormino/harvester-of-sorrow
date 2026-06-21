@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class HttpClientConfig {
 
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final ObjectProvider<RaiPlayAuthService> raiPlayAuthService;
 
     @Bean

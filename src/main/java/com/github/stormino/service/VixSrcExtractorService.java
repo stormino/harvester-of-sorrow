@@ -1,6 +1,6 @@
 package com.github.stormino.service;
 
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.PlaylistInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public class VixSrcExtractorService {
     
     private final OkHttpClient httpClient;
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     
     // Regex patterns (ported from Python)
     private static final Pattern MASTER_PLAYLIST_PATTERN = 

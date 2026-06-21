@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "=================================================="
-echo "VixSrc Downloader - Quick Start"
+echo "Harvester of Sorrow (HOS) - Quick Start"
 echo "=================================================="
 echo ""
 

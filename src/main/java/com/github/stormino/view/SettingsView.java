@@ -14,13 +14,13 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 
 @Route(value = "settings", layout = MainLayout.class)
 @PageTitle("Settings | VixSrc Downloader")
 public class SettingsView extends VerticalLayout {
     
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     
     private final TextField tmdbApiKeyField;
     private final TextField moviesPathField;
@@ -31,7 +31,7 @@ public class SettingsView extends VerticalLayout {
     private final TextField defaultQualityField;
     private final TextField defaultLanguageField;
     
-    public SettingsView(VixSrcProperties properties) {
+    public SettingsView(AppProperties properties) {
         this.properties = properties;
         
         setId("settings-view");

@@ -1,6 +1,6 @@
 package com.github.stormino.service;
 
-import com.github.stormino.config.VixSrcProperties;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadTask;
@@ -38,7 +38,7 @@ public class DownloadQueueService {
     private final DownloadExecutorService executorService;
     private final TrackDownloadOrchestrator trackOrchestrator;
     private final ProgressBroadcastService progressBroadcast;
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     private final TaskPersistenceService persistenceService;
 
     @Lazy
@@ -53,7 +53,7 @@ public class DownloadQueueService {
                                 DownloadExecutorService executorService,
                                 TrackDownloadOrchestrator trackOrchestrator,
                                 ProgressBroadcastService progressBroadcast,
-                                VixSrcProperties properties,
+                                AppProperties properties,
                                 TaskPersistenceService persistenceService) {
         this.sourceRegistry = sourceRegistry;
         this.metadataService = metadataService;

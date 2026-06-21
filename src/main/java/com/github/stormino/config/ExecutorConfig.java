@@ -11,7 +11,7 @@ import java.util.concurrent.Executor;
 @RequiredArgsConstructor
 public class ExecutorConfig {
     
-    private final VixSrcProperties properties;
+    private final AppProperties properties;
     
     @Bean(name = "downloadExecutor")
     public Executor downloadExecutor() {
