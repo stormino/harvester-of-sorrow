@@ -27,7 +27,7 @@ public class ContentMetadata {
     private String episodeName;
     private Integer numberOfSeasons;
     private Integer totalEpisodes;
-    /** Maps season number → episode count; populated at search time for vixsrc (TMDB). */
+    /** Maps season number → episode count; populated at search time from TMDB. */
     private Map<Integer, Integer> episodesPerSeason;
 
     public String generateFilename(String language, String extension) {

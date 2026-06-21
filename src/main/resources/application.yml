@@ -45,7 +45,7 @@ spring:
     name: harvester-of-sorrow
 
   datasource:
-    url: jdbc:sqlite:${SQLITE_DB_PATH:data/vixsrc.db}
+    url: jdbc:sqlite:${SQLITE_DB_PATH:data/hos.db}
     driver-class-name: org.sqlite.JDBC
 
   flyway:

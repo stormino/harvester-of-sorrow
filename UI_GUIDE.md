@@ -95,7 +95,7 @@ http://localhost:8080
 mvn clean package -Pproduction
 
 # Run
-java -jar target/vixsrc-downloader-1.0.0.jar
+java -jar target/harvester-of-sorrow-*.jar
 ```
 
 ## Real-time Progress (SSE)
@@ -124,7 +124,7 @@ protected void onAttach(AttachEvent attachEvent) {
 
 ## Styling
 
-Custom theme: `frontend/themes/vixsrc/`
+Custom theme: `frontend/themes/hos/`
 - `theme.json` - Theme configuration
 - `styles/theme.css` - Custom CSS
 
@@ -182,7 +182,7 @@ languageSelector.setValue(Set.of("en")); // Change default
 Edit `DownloadQueueView.java` - add/remove grid columns
 
 ### Change Theme Colors
-Edit `frontend/themes/vixsrc/styles/theme.css`:
+Edit `frontend/themes/hos/styles/theme.css`:
 ```css
 :root {
     --lumo-primary-color: hsl(214, 90%, 52%); /* Change primary color */
