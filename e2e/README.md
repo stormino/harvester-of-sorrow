@@ -115,7 +115,7 @@ Run from the **repository root**, passing your host UID/GID so volume files are 
 ```bash
 docker build -f e2e/Dockerfile \
   --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-  -t vixsrc-e2e .
+  -t hos-e2e .
 ```
 
 The first build downloads Maven and npm dependencies — expect 5–10 min. Subsequent builds reuse cached layers.
@@ -161,7 +161,7 @@ docker run --rm \
   -v "$HOME/.m2:/home/e2e/.m2" \
   -v "$(pwd)/e2e-results/target:/app/target/e2e" \
   -v "$(pwd)/e2e-results/report:/app/e2e/test-results" \
-  vixsrc-e2e
+  hos-e2e
 ```
 
 ### Viewing the HTML report
@@ -223,7 +223,7 @@ KEEP_E2E_ARTIFACTS=1 npm test
 | `DOWNLOAD_MOVIES_PATH` | No | `target/e2e/movies` | Where movies are saved |
 | `DOWNLOAD_TV_SHOWS_PATH` | No | `target/e2e/tvshows` | Where TV episodes are saved |
 | `DOWNLOAD_TEMP_PATH` | No | `target/e2e/temp` | Temp dir for in-progress downloads |
-| `SQLITE_DB_PATH` | No | `target/e2e/vixsrc.db` | Separate DB for test runs |
+| `SQLITE_DB_PATH` | No | `target/e2e/hos.db` | Separate DB for test runs |
 | `SERVER_PORT` | No | `8089` | Avoids clash with a dev server on 8080 |
 | `PARALLEL_DOWNLOADS` | No | `2` | Max concurrent downloads during tests |
 | `DEFAULT_QUALITY` | No | `worst` | Keeps downloads small and fast |
