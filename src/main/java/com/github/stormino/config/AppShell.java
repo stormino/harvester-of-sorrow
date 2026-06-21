@@ -5,6 +5,6 @@ import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.theme.Theme;
 
 @Push
-@Theme("vixsrc")
+@Theme("hos")
 public class AppShell implements AppShellConfigurator {
 }
