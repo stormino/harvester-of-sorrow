@@ -13,9 +13,9 @@
     </parent>
 
     <groupId>com.vixsrc</groupId>
-    <artifactId>vixsrc-downloader</artifactId>
+    <artifactId>harvester-of-sorrow</artifactId>
     <version>3.0.1</version><!-- project-version -->
-    <name>VixSrc Downloader</name>
+    <name>Harvester of Sorrow</name>
     <description>Video downloader from vixsrc.to with Vaadin UI</description>
 
     <properties>

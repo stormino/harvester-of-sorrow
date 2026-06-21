@@ -30,7 +30,7 @@ public class MainLayout extends AppLayout {
     }
 
     private void createHeader() {
-        H1 appName = new H1("VixSrc Downloader");
+        H1 appName = new H1("Harvester of Sorrow");
         appName.addClassNames(
                 LumoUtility.FontSize.LARGE,
                 LumoUtility.Margin.NONE

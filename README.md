@@ -1,4 +1,4 @@
-# VixSrc Video Downloader - Java/Spring Boot + Vaadin
+# Harvester of Sorrow (HOS) - Java/Spring Boot + Vaadin
 
 A production-ready video downloader for vixsrc.to with web UI, built with Spring Boot and Vaadin.
 

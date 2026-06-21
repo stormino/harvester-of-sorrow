@@ -42,7 +42,7 @@ app:
 
 spring:
   application:
-    name: vixsrc-downloader
+    name: harvester-of-sorrow
 
   datasource:
     url: jdbc:sqlite:${SQLITE_DB_PATH:data/vixsrc.db}
@@ -81,7 +81,7 @@ logging:
   #   console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: ${LOG_FILE:logs/vixsrc-downloader.log}
+    name: ${LOG_FILE:logs/harvester-of-sorrow.log}
 
 # Management endpoints
 management:

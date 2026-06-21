@@ -10,9 +10,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableRetry
 @EnableScheduling
 @SpringBootApplication
-public class VixSrcDownloaderApplication {
+public class HarvesterApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(VixSrcDownloaderApplication.class, args);
+        SpringApplication.run(HarvesterApplication.class, args);
     }
 }
