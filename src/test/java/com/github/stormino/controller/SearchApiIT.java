@@ -64,29 +64,4 @@ class SearchApiIT extends AbstractApiIT {
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
-    @Test
-    @DisplayName("GET /api/search/movies returns 200")
-    void searchMovies_returns200() {
-        ResponseEntity<List<ContentMetadata>> resp = rest.exchange(
-                "/api/search/movies?query=fight+club", HttpMethod.GET, null,
-                new ParameterizedTypeReference<>() {});
-
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        if (tmdbMetadataService.isAvailable()) {
-            assertThat(resp.getBody()).isNotEmpty();
-        }
-    }
-
-    @Test
-    @DisplayName("GET /api/search/tv returns 200")
-    void searchTv_returns200() {
-        ResponseEntity<List<ContentMetadata>> resp = rest.exchange(
-                "/api/search/tv?query=lost", HttpMethod.GET, null,
-                new ParameterizedTypeReference<>() {});
-
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        if (tmdbMetadataService.isAvailable()) {
-            assertThat(resp.getBody()).isNotEmpty();
-        }
-    }
 }

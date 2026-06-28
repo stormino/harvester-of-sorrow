@@ -36,13 +36,13 @@ class VixSrcE2EIT {
     private TmdbMetadataService tmdbMetadataService;
 
     @Test
-    @DisplayName("GET /api/search/movies?query=fight+club returns exactly 1 result filtered by VixSrc availability")
-    void search_movies_fightClub_returnsExactlyOneResult() {
+    @DisplayName("GET /api/search?source=VIXSRC&type=MOVIES for 'fight club' returns exactly 1 VixSrc-available result")
+    void search_vixsrc_movies_filteredByAvailability() {
         assumeTrue(tmdbMetadataService.isAvailable(),
                 "Skipping: TMDB_API_KEY not configured");
 
         ResponseEntity<List<ContentMetadata>> resp = rest.exchange(
-                "/api/search/movies?query=fight+club", HttpMethod.GET, null,
+                "/api/search?query=fight+club&source=VIXSRC&type=MOVIES", HttpMethod.GET, null,
                 new ParameterizedTypeReference<>() {});
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -51,23 +51,6 @@ class VixSrcE2EIT {
         assertThat(result.getTitle()).isEqualToIgnoringCase("Fight Club");
         assertThat(result.getTmdbId()).isEqualTo(550);
         assertThat(result.getSource()).isEqualTo(com.github.stormino.model.MediaSource.VIXSRC);
-    }
-
-    @Test
-    @DisplayName("GET /api/search?source=VIXSRC&type=MOVIES returns only VixSrc-available movies for 'inception'")
-    void search_vixsrc_movies_filteredByAvailability() {
-        assumeTrue(tmdbMetadataService.isAvailable(),
-                "Skipping: TMDB_API_KEY not configured");
-
-        ResponseEntity<List<ContentMetadata>> resp = rest.exchange(
-                "/api/search?query=inception&source=VIXSRC&type=MOVIES", HttpMethod.GET, null,
-                new ParameterizedTypeReference<>() {});
-
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resp.getBody()).isNotEmpty();
-        // Every result must have a tmdbId (availability check requires it)
-        assertThat(resp.getBody()).allMatch(c -> c.getTmdbId() != null);
-        assertThat(resp.getBody()).allMatch(c -> c.getSource() == com.github.stormino.model.MediaSource.VIXSRC);
     }
 
     @Test

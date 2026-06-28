@@ -6,7 +6,6 @@ import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.source.RaiPlayMetadata;
 import com.github.stormino.service.DownloadQueueService;
-import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,7 +39,6 @@ import java.util.stream.Collectors;
 public class DownloadController {
 
     private final DownloadQueueService downloadQueueService;
-    private final TmdbMetadataService metadataService;
     private final MediaSourceRegistry sourceRegistry;
 
     // -------------------------------------------------------------------------
@@ -106,34 +104,6 @@ public class DownloadController {
             }
         }
         return ResponseEntity.ok(results);
-    }
-
-    // -------------------------------------------------------------------------
-    // VixSrc-specific search (legacy endpoints kept for backward compatibility)
-    // -------------------------------------------------------------------------
-
-    @Tag(name = "Search")
-    @Operation(summary = "Search movies (VixSrc/TMDB)", description = "Legacy endpoint. Prefer `/api/search?type=MOVIES`.")
-    @ApiResponse(responseCode = "200", description = "Movie search results",
-        content = @Content(array = @ArraySchema(schema = @Schema(implementation = ContentMetadata.class))))
-    @GetMapping("/search/movies")
-    public ResponseEntity<List<ContentMetadata>> searchMovies(
-            @Parameter(description = "Movie title to search", required = true, example = "Fight Club")
-            @RequestParam String query) {
-        MediaSourceProvider vixsrc = sourceRegistry.get(MediaSource.VIXSRC);
-        return ResponseEntity.ok(vixsrc.search(query, ContentTypeFilter.MOVIES));
-    }
-
-    @Tag(name = "Search")
-    @Operation(summary = "Search TV shows (VixSrc/TMDB)", description = "Legacy endpoint. Prefer `/api/search?type=TV`.")
-    @ApiResponse(responseCode = "200", description = "TV show search results",
-        content = @Content(array = @ArraySchema(schema = @Schema(implementation = ContentMetadata.class))))
-    @GetMapping("/search/tv")
-    public ResponseEntity<List<ContentMetadata>> searchTv(
-            @Parameter(description = "TV show title to search", required = true, example = "Breaking Bad")
-            @RequestParam String query) {
-        MediaSourceProvider vixsrc = sourceRegistry.get(MediaSource.VIXSRC);
-        return ResponseEntity.ok(vixsrc.search(query, ContentTypeFilter.TV));
     }
 
     // -------------------------------------------------------------------------
