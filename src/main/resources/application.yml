@@ -83,6 +83,16 @@ logging:
   file:
     name: ${LOG_FILE:logs/harvester-of-sorrow.log}
 
+# OpenAPI / Swagger UI — available at /swagger-ui.html and /v3/api-docs
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  paths-to-exclude: /vaadinServlet/**, /VAADIN/**, /PUSH/**
+
 # Management endpoints
 management:
   endpoints:
