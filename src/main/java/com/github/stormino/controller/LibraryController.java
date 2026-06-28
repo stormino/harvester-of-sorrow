@@ -13,12 +13,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/library")
 @RequiredArgsConstructor
@@ -36,7 +38,10 @@ public class LibraryController {
         content = @Content(array = @ArraySchema(schema = @Schema(implementation = LibraryEntry.class))))
     @GetMapping
     public List<LibraryEntry> scanLibrary() {
-        return monitoringService.scanLibrary();
+        log.info("Scanning TV library");
+        List<LibraryEntry> entries = monitoringService.scanLibrary();
+        log.info("Library scan returned {} entries", entries.size());
+        return entries;
     }
 
     @Operation(summary = "List all monitored shows")
@@ -44,7 +49,10 @@ public class LibraryController {
         content = @Content(array = @ArraySchema(schema = @Schema(implementation = MonitoredShow.class))))
     @GetMapping("/monitored")
     public List<MonitoredShow> listMonitored() {
-        return monitoringService.listAll();
+        log.info("Listing monitored shows");
+        List<MonitoredShow> shows = monitoringService.listAll();
+        log.info("Returning {} monitored shows", shows.size());
+        return shows;
     }
 
     @Operation(summary = "Get a monitored show by ID")
@@ -54,7 +62,11 @@ public class LibraryController {
     @GetMapping("/monitored/{id}")
     public ResponseEntity<MonitoredShow> getMonitored(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
+        log.info("Getting monitored show: {}", id);
         Optional<MonitoredShow> show = monitoringService.findById(id);
+        if (show.isEmpty()) {
+            log.warn("Monitored show not found: {}", id);
+        }
         return show.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -68,9 +80,12 @@ public class LibraryController {
         content = @Content(schema = @Schema(implementation = MonitoredShow.class)))
     @PostMapping("/monitored")
     public MonitoredShow addMonitored(@RequestBody AddMonitoredRequest req) {
-        return monitoringService.addMonitoredShow(
+        log.info("Adding monitored show: title='{}', source={}", req.title(), req.source());
+        MonitoredShow show = monitoringService.addMonitoredShow(
                 req.title(), req.year(), req.tmdbId(),
                 req.source(), req.sourceMetadata(), req.directoryName());
+        log.info("Monitored show added: {}", show.getId());
+        return show;
     }
 
     @Operation(summary = "Update a monitored show's source configuration")
@@ -80,11 +95,14 @@ public class LibraryController {
     public ResponseEntity<Void> updateMonitored(
             @Parameter(description = "Monitored show UUID") @PathVariable String id,
             @RequestBody UpdateMonitoredRequest req) {
+        log.info("Updating monitored show: {}", id);
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for update: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.updateSourceConfig(id, req.title(), req.year(), req.tmdbId(),
                 req.source(), req.sourceMetadata());
+        log.info("Monitored show updated: {}", id);
         return ResponseEntity.ok().build();
     }
 
@@ -97,10 +115,13 @@ public class LibraryController {
     @DeleteMapping("/monitored/{id}")
     public ResponseEntity<Void> removeMonitored(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
+        log.info("Removing monitored show: {}", id);
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for removal: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.removeMonitoredShow(id);
+        log.info("Monitored show removed: {}", id);
         return ResponseEntity.noContent().build();
     }
 
@@ -110,7 +131,9 @@ public class LibraryController {
     @PostMapping("/monitored/{id}/enable")
     public ResponseEntity<Void> enableMonitoring(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
+        log.info("Enabling monitoring for show: {}", id);
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for enable: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.setEnabled(id, true);
@@ -123,7 +146,9 @@ public class LibraryController {
     @PostMapping("/monitored/{id}/disable")
     public ResponseEntity<Void> disableMonitoring(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
+        log.info("Disabling monitoring for show: {}", id);
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for disable: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.setEnabled(id, false);
@@ -141,11 +166,14 @@ public class LibraryController {
     @PostMapping("/monitored/{id}/check")
     public ResponseEntity<CheckResult> checkNow(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
+        log.info("Triggering episode check for monitored show: {}", id);
         Optional<MonitoredShow> show = monitoringService.findById(id);
         if (show.isEmpty()) {
+            log.warn("Monitored show not found for check: {}", id);
             return ResponseEntity.notFound().build();
         }
         int enqueued = monitoringService.checkForNewEpisodes(show.get());
+        log.info("Episode check complete for show {}: {} episodes enqueued", id, enqueued);
         return ResponseEntity.ok(new CheckResult(enqueued));
     }
 

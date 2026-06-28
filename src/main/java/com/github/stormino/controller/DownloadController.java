@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -63,6 +64,8 @@ public class DownloadController {
             @Parameter(description = "Limit results to a single source", schema = @Schema(allowableValues = {"VIXSRC", "RAIPLAY"}))
             @RequestParam(required = false) String source) {
 
+        log.info("Search request: query='{}', type='{}', source='{}'", query, type, source);
+
         ContentTypeFilter filter;
         try {
             filter = ContentTypeFilter.valueOf(type.toUpperCase());
@@ -70,9 +73,19 @@ public class DownloadController {
             filter = ContentTypeFilter.BOTH;
         }
 
-        List<MediaSourceProvider> providers = source != null
-                ? List.of(sourceRegistry.get(MediaSource.valueOf(source.toUpperCase())))
-                : sourceRegistry.all();
+        List<MediaSourceProvider> providers;
+        if (source != null) {
+            MediaSource mediaSource;
+            try {
+                mediaSource = MediaSource.valueOf(source.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Unknown source requested: '{}'", source);
+                return ResponseEntity.badRequest().build();
+            }
+            providers = List.of(sourceRegistry.get(mediaSource));
+        } else {
+            providers = sourceRegistry.all();
+        }
 
         ContentTypeFilter finalFilter = filter;
         List<CompletableFuture<List<ContentMetadata>>> futures = providers.stream()
@@ -80,7 +93,7 @@ public class DownloadController {
                     try {
                         return p.search(query, finalFilter);
                     } catch (Exception e) {
-                        log.warn("Search failed for source {}: {}", p.source(), e.getMessage());
+                        log.warn("Search failed for source {}: {}", p.source(), e.getMessage(), e);
                         return List.<ContentMetadata>of();
                     }
                 }))
@@ -89,11 +102,12 @@ public class DownloadController {
         List<ContentMetadata> results = new ArrayList<>();
         for (CompletableFuture<List<ContentMetadata>> future : futures) {
             try {
-                results.addAll(future.get());
+                results.addAll(future.get(30, TimeUnit.SECONDS));
             } catch (Exception e) {
-                log.warn("Search future failed: {}", e.getMessage());
+                log.warn("Search future failed: {}", e.getMessage(), e);
             }
         }
+        log.info("Search returned {} results for query='{}'", results.size(), query);
         return ResponseEntity.ok(results);
     }
 
@@ -191,7 +205,7 @@ public class DownloadController {
             @Parameter(description = "Release year", example = "2018")
             @RequestParam(required = false) Integer year) {
 
-        log.info("Adding RaiPlay movie download: pathId={}", pathId);
+        log.info("Adding RaiPlay movie download: pathId={}, title='{}', year={}", pathId, title, year);
         ContentMetadata meta = ContentMetadata.builder()
                 .source(MediaSource.RAIPLAY)
                 .sourceMetadata(new RaiPlayMetadata(pathId, null, null, null, null))
@@ -200,6 +214,11 @@ public class DownloadController {
                 .build();
         DownloadTask task = downloadQueueService.addDownload(
                 meta, DownloadTask.ContentType.MOVIE, (Integer) null, (Integer) null, List.of("it"), null);
+        if (task == null) {
+            log.warn("No download task created for RaiPlay movie pathId={}", pathId);
+            return ResponseEntity.badRequest().build();
+        }
+        log.info("RaiPlay movie task created: {}", task.getId());
         return ResponseEntity.ok(task);
     }
 
@@ -223,7 +242,7 @@ public class DownloadController {
             @Parameter(description = "Episode name", example = "Il Pilota")
             @RequestParam(required = false) String episodeName) {
 
-        log.info("Adding RaiPlay TV download: pathId={} S{}E{}", pathId, season, episode);
+        log.info("Adding RaiPlay TV download: pathId={}, title='{}', S{}E{}", pathId, title, season, episode);
         ContentMetadata meta = ContentMetadata.builder()
                 .source(MediaSource.RAIPLAY)
                 .sourceMetadata(new RaiPlayMetadata(pathId, null, null, String.valueOf(season), null))
@@ -235,6 +254,11 @@ public class DownloadController {
                 .build();
         DownloadTask task = downloadQueueService.addDownload(
                 meta, DownloadTask.ContentType.TV, season, episode, List.of("it"), null);
+        if (task == null) {
+            log.warn("No download task created for RaiPlay TV pathId={}", pathId);
+            return ResponseEntity.badRequest().build();
+        }
+        log.info("RaiPlay TV task created: {}", task.getId());
         return ResponseEntity.ok(task);
     }
 
@@ -248,7 +272,10 @@ public class DownloadController {
         content = @Content(array = @ArraySchema(schema = @Schema(implementation = DownloadTask.class))))
     @GetMapping("/downloads")
     public ResponseEntity<List<DownloadTask>> getAllDownloads() {
-        return ResponseEntity.ok(downloadQueueService.getAllTasks());
+        log.info("Listing all download tasks");
+        List<DownloadTask> tasks = downloadQueueService.getAllTasks();
+        log.info("Returning {} download tasks", tasks.size());
+        return ResponseEntity.ok(tasks);
     }
 
     @Tag(name = "Downloads")
@@ -260,9 +287,13 @@ public class DownloadController {
     public ResponseEntity<DownloadTask> getDownload(
             @Parameter(description = "Download task UUID", required = true)
             @PathVariable String id) {
+        log.info("Getting download task: {}", id);
         return downloadQueueService.getTask(id)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> {
+                    log.warn("Download task not found: {}", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     @Tag(name = "Downloads")
@@ -273,9 +304,14 @@ public class DownloadController {
     public ResponseEntity<Void> cancelDownload(
             @Parameter(description = "Download task UUID", required = true)
             @PathVariable String id) {
-        return downloadQueueService.cancelTask(id)
-                ? ResponseEntity.ok().<Void>build()
-                : ResponseEntity.notFound().build();
+        log.info("Cancelling download task: {}", id);
+        boolean cancelled = downloadQueueService.cancelTask(id);
+        if (cancelled) {
+            log.info("Download task cancelled: {}", id);
+            return ResponseEntity.ok().<Void>build();
+        }
+        log.warn("Download task not found for cancellation: {}", id);
+        return ResponseEntity.notFound().build();
     }
 
     @Tag(name = "Downloads")
@@ -286,8 +322,13 @@ public class DownloadController {
     public ResponseEntity<Void> retryDownload(
             @Parameter(description = "Download task UUID", required = true)
             @PathVariable String id) {
-        return downloadQueueService.retryTask(id)
-                ? ResponseEntity.ok().<Void>build()
-                : ResponseEntity.notFound().build();
+        log.info("Retrying download task: {}", id);
+        boolean retried = downloadQueueService.retryTask(id);
+        if (retried) {
+            log.info("Download task re-queued: {}", id);
+            return ResponseEntity.ok().<Void>build();
+        }
+        log.warn("Download task not found for retry: {}", id);
+        return ResponseEntity.notFound().build();
     }
 }
