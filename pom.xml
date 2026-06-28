@@ -203,12 +203,11 @@
             <version>${logbook.version}</version>
         </dependency>
 
-        <!-- Loads .env file as Spring properties (IDE + Maven, test scope only) -->
+        <!-- Loads .env file as Spring properties -->
         <dependency>
             <groupId>me.paulschwarz</groupId>
             <artifactId>spring-dotenv</artifactId>
             <version>4.0.0</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
