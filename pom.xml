@@ -14,7 +14,7 @@
 
     <groupId>com.github.stormino</groupId>
     <artifactId>harvester-of-sorrow</artifactId>
-    <version>4.0.0</version><!-- project-version -->
+    <version>4.1.0</version><!-- project-version -->
     <name>Harvester of Sorrow</name>
     <description>Video downloader from vixsrc.to with Vaadin UI</description>
 
