@@ -76,6 +76,10 @@ server:
     accesslog:
       enabled: true
       pattern: "%{yyyy-MM-dd HH:mm:ss}t %m %U%q %s %Dms"
+      directory: /dev/stdout
+      prefix: ""
+      suffix: ""
+      buffered: false
 
 # Logging
 logging:
