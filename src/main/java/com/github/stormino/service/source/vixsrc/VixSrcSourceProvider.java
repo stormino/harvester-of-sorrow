@@ -73,11 +73,13 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
 
         // TV shows in the search results carry numberOfSeasons (not season/episode),
         // so we use that as the discriminator instead of season.
+        // VixSrc catalogue list endpoint is only reliable for "it" language
+        Set<String> vixSrcLanguages = Set.of(VixSrcAvailabilityService.EPISODE_LIST_LANG);
         boolean isTv = content.getNumberOfSeasons() != null;
         if (isTv) {
-            return availabilityService.checkTvAvailability(content.getTmdbId(), languages);
+            return availabilityService.checkTvAvailability(content.getTmdbId(), vixSrcLanguages);
         }
-        return availabilityService.checkMovieAvailability(content.getTmdbId(), languages);
+        return availabilityService.checkMovieAvailability(content.getTmdbId(), vixSrcLanguages);
     }
 
     @Override
