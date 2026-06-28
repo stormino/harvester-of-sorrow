@@ -3,7 +3,7 @@ hos:
     movies-path: ${java.io.tmpdir}/hos-e2e/movies
     tv-shows-path: ${java.io.tmpdir}/hos-e2e/tvshows
     temp-path: ${java.io.tmpdir}/hos-e2e/temp
-    parallel-downloads: 1
+    parallel-downloads: 4
     default-quality: best
     default-language: en
   tmdb:

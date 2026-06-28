@@ -20,6 +20,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.awaitility.Awaitility.await;
+import java.util.concurrent.TimeUnit;
 
 @Tag("e2e")
 @ActiveProfiles("e2e")
@@ -67,7 +69,7 @@ class VixSrcE2EIT {
 
     @Test
     @DisplayName("POST /api/download/movie queues task and VixSrc returns a real response")
-    void queueMovie_vixsrc_taskProcessedByRealApi() throws InterruptedException {
+    void queueMovie_vixsrc_taskProcessedByRealApi() {
         // tmdbId 550 = Fight Club — should be available on VixSrc
         ResponseEntity<DownloadTask> resp = rest.postForEntity(
                 "/api/download/movie?tmdbId=550", null, DownloadTask.class);
@@ -78,20 +80,12 @@ class VixSrcE2EIT {
         assertThat(task.getId()).isNotBlank();
         assertThat(task.getTmdbId()).isEqualTo(550);
 
-        // Wait for the executor to contact the real VixSrc API
-        Thread.sleep(5000);
-
-        ResponseEntity<DownloadTask> polled = rest.getForEntity(
-                "/api/downloads/" + task.getId(), DownloadTask.class);
-        assertThat(polled.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        DownloadTask updated = polled.getBody();
-        assertThat(updated.getStatus()).isNotEqualTo(DownloadStatus.QUEUED);
+        awaitNotQueued(task.getId());
     }
 
     @Test
     @DisplayName("POST /api/download/tv queues S01E01 of Breaking Bad and VixSrc returns a real response")
-    void queueTv_vixsrc_taskProcessedByRealApi() throws InterruptedException {
+    void queueTv_vixsrc_taskProcessedByRealApi() {
         // tmdbId 1396 = Breaking Bad
         ResponseEntity<DownloadTask> resp = rest.postForEntity(
                 "/api/download/tv?tmdbId=1396&season=1&episode=1", null, DownloadTask.class);
@@ -103,11 +97,15 @@ class VixSrcE2EIT {
         assertThat(task.getSeason()).isEqualTo(1);
         assertThat(task.getEpisode()).isEqualTo(1);
 
-        Thread.sleep(5000);
+        awaitNotQueued(task.getId());
+    }
 
-        ResponseEntity<DownloadTask> polled = rest.getForEntity(
-                "/api/downloads/" + task.getId(), DownloadTask.class);
-        assertThat(polled.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(polled.getBody().getStatus()).isNotEqualTo(DownloadStatus.QUEUED);
+    private void awaitNotQueued(String taskId) {
+        await().atMost(15, TimeUnit.SECONDS)
+                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    DownloadTask t = rest.getForEntity("/api/downloads/" + taskId, DownloadTask.class).getBody();
+                    assertThat(t.getStatus()).isNotEqualTo(DownloadStatus.QUEUED);
+                });
     }
 }
