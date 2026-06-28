@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +13,9 @@ import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
+
+    @Value("${app.version:unknown}")
+    private String appVersion;
 
     @Bean
     public OpenAPI openAPI() {
@@ -32,7 +36,7 @@ public class OpenApiConfig {
                                 - VixSrc availability checks use the Italian (`it`) catalogue
                                 - SSE endpoint (`/api/progress/stream`) uses `text/event-stream`
                                 """)
-                        .version("4.1.0")
+                        .version(appVersion)
                         .contact(new Contact()
                                 .name("stormino")
                                 .url("https://github.com/stormino/harvester-of-sorrow"))
