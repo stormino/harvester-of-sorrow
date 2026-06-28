@@ -52,7 +52,7 @@ public class LibraryController {
                             req.source(), req.sourceMetadata());
                     return ResponseEntity.<Void>ok().build();
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.<Void>notFound().build());
     }
 
     @DeleteMapping("/monitored/{id}")
@@ -60,9 +60,9 @@ public class LibraryController {
         return monitoringService.findById(id)
                 .map(show -> {
                     monitoringService.removeMonitoredShow(id);
-                    return ResponseEntity.<Void>noContent().<Void>build();
+                    return ResponseEntity.<Void>noContent().build();
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.<Void>notFound().build());
     }
 
     @PostMapping("/monitored/{id}/enable")
@@ -72,7 +72,7 @@ public class LibraryController {
                     monitoringService.setEnabled(id, true);
                     return ResponseEntity.<Void>ok().build();
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.<Void>notFound().build());
     }
 
     @PostMapping("/monitored/{id}/disable")
@@ -82,7 +82,7 @@ public class LibraryController {
                     monitoringService.setEnabled(id, false);
                     return ResponseEntity.<Void>ok().build();
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.<Void>notFound().build());
     }
 
     @PostMapping("/monitored/{id}/check")
