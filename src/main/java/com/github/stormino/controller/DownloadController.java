@@ -9,6 +9,13 @@ import com.github.stormino.service.DownloadQueueService;
 import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -39,17 +46,21 @@ public class DownloadController {
     // Multi-source search
     // -------------------------------------------------------------------------
 
-    /**
-     * Search across all registered sources in parallel.
-     *
-     * @param query      free-text search term
-     * @param type       optional filter: MOVIES | TV | BOTH (default: BOTH)
-     * @param source     optional: limit to a specific source (VIXSRC | RAIPLAY)
-     */
+    @Tag(name = "Search")
+    @Operation(
+        summary = "Search across all sources",
+        description = "Search movies and/or TV shows across all registered sources (VixSrc, RaiPlay) in parallel. " +
+                      "Results are filtered by availability on each source before being returned."
+    )
+    @ApiResponse(responseCode = "200", description = "Search results",
+        content = @Content(array = @ArraySchema(schema = @Schema(implementation = ContentMetadata.class))))
     @GetMapping("/search")
     public ResponseEntity<List<ContentMetadata>> search(
+            @Parameter(description = "Free-text search term", required = true, example = "Breaking Bad")
             @RequestParam String query,
+            @Parameter(description = "Content type filter", schema = @Schema(allowableValues = {"MOVIES", "TV", "BOTH"}))
             @RequestParam(required = false, defaultValue = "BOTH") String type,
+            @Parameter(description = "Limit results to a single source", schema = @Schema(allowableValues = {"VIXSRC", "RAIPLAY"}))
             @RequestParam(required = false) String source) {
 
         ContentTypeFilter filter;
@@ -90,26 +101,45 @@ public class DownloadController {
     // VixSrc-specific search (legacy endpoints kept for backward compatibility)
     // -------------------------------------------------------------------------
 
+    @Tag(name = "Search")
+    @Operation(summary = "Search movies (VixSrc/TMDB)", description = "Legacy endpoint. Prefer `/api/search?type=MOVIES`.")
+    @ApiResponse(responseCode = "200", description = "Movie search results",
+        content = @Content(array = @ArraySchema(schema = @Schema(implementation = ContentMetadata.class))))
     @GetMapping("/search/movies")
-    public ResponseEntity<List<ContentMetadata>> searchMovies(@RequestParam String query) {
+    public ResponseEntity<List<ContentMetadata>> searchMovies(
+            @Parameter(description = "Movie title to search", required = true, example = "Fight Club")
+            @RequestParam String query) {
         log.info("Searching movies (VixSrc/TMDB): {}", query);
         return ResponseEntity.ok(metadataService.searchMovies(query));
     }
 
+    @Tag(name = "Search")
+    @Operation(summary = "Search TV shows (VixSrc/TMDB)", description = "Legacy endpoint. Prefer `/api/search?type=TV`.")
+    @ApiResponse(responseCode = "200", description = "TV show search results",
+        content = @Content(array = @ArraySchema(schema = @Schema(implementation = ContentMetadata.class))))
     @GetMapping("/search/tv")
-    public ResponseEntity<List<ContentMetadata>> searchTv(@RequestParam String query) {
+    public ResponseEntity<List<ContentMetadata>> searchTv(
+            @Parameter(description = "TV show title to search", required = true, example = "Breaking Bad")
+            @RequestParam String query) {
         log.info("Searching TV shows (VixSrc/TMDB): {}", query);
         return ResponseEntity.ok(metadataService.searchTvShows(query));
     }
 
     // -------------------------------------------------------------------------
-    // VixSrc downloads (TMDB-based, legacy)
+    // VixSrc downloads (TMDB-based)
     // -------------------------------------------------------------------------
 
+    @Tag(name = "Downloads")
+    @Operation(summary = "Queue a VixSrc movie download")
+    @ApiResponse(responseCode = "200", description = "Download task created",
+        content = @Content(schema = @Schema(implementation = DownloadTask.class)))
     @PostMapping("/download/movie")
     public ResponseEntity<DownloadTask> downloadMovie(
+            @Parameter(description = "TMDB ID of the movie", required = true, example = "550")
             @RequestParam int tmdbId,
+            @Parameter(description = "Audio language codes, e.g. `en,it`", example = "en")
             @RequestParam(required = false) List<String> languages,
+            @Parameter(description = "Video quality: `best`, `1080`, `720`, etc.", example = "1080")
             @RequestParam(required = false) String quality) {
 
         log.info("Adding VixSrc movie download: TMDB ID {}", tmdbId);
@@ -118,12 +148,21 @@ public class DownloadController {
         return ResponseEntity.ok(task);
     }
 
+    @Tag(name = "Downloads")
+    @Operation(summary = "Queue a VixSrc TV episode download")
+    @ApiResponse(responseCode = "200", description = "Download task created",
+        content = @Content(schema = @Schema(implementation = DownloadTask.class)))
     @PostMapping("/download/tv")
     public ResponseEntity<DownloadTask> downloadTv(
+            @Parameter(description = "TMDB ID of the TV show", required = true, example = "1396")
             @RequestParam int tmdbId,
+            @Parameter(description = "Season number", required = true, example = "1")
             @RequestParam int season,
+            @Parameter(description = "Episode number", required = true, example = "1")
             @RequestParam int episode,
+            @Parameter(description = "Audio language codes", example = "en")
             @RequestParam(required = false) List<String> languages,
+            @Parameter(description = "Video quality: `best`, `1080`, `720`, etc.", example = "best")
             @RequestParam(required = false) String quality) {
 
         log.info("Adding VixSrc TV download: TMDB ID {}, S{}E{}", tmdbId, season, episode);
@@ -136,17 +175,20 @@ public class DownloadController {
     // RaiPlay downloads (pathId-based)
     // -------------------------------------------------------------------------
 
-    /**
-     * Queue a RaiPlay movie download.
-     *
-     * @param pathId  content path from the RaiPlay descriptor, e.g.
-     *                {@code /video/2018/12/COSMONAUTA-f5cbe4fd-....json}
-     * @param title   display title
-     */
+    @Tag(name = "Downloads")
+    @Operation(
+        summary = "Queue a RaiPlay movie download",
+        description = "The `pathId` comes from the RaiPlay content descriptor, e.g. `/video/2018/12/COSMONAUTA-f5cbe4fd-....json`."
+    )
+    @ApiResponse(responseCode = "200", description = "Download task created",
+        content = @Content(schema = @Schema(implementation = DownloadTask.class)))
     @PostMapping("/download/raiplay/movie")
     public ResponseEntity<DownloadTask> downloadRaiPlayMovie(
+            @Parameter(description = "RaiPlay content path", required = true, example = "/video/2018/12/COSMONAUTA-f5cbe4fd-abc.json")
             @RequestParam String pathId,
+            @Parameter(description = "Display title", required = true, example = "Il Cosmonauta")
             @RequestParam String title,
+            @Parameter(description = "Release year", example = "2018")
             @RequestParam(required = false) Integer year) {
 
         log.info("Adding RaiPlay movie download: pathId={}", pathId);
@@ -161,20 +203,24 @@ public class DownloadController {
         return ResponseEntity.ok(task);
     }
 
-    /**
-     * Queue a RaiPlay episode download.
-     *
-     * @param pathId  content path from the RaiPlay descriptor
-     * @param title   show title
-     * @param season  season number
-     * @param episode episode number
-     */
+    @Tag(name = "Downloads")
+    @Operation(
+        summary = "Queue a RaiPlay TV episode download",
+        description = "The `pathId` comes from the RaiPlay episode descriptor."
+    )
+    @ApiResponse(responseCode = "200", description = "Download task created",
+        content = @Content(schema = @Schema(implementation = DownloadTask.class)))
     @PostMapping("/download/raiplay/tv")
     public ResponseEntity<DownloadTask> downloadRaiPlayTv(
+            @Parameter(description = "RaiPlay content path", required = true, example = "/programmi/serie/my-show/s1e1.json")
             @RequestParam String pathId,
+            @Parameter(description = "Show title", required = true, example = "Boris")
             @RequestParam String title,
+            @Parameter(description = "Season number", required = true, example = "1")
             @RequestParam int season,
+            @Parameter(description = "Episode number", required = true, example = "1")
             @RequestParam int episode,
+            @Parameter(description = "Episode name", example = "Il Pilota")
             @RequestParam(required = false) String episodeName) {
 
         log.info("Adding RaiPlay TV download: pathId={} S{}E{}", pathId, season, episode);
@@ -196,27 +242,50 @@ public class DownloadController {
     // Queue management
     // -------------------------------------------------------------------------
 
+    @Tag(name = "Downloads")
+    @Operation(summary = "List all download tasks")
+    @ApiResponse(responseCode = "200", description = "List of all tasks",
+        content = @Content(array = @ArraySchema(schema = @Schema(implementation = DownloadTask.class))))
     @GetMapping("/downloads")
     public ResponseEntity<List<DownloadTask>> getAllDownloads() {
         return ResponseEntity.ok(downloadQueueService.getAllTasks());
     }
 
+    @Tag(name = "Downloads")
+    @Operation(summary = "Get a download task by ID")
+    @ApiResponse(responseCode = "200", description = "Task found",
+        content = @Content(schema = @Schema(implementation = DownloadTask.class)))
+    @ApiResponse(responseCode = "404", description = "Task not found", content = @Content)
     @GetMapping("/downloads/{id}")
-    public ResponseEntity<DownloadTask> getDownload(@PathVariable String id) {
+    public ResponseEntity<DownloadTask> getDownload(
+            @Parameter(description = "Download task UUID", required = true)
+            @PathVariable String id) {
         return downloadQueueService.getTask(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Tag(name = "Downloads")
+    @Operation(summary = "Cancel a download task")
+    @ApiResponse(responseCode = "200", description = "Cancelled", content = @Content)
+    @ApiResponse(responseCode = "404", description = "Task not found", content = @Content)
     @DeleteMapping("/downloads/{id}")
-    public ResponseEntity<Void> cancelDownload(@PathVariable String id) {
+    public ResponseEntity<Void> cancelDownload(
+            @Parameter(description = "Download task UUID", required = true)
+            @PathVariable String id) {
         return downloadQueueService.cancelTask(id)
                 ? ResponseEntity.ok().<Void>build()
                 : ResponseEntity.notFound().build();
     }
 
+    @Tag(name = "Downloads")
+    @Operation(summary = "Retry a failed or cancelled download task")
+    @ApiResponse(responseCode = "200", description = "Re-queued", content = @Content)
+    @ApiResponse(responseCode = "404", description = "Task not found", content = @Content)
     @PostMapping("/downloads/{id}/retry")
-    public ResponseEntity<Void> retryDownload(@PathVariable String id) {
+    public ResponseEntity<Void> retryDownload(
+            @Parameter(description = "Download task UUID", required = true)
+            @PathVariable String id) {
         return downloadQueueService.retryTask(id)
                 ? ResponseEntity.ok().<Void>build()
                 : ResponseEntity.notFound().build();
