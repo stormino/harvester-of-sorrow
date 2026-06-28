@@ -7,15 +7,18 @@ hos:
     default-quality: best
     default-language: en
   tmdb:
-    api-key:  # blank → TMDB bean is null → VixSrc search returns empty
+    api-key: ${TMDB_API_KEY:}
   monitoring:
-    enabled: false  # disable scheduled background checks
+    enabled: false
   extractor:
-    base-url: http://localhost:0  # overridden at runtime by @DynamicPropertySource
+    base-url: https://vixsrc.to
+    max-retries: 2
+    retry-delay-ms: 500
+    max-retry-delay-ms: 1000
 
 raiplay:
-  username: ""  # blank → RaiPlayAuthService conditional bean does not instantiate
-  password: ""
+  username: ${RAIPLAY_USERNAME:}
+  password: ${RAIPLAY_PASSWORD:}
 
 spring:
   datasource:

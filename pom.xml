@@ -189,14 +189,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- WireMock (standalone, no container needed for HTTP mocking) -->
-        <dependency>
-            <groupId>org.wiremock</groupId>
-            <artifactId>wiremock-standalone</artifactId>
-            <version>3.4.2</version>
-            <scope>test</scope>
-        </dependency>
-
         <!-- Loads .env file as Spring properties (IDE + Maven, test scope only) -->
         <dependency>
             <groupId>me.paulschwarz</groupId>
