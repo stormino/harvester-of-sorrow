@@ -55,14 +55,25 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
             return List.of();
         }
 
-        List<ContentMetadata> results = new ArrayList<>();
+        List<ContentMetadata> candidates = new ArrayList<>();
         if (filter.includesMovies()) {
-            results.addAll(tmdbService.searchMovies(query));
+            candidates.addAll(tmdbService.searchMovies(query));
         }
         if (filter.includesTv()) {
-            results.addAll(tmdbService.searchTvShows(query));
+            candidates.addAll(tmdbService.searchTvShows(query));
         }
-        return results;
+
+        Set<String> languages = Set.of(VixSrcAvailabilityService.EPISODE_LIST_LANG);
+        return candidates.stream()
+                .filter(c -> {
+                    AvailabilityResult avail = checkAvailability(c, languages);
+                    if (!avail.isAvailable()) {
+                        log.debug("Filtered out '{}' (tmdbId={}) — not available on VixSrc",
+                                c.getTitle(), c.getTmdbId());
+                    }
+                    return avail.isAvailable();
+                })
+                .toList();
     }
 
     @Override

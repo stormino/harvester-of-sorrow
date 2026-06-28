@@ -13,12 +13,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/library")
 @RequiredArgsConstructor
@@ -55,6 +57,9 @@ public class LibraryController {
     public ResponseEntity<MonitoredShow> getMonitored(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
         Optional<MonitoredShow> show = monitoringService.findById(id);
+        if (show.isEmpty()) {
+            log.warn("Monitored show not found: {}", id);
+        }
         return show.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -81,6 +86,7 @@ public class LibraryController {
             @Parameter(description = "Monitored show UUID") @PathVariable String id,
             @RequestBody UpdateMonitoredRequest req) {
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for update: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.updateSourceConfig(id, req.title(), req.year(), req.tmdbId(),
@@ -98,6 +104,7 @@ public class LibraryController {
     public ResponseEntity<Void> removeMonitored(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for removal: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.removeMonitoredShow(id);
@@ -111,6 +118,7 @@ public class LibraryController {
     public ResponseEntity<Void> enableMonitoring(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for enable: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.setEnabled(id, true);
@@ -124,6 +132,7 @@ public class LibraryController {
     public ResponseEntity<Void> disableMonitoring(
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
         if (monitoringService.findById(id).isEmpty()) {
+            log.warn("Monitored show not found for disable: {}", id);
             return ResponseEntity.notFound().build();
         }
         monitoringService.setEnabled(id, false);
@@ -143,6 +152,7 @@ public class LibraryController {
             @Parameter(description = "Monitored show UUID") @PathVariable String id) {
         Optional<MonitoredShow> show = monitoringService.findById(id);
         if (show.isEmpty()) {
+            log.warn("Monitored show not found for check: {}", id);
             return ResponseEntity.notFound().build();
         }
         int enqueued = monitoringService.checkForNewEpisodes(show.get());
