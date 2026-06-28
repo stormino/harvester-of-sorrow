@@ -36,8 +36,26 @@ class VixSrcE2EIT {
     private TmdbMetadataService tmdbMetadataService;
 
     @Test
-    @DisplayName("GET /api/search?source=VIXSRC returns real results for 'inception' (requires TMDB_API_KEY)")
-    void search_vixsrc_movies_returnsRealResults() {
+    @DisplayName("GET /api/search/movies?query=fight+club returns exactly 1 result filtered by VixSrc availability")
+    void search_movies_fightClub_returnsExactlyOneResult() {
+        assumeTrue(tmdbMetadataService.isAvailable(),
+                "Skipping: TMDB_API_KEY not configured");
+
+        ResponseEntity<List<ContentMetadata>> resp = rest.exchange(
+                "/api/search/movies?query=fight+club", HttpMethod.GET, null,
+                new ParameterizedTypeReference<>() {});
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resp.getBody()).hasSize(1);
+        ContentMetadata result = resp.getBody().get(0);
+        assertThat(result.getTitle()).isEqualToIgnoringCase("Fight Club");
+        assertThat(result.getTmdbId()).isEqualTo(550);
+        assertThat(result.getSource()).isEqualTo(com.github.stormino.model.MediaSource.VIXSRC);
+    }
+
+    @Test
+    @DisplayName("GET /api/search?source=VIXSRC&type=MOVIES returns only VixSrc-available movies for 'inception'")
+    void search_vixsrc_movies_filteredByAvailability() {
         assumeTrue(tmdbMetadataService.isAvailable(),
                 "Skipping: TMDB_API_KEY not configured");
 
@@ -47,14 +65,14 @@ class VixSrcE2EIT {
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isNotEmpty();
-        ContentMetadata first = resp.getBody().get(0);
-        assertThat(first.getTitle()).isNotBlank();
-        assertThat(first.getTmdbId()).isNotNull();
+        // Every result must have a tmdbId (availability check requires it)
+        assertThat(resp.getBody()).allMatch(c -> c.getTmdbId() != null);
+        assertThat(resp.getBody()).allMatch(c -> c.getSource() == com.github.stormino.model.MediaSource.VIXSRC);
     }
 
     @Test
-    @DisplayName("GET /api/search?source=VIXSRC&type=TV returns real TV results for 'breaking bad' (requires TMDB_API_KEY)")
-    void search_vixsrc_tv_returnsRealResults() {
+    @DisplayName("GET /api/search?source=VIXSRC&type=TV returns only VixSrc-available shows for 'breaking bad'")
+    void search_vixsrc_tv_filteredByAvailability() {
         assumeTrue(tmdbMetadataService.isAvailable(),
                 "Skipping: TMDB_API_KEY not configured");
 
@@ -64,7 +82,8 @@ class VixSrcE2EIT {
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isNotEmpty();
-        assertThat(resp.getBody().get(0).getTitle()).isNotBlank();
+        assertThat(resp.getBody()).allMatch(c -> c.getTmdbId() != null);
+        assertThat(resp.getBody()).allMatch(c -> c.getSource() == com.github.stormino.model.MediaSource.VIXSRC);
     }
 
     @Test

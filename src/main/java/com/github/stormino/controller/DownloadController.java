@@ -120,7 +120,8 @@ public class DownloadController {
     public ResponseEntity<List<ContentMetadata>> searchMovies(
             @Parameter(description = "Movie title to search", required = true, example = "Fight Club")
             @RequestParam String query) {
-        return ResponseEntity.ok(metadataService.searchMovies(query));
+        MediaSourceProvider vixsrc = sourceRegistry.get(MediaSource.VIXSRC);
+        return ResponseEntity.ok(vixsrc.search(query, ContentTypeFilter.MOVIES));
     }
 
     @Tag(name = "Search")
@@ -131,7 +132,8 @@ public class DownloadController {
     public ResponseEntity<List<ContentMetadata>> searchTv(
             @Parameter(description = "TV show title to search", required = true, example = "Breaking Bad")
             @RequestParam String query) {
-        return ResponseEntity.ok(metadataService.searchTvShows(query));
+        MediaSourceProvider vixsrc = sourceRegistry.get(MediaSource.VIXSRC);
+        return ResponseEntity.ok(vixsrc.search(query, ContentTypeFilter.TV));
     }
 
     // -------------------------------------------------------------------------
