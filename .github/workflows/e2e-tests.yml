@@ -1,0 +1,41 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run nightly at 02:00 UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Create .env from secrets
+        run: |
+          cat > .env <<EOF
+          TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
+          RAIPLAY_USERNAME=${{ secrets.RAIPLAY_USERNAME }}
+          RAIPLAY_PASSWORD=${{ secrets.RAIPLAY_PASSWORD }}
+          EOF
+
+      - name: Run E2E tests
+        run: mvn test -Dtest="VixSrcE2EIT,RaiPlayE2EIT" -Dexcluded.test.groups=""
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-reports
+          path: target/surefire-reports/
+          retention-days: 7

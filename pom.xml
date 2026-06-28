@@ -196,6 +196,14 @@
             <version>3.4.2</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Loads .env file as Spring properties (IDE + Maven, test scope only) -->
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
