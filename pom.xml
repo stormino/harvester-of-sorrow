@@ -26,6 +26,7 @@
         <tmdb-java.version>2.9.0</tmdb-java.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <lombok.version>1.18.30</lombok.version>
+        <logbook.version>3.9.0</logbook.version>
         <!-- Exclude e2e tag by default; override with -Dgroups=e2e to run only e2e,
              or -Dexcluded.test.groups="" to run everything -->
         <excluded.test.groups>e2e</excluded.test.groups>
@@ -193,6 +194,13 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <scope>test</scope>
+        </dependency>
+
+        <!-- Logbook — structured HTTP request/response logging -->
+        <dependency>
+            <groupId>org.zalando</groupId>
+            <artifactId>logbook-spring-boot-starter</artifactId>
+            <version>${logbook.version}</version>
         </dependency>
 
         <!-- Loads .env file as Spring properties (IDE + Maven, test scope only) -->
