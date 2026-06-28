@@ -87,7 +87,7 @@ logging:
 
 logbook:
   format:
-    style: splunk
+    style: common
   strategy: without-body
   exclude:
     - /actuator/**
