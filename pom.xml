@@ -86,12 +86,6 @@
             <version>2.3.0</version>
         </dependency>
 
-        <!-- Spring Security (required for Vaadin + springdoc path separation) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-
         <!-- Utilities -->
         <dependency>
             <groupId>org.projectlombok</groupId>

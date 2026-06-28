@@ -59,6 +59,7 @@ spring:
   # Vaadin configuration
   vaadin:
     launch-browser: false
+    exclude-urls: /swagger-ui/**, /v3/api-docs/**
 
   # Servlet configuration for large file handling
   servlet:
