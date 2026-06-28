@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/library")
@@ -30,9 +31,9 @@ public class LibraryController {
 
     @GetMapping("/monitored/{id}")
     public ResponseEntity<MonitoredShow> getMonitored(@PathVariable String id) {
-        return monitoringService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Optional<MonitoredShow> show = monitoringService.findById(id);
+        return show.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/monitored")
@@ -45,54 +46,49 @@ public class LibraryController {
     @PutMapping("/monitored/{id}")
     public ResponseEntity<Void> updateMonitored(@PathVariable String id,
                                                 @RequestBody UpdateMonitoredRequest req) {
-        return monitoringService.findById(id)
-                .map(show -> {
-                    monitoringService.updateSourceConfig(
-                            id, req.title(), req.year(), req.tmdbId(),
-                            req.source(), req.sourceMetadata());
-                    return ResponseEntity.<Void>ok().build();
-                })
-                .orElse(ResponseEntity.<Void>notFound().build());
+        if (monitoringService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        monitoringService.updateSourceConfig(id, req.title(), req.year(), req.tmdbId(),
+                req.source(), req.sourceMetadata());
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/monitored/{id}")
     public ResponseEntity<Void> removeMonitored(@PathVariable String id) {
-        return monitoringService.findById(id)
-                .map(show -> {
-                    monitoringService.removeMonitoredShow(id);
-                    return ResponseEntity.<Void>noContent().build();
-                })
-                .orElse(ResponseEntity.<Void>notFound().build());
+        if (monitoringService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        monitoringService.removeMonitoredShow(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/monitored/{id}/enable")
     public ResponseEntity<Void> enableMonitoring(@PathVariable String id) {
-        return monitoringService.findById(id)
-                .map(show -> {
-                    monitoringService.setEnabled(id, true);
-                    return ResponseEntity.<Void>ok().build();
-                })
-                .orElse(ResponseEntity.<Void>notFound().build());
+        if (monitoringService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        monitoringService.setEnabled(id, true);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/monitored/{id}/disable")
     public ResponseEntity<Void> disableMonitoring(@PathVariable String id) {
-        return monitoringService.findById(id)
-                .map(show -> {
-                    monitoringService.setEnabled(id, false);
-                    return ResponseEntity.<Void>ok().build();
-                })
-                .orElse(ResponseEntity.<Void>notFound().build());
+        if (monitoringService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        monitoringService.setEnabled(id, false);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/monitored/{id}/check")
     public ResponseEntity<CheckResult> checkNow(@PathVariable String id) {
-        return monitoringService.findById(id)
-                .map(show -> {
-                    int enqueued = monitoringService.checkForNewEpisodes(show);
-                    return ResponseEntity.ok(new CheckResult(enqueued));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Optional<MonitoredShow> show = monitoringService.findById(id);
+        if (show.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        int enqueued = monitoringService.checkForNewEpisodes(show.get());
+        return ResponseEntity.ok(new CheckResult(enqueued));
     }
 
     public record AddMonitoredRequest(
