@@ -64,8 +64,6 @@ public class DownloadController {
             @Parameter(description = "Limit results to a single source", schema = @Schema(allowableValues = {"VIXSRC", "RAIPLAY"}))
             @RequestParam(required = false) String source) {
 
-        log.info("Search request: query='{}', type='{}', source='{}'", query, type, source);
-
         ContentTypeFilter filter;
         try {
             filter = ContentTypeFilter.valueOf(type.toUpperCase());
@@ -107,7 +105,6 @@ public class DownloadController {
                 log.warn("Search future failed: {}", e.getMessage(), e);
             }
         }
-        log.info("Search returned {} results for query='{}'", results.size(), query);
         return ResponseEntity.ok(results);
     }
 
@@ -123,7 +120,6 @@ public class DownloadController {
     public ResponseEntity<List<ContentMetadata>> searchMovies(
             @Parameter(description = "Movie title to search", required = true, example = "Fight Club")
             @RequestParam String query) {
-        log.info("Searching movies (VixSrc/TMDB): {}", query);
         return ResponseEntity.ok(metadataService.searchMovies(query));
     }
 
@@ -135,7 +131,6 @@ public class DownloadController {
     public ResponseEntity<List<ContentMetadata>> searchTv(
             @Parameter(description = "TV show title to search", required = true, example = "Breaking Bad")
             @RequestParam String query) {
-        log.info("Searching TV shows (VixSrc/TMDB): {}", query);
         return ResponseEntity.ok(metadataService.searchTvShows(query));
     }
 
@@ -156,7 +151,6 @@ public class DownloadController {
             @Parameter(description = "Video quality: `best`, `1080`, `720`, etc.", example = "1080")
             @RequestParam(required = false) String quality) {
 
-        log.info("Adding VixSrc movie download: TMDB ID {}", tmdbId);
         DownloadTask task = downloadQueueService.addDownload(
                 tmdbId, DownloadTask.ContentType.MOVIE, null, null, languages, quality);
         return ResponseEntity.ok(task);
@@ -179,7 +173,6 @@ public class DownloadController {
             @Parameter(description = "Video quality: `best`, `1080`, `720`, etc.", example = "best")
             @RequestParam(required = false) String quality) {
 
-        log.info("Adding VixSrc TV download: TMDB ID {}, S{}E{}", tmdbId, season, episode);
         DownloadTask task = downloadQueueService.addDownload(
                 tmdbId, DownloadTask.ContentType.TV, season, episode, languages, quality);
         return ResponseEntity.ok(task);
@@ -205,7 +198,6 @@ public class DownloadController {
             @Parameter(description = "Release year", example = "2018")
             @RequestParam(required = false) Integer year) {
 
-        log.info("Adding RaiPlay movie download: pathId={}, title='{}', year={}", pathId, title, year);
         ContentMetadata meta = ContentMetadata.builder()
                 .source(MediaSource.RAIPLAY)
                 .sourceMetadata(new RaiPlayMetadata(pathId, null, null, null, null))
@@ -218,7 +210,6 @@ public class DownloadController {
             log.warn("No download task created for RaiPlay movie pathId={}", pathId);
             return ResponseEntity.badRequest().build();
         }
-        log.info("RaiPlay movie task created: {}", task.getId());
         return ResponseEntity.ok(task);
     }
 
@@ -242,7 +233,6 @@ public class DownloadController {
             @Parameter(description = "Episode name", example = "Il Pilota")
             @RequestParam(required = false) String episodeName) {
 
-        log.info("Adding RaiPlay TV download: pathId={}, title='{}', S{}E{}", pathId, title, season, episode);
         ContentMetadata meta = ContentMetadata.builder()
                 .source(MediaSource.RAIPLAY)
                 .sourceMetadata(new RaiPlayMetadata(pathId, null, null, String.valueOf(season), null))
@@ -258,7 +248,6 @@ public class DownloadController {
             log.warn("No download task created for RaiPlay TV pathId={}", pathId);
             return ResponseEntity.badRequest().build();
         }
-        log.info("RaiPlay TV task created: {}", task.getId());
         return ResponseEntity.ok(task);
     }
 
@@ -272,10 +261,7 @@ public class DownloadController {
         content = @Content(array = @ArraySchema(schema = @Schema(implementation = DownloadTask.class))))
     @GetMapping("/downloads")
     public ResponseEntity<List<DownloadTask>> getAllDownloads() {
-        log.info("Listing all download tasks");
-        List<DownloadTask> tasks = downloadQueueService.getAllTasks();
-        log.info("Returning {} download tasks", tasks.size());
-        return ResponseEntity.ok(tasks);
+        return ResponseEntity.ok(downloadQueueService.getAllTasks());
     }
 
     @Tag(name = "Downloads")
@@ -287,7 +273,6 @@ public class DownloadController {
     public ResponseEntity<DownloadTask> getDownload(
             @Parameter(description = "Download task UUID", required = true)
             @PathVariable String id) {
-        log.info("Getting download task: {}", id);
         return downloadQueueService.getTask(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> {
@@ -304,10 +289,8 @@ public class DownloadController {
     public ResponseEntity<Void> cancelDownload(
             @Parameter(description = "Download task UUID", required = true)
             @PathVariable String id) {
-        log.info("Cancelling download task: {}", id);
         boolean cancelled = downloadQueueService.cancelTask(id);
         if (cancelled) {
-            log.info("Download task cancelled: {}", id);
             return ResponseEntity.ok().<Void>build();
         }
         log.warn("Download task not found for cancellation: {}", id);
@@ -322,10 +305,8 @@ public class DownloadController {
     public ResponseEntity<Void> retryDownload(
             @Parameter(description = "Download task UUID", required = true)
             @PathVariable String id) {
-        log.info("Retrying download task: {}", id);
         boolean retried = downloadQueueService.retryTask(id);
         if (retried) {
-            log.info("Download task re-queued: {}", id);
             return ResponseEntity.ok().<Void>build();
         }
         log.warn("Download task not found for retry: {}", id);
