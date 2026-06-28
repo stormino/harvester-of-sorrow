@@ -86,6 +86,9 @@ logging:
     name: ${LOG_FILE:logs/harvester-of-sorrow.log}
 
 logbook:
+  format:
+    style: splunk
+  strategy: without-body
   exclude:
     - /actuator/**
     - /swagger-ui/**
