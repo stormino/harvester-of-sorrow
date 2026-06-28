@@ -72,13 +72,16 @@ server:
   port: ${SERVER_PORT:8080}
   compression:
     enabled: true
+  tomcat:
+    accesslog:
+      enabled: true
+      pattern: "%{yyyy-MM-dd HH:mm:ss}t %m %U%q %s %Dms"
 
 # Logging
 logging:
   level:
     com.github.stormino: ${LOG_LEVEL:INFO}
     okhttp3: WARN
-    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
   pattern:
   #   console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

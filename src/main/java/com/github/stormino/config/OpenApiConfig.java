@@ -8,7 +8,6 @@ import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.filter.CommonsRequestLoggingFilter;
 
 import java.util.List;
 
@@ -17,16 +16,6 @@ public class OpenApiConfig {
 
     @Value("${app.version:unknown}")
     private String appVersion;
-
-    @Bean
-    public CommonsRequestLoggingFilter requestLoggingFilter() {
-        CommonsRequestLoggingFilter filter = new CommonsRequestLoggingFilter();
-        filter.setIncludeQueryString(true);
-        filter.setIncludeClientInfo(false);
-        filter.setIncludeHeaders(false);
-        filter.setIncludePayload(false);
-        return filter;
-    }
 
     @Bean
     public OpenAPI openAPI() {
