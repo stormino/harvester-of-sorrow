@@ -11,6 +11,7 @@
 - [Search](#search)
 - [Downloads](#downloads)
 - [Progress Streaming (SSE)](#progress-streaming-sse)
+- [Library & Monitoring](#library--monitoring)
 - [Actuator / Health](#actuator--health)
 - [Schemas](#schemas)
 - [Enums](#enums)
@@ -304,6 +305,198 @@ es.onmessage = (e) => {
 
 ---
 
+## Library & Monitoring
+
+The library represents TV show directories found on disk. Each entry can optionally be linked to a *monitored show* — when monitoring is active, the app periodically checks for new episodes and auto-queues them.
+
+### `GET /api/library`
+
+Scan the TV shows directory and return all entries (monitored and unmonitored) with episode counts.
+
+**Response** `200 OK` — `LibraryEntry[]`
+
+```json
+[
+  {
+    "directoryName": "Breaking.Bad.2008",
+    "seasonCount": 5,
+    "episodeCount": 62,
+    "monitored": true,
+    "monitoredShow": { /* MonitoredShow object, or null */ }
+  }
+]
+```
+
+---
+
+### `GET /api/library/monitored`
+
+Return all monitored shows.
+
+**Response** `200 OK` — `MonitoredShow[]`
+
+```json
+[
+  {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "title": "Breaking Bad",
+    "year": 2008,
+    "tmdbId": 1396,
+    "source": "VIXSRC",
+    "sourceMetadata": { "tmdbId": 1396 },
+    "directoryName": "Breaking.Bad.2008",
+    "enabled": true,
+    "lastCheckedAt": "2024-01-15T10:00:00",
+    "lastNewEpisodeAt": null,
+    "createdAt": "2024-01-10T08:30:00"
+  }
+]
+```
+
+---
+
+### `GET /api/library/monitored/{id}`
+
+Get a single monitored show.
+
+**Path Parameters**
+
+| Name | Type   | Required | Description            |
+|------|--------|----------|------------------------|
+| `id` | string | yes      | Monitored show UUID    |
+
+**Response**
+
+| Status | Description            |
+|--------|------------------------|
+| `200`  | `MonitoredShow` object |
+| `404`  | Not found              |
+
+---
+
+### `POST /api/library/monitored`
+
+Add a new monitored show. The `directoryName` must match an existing folder under `DOWNLOAD_TV_SHOWS_PATH`.
+
+**Request Body** `application/json`
+
+```json
+{
+  "title": "Breaking Bad",
+  "year": 2008,
+  "tmdbId": 1396,
+  "source": "VIXSRC",
+  "sourceMetadata": { "tmdbId": 1396 },
+  "directoryName": "Breaking.Bad.2008"
+}
+```
+
+| Field           | Type          | Required | Description                              |
+|-----------------|---------------|----------|------------------------------------------|
+| `title`         | string        | yes      | Show title                               |
+| `year`          | integer       | no       | Release year                             |
+| `tmdbId`        | integer       | no       | TMDB identifier                          |
+| `source`        | `MediaSource` | yes      | `VIXSRC` or `RAIPLAY`                   |
+| `sourceMetadata`| object        | no       | Source-specific metadata                 |
+| `directoryName` | string        | yes      | Folder name under the TV shows directory |
+
+**Response** `200 OK` — `MonitoredShow`
+
+---
+
+### `PUT /api/library/monitored/{id}`
+
+Update the source / title configuration of an existing monitored show.
+
+**Path Parameters**
+
+| Name | Type   | Required | Description         |
+|------|--------|----------|---------------------|
+| `id` | string | yes      | Monitored show UUID |
+
+**Request Body** `application/json`
+
+```json
+{
+  "title": "Breaking Bad",
+  "year": 2008,
+  "tmdbId": 1396,
+  "source": "RAIPLAY",
+  "sourceMetadata": { "pathId": "/programmi/breaking-bad.json" }
+}
+```
+
+**Response**
+
+| Status | Description    |
+|--------|----------------|
+| `200`  | Updated        |
+| `404`  | Not found      |
+
+---
+
+### `DELETE /api/library/monitored/{id}`
+
+Remove a monitored show. Already-downloaded files are kept on disk.
+
+**Path Parameters**
+
+| Name | Type   | Required | Description         |
+|------|--------|----------|---------------------|
+| `id` | string | yes      | Monitored show UUID |
+
+**Response**
+
+| Status | Description    |
+|--------|----------------|
+| `204`  | Removed        |
+| `404`  | Not found      |
+
+---
+
+### `POST /api/library/monitored/{id}/enable`
+
+Resume automatic monitoring for a paused show.
+
+**Response**
+
+| Status | Description    |
+|--------|----------------|
+| `200`  | Enabled        |
+| `404`  | Not found      |
+
+---
+
+### `POST /api/library/monitored/{id}/disable`
+
+Pause automatic monitoring without removing the show.
+
+**Response**
+
+| Status | Description    |
+|--------|----------------|
+| `200`  | Disabled       |
+| `404`  | Not found      |
+
+---
+
+### `POST /api/library/monitored/{id}/check`
+
+Trigger an immediate episode check for a monitored show. New episodes found are enqueued for download automatically.
+
+**Response** `200 OK`
+
+```json
+{ "newEpisodesEnqueued": 3 }
+```
+
+| Status | Description    |
+|--------|----------------|
+| `200`  | Check complete |
+| `404`  | Not found      |
+
+---
+
 ## Actuator / Health
 
 Standard Spring Boot Actuator endpoints (read-only):
@@ -317,6 +510,36 @@ Standard Spring Boot Actuator endpoints (read-only):
 ---
 
 ## Schemas
+
+### `LibraryEntry`
+
+| Field           | Type              | Notes                                        |
+|-----------------|-------------------|----------------------------------------------|
+| `directoryName` | string            | Folder name under the TV shows directory     |
+| `seasonCount`   | integer           | Number of season sub-folders found on disk   |
+| `episodeCount`  | integer           | Total `.mkv` files across all seasons        |
+| `monitored`     | boolean           | Whether this entry has a linked MonitoredShow|
+| `monitoredShow` | `MonitoredShow` \| null | Present when `monitored` is `true`    |
+
+---
+
+### `MonitoredShow`
+
+| Field              | Type          | Notes                                        |
+|--------------------|---------------|----------------------------------------------|
+| `id`               | string (UUID) |                                              |
+| `title`            | string        |                                              |
+| `year`             | integer \| null |                                            |
+| `tmdbId`           | integer \| null |                                            |
+| `source`           | `MediaSource` |                                              |
+| `sourceMetadata`   | object \| null | `{ tmdbId }` (VixSrc) or `{ pathId }` (RaiPlay) |
+| `directoryName`    | string        | Folder name under `DOWNLOAD_TV_SHOWS_PATH`   |
+| `enabled`          | boolean       | Whether auto-monitoring is active            |
+| `lastCheckedAt`    | datetime \| null | ISO-8601; last time the check ran         |
+| `lastNewEpisodeAt` | datetime \| null | ISO-8601; last time a new episode was found |
+| `createdAt`        | datetime      | ISO-8601                                     |
+
+---
 
 ### `ContentMetadata`
 
