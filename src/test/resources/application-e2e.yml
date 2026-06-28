@@ -1,0 +1,37 @@
+hos:
+  download:
+    movies-path: ${java.io.tmpdir}/hos-e2e/movies
+    tv-shows-path: ${java.io.tmpdir}/hos-e2e/tvshows
+    temp-path: ${java.io.tmpdir}/hos-e2e/temp
+    parallel-downloads: 1
+    default-quality: best
+    default-language: en
+  tmdb:
+    api-key: ${TMDB_API_KEY:}
+  monitoring:
+    enabled: false
+  extractor:
+    base-url: https://vixsrc.to
+    max-retries: 2
+    retry-delay-ms: 500
+    max-retry-delay-ms: 1000
+
+raiplay:
+  username: ${RAIPLAY_USERNAME:}
+  password: ${RAIPLAY_PASSWORD:}
+
+spring:
+  datasource:
+    url: jdbc:sqlite:/tmp/hos-e2e-test.db
+    driver-class-name: org.sqlite.JDBC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    com.github.stormino: INFO
+    org.flywaydb: WARN

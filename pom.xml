@@ -25,6 +25,10 @@
         <jsoup.version>1.17.2</jsoup.version>
         <tmdb-java.version>2.9.0</tmdb-java.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <lombok.version>1.18.30</lombok.version>
+        <!-- Exclude e2e tag by default; override with -Dgroups=e2e to run only e2e,
+             or -Dexcluded.test.groups="" to run everything -->
+        <excluded.test.groups>e2e</excluded.test.groups>
     </properties>
 
     <dependencyManagement>
@@ -227,6 +231,16 @@
                             <version>${mapstruct.version}</version>
                         </path>
                     </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Exclude @Tag("e2e") tests from the default test run.
+                         Run them explicitly with: mvn test -Dgroups=e2e -->
+                    <excludedGroups>${excluded.test.groups}</excludedGroups>
                 </configuration>
             </plugin>
 

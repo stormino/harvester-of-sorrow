@@ -43,7 +43,7 @@ public class HttpClientConfig {
         }
 
         return builder
-                .addInterceptor(new RetryInterceptor(Integer.MAX_VALUE))
+                .addInterceptor(new RetryInterceptor(properties.getExtractor().getMaxRetries()))
                 .cookieJar(new InMemoryCookieJar())
                 .followRedirects(true)
                 .followSslRedirects(true)
