@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 public class HlsSegmentDownloader {
 
     private final OkHttpClient httpClient;
+    private final com.github.stormino.config.AppProperties properties;
 
     @Data
     @Builder
@@ -95,7 +96,10 @@ public class HlsSegmentDownloader {
         byte[] decryptionKey = null;
         try {
             // Create temp directory for segments
-            tempDir = Files.createTempDirectory("hls_segments_");
+            // Under the configured temp path (a mounted volume), not the container's /tmp.
+            Path tempBase = java.nio.file.Paths.get(properties.getDownload().getTempPath());
+            Files.createDirectories(tempBase);
+            tempDir = Files.createTempDirectory(tempBase, "hls_segments_");
             log.debug("Created temp segment directory: {}", tempDir);
 
             // Download encryption key if needed
@@ -160,12 +164,12 @@ public class HlsSegmentDownloader {
                     .errorMessage(e.getMessage())
                     .build();
         } finally {
-            // Cleanup temp directory
+            // Remove the segment directory and anything left in it (failed or cancelled downloads).
             if (tempDir != null) {
                 try {
-                    Files.deleteIfExists(tempDir);
+                    org.springframework.util.FileSystemUtils.deleteRecursively(tempDir);
                 } catch (IOException e) {
-                    log.warn("Failed to delete temp directory: {}", e.getMessage());
+                    log.warn("Failed to delete temp directory {}: {}", tempDir, e.getMessage());
                 }
             }
         }

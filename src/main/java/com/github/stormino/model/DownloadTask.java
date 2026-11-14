@@ -80,6 +80,18 @@ public class DownloadTask {
         }
     }
     
+    /**
+     * A user cancel is final: worker threads that finish afterwards (and report FAILED,
+     * COMPLETED, ...) cannot overwrite it. Only a retry (back to QUEUED) leaves CANCELLED.
+     */
+    public void setStatus(DownloadStatus status) {
+        if (this.status == DownloadStatus.CANCELLED
+                && status != DownloadStatus.CANCELLED && status != DownloadStatus.QUEUED) {
+            return;
+        }
+        this.status = status;
+    }
+
     public boolean isCompleted() {
         return status == DownloadStatus.COMPLETED;
     }
