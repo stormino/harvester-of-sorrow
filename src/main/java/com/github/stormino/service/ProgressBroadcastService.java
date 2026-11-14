@@ -8,16 +8,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 
 @Slf4j
 @Service
 public class ProgressBroadcastService {
 
     private final ConcurrentHashMap<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
-
-    // Vaadin UI listeners for push updates
-    private final CopyOnWriteArrayList<Consumer<ProgressUpdate>> uiListeners = new CopyOnWriteArrayList<>();
 
     /**
      * Register a new SSE emitter
@@ -44,32 +40,11 @@ public class ProgressBroadcastService {
     }
 
     /**
-     * Register a UI listener for push updates
-     */
-    public void registerListener(Consumer<ProgressUpdate> listener) {
-        uiListeners.add(listener);
-        log.debug("UI listener registered. Total: {}", uiListeners.size());
-    }
-
-    /**
-     * Unregister a UI listener
-     */
-    public void unregisterListener(Consumer<ProgressUpdate> listener) {
-        uiListeners.remove(listener);
-        log.debug("UI listener unregistered. Remaining: {}", uiListeners.size());
-    }
-
-    /**
      * Broadcast progress update to all connected clients
      */
     public void broadcastProgress(ProgressUpdate update) {
         log.debug("Broadcasting progress for task {}: {}%", update.getTaskId(), update.getProgress());
-
-        // Broadcast to SSE clients
         broadcastToSSE(update);
-
-        // Broadcast to Vaadin UI listeners
-        broadcastToUI(update);
     }
 
     private void broadcastToSSE(ProgressUpdate update) {
@@ -89,16 +64,6 @@ public class ProgressBroadcastService {
             } catch (IOException e) {
                 log.warn("Failed to send SSE event for task {}: {}", update.getTaskId(), e.getMessage());
                 removeEmitter(id, emitter);
-            }
-        }
-    }
-
-    private void broadcastToUI(ProgressUpdate update) {
-        for (Consumer<ProgressUpdate> listener : uiListeners) {
-            try {
-                listener.accept(update);
-            } catch (Exception e) {
-                log.error("Error in UI listener: {}", e.getMessage(), e);
             }
         }
     }

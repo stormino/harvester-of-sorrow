@@ -56,11 +56,6 @@ spring:
     init:
       mode: never
 
-  # Vaadin configuration
-  vaadin:
-    launch-browser: false
-    exclude-urls: /swagger-ui/**, /v3/api-docs/**
-
   # Servlet configuration for large file handling
   servlet:
     multipart:
@@ -90,7 +85,6 @@ logbook:
     - /actuator/**
     - /swagger-ui/**
     - /v3/api-docs/**
-    - /VAADIN/**
 
 # OpenAPI / Swagger UI — available at /swagger-ui.html and /v3/api-docs
 springdoc:
@@ -100,7 +94,6 @@ springdoc:
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
-  paths-to-exclude: /vaadinServlet/**, /VAADIN/**, /PUSH/**
 
 # Management endpoints
 management:
