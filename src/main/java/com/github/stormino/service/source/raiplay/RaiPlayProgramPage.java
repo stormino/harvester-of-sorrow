@@ -49,7 +49,8 @@ public record RaiPlayProgramPage(
     public record ProgramInfo(
             String typology,
             String layout,
-            @JsonProperty("seasons_number") String seasonsNumber
+            @JsonProperty("seasons_number") String seasonsNumber,
+            RaiPlayProgramInfo.Images images
     ) {}
 
     /** A movie page has {@code program_info.typology == "Film"}. */

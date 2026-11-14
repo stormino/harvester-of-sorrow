@@ -21,8 +21,28 @@ public record RaiPlayProgramInfo(
         String id,
         String description,
         @JsonProperty("path_id") String pathId,
-        List<ProgramDetail> details
+        List<ProgramDetail> details,
+        Images images
 ) {
+
+    /**
+     * Relative image paths (e.g. {@code /dl/img/...jpg}) in several crops.
+     * Also embedded in the program page under {@code program_info.images}.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Images(
+            String portrait43,
+            String portrait,
+            String landscape
+    ) {
+        /** Best path for a portrait poster card: 3:4, then 9:16, then 16:9. */
+        public Optional<String> posterPath() {
+            for (String p : new String[]{portrait43, portrait, landscape}) {
+                if (p != null && !p.isBlank()) return Optional.of(p);
+            }
+            return Optional.empty();
+        }
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ProgramDetail(String type, String key, String value) {}

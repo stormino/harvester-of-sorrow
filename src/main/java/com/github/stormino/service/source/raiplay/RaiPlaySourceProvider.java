@@ -119,7 +119,13 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
                 .contentType(isTv ? DownloadTask.ContentType.TV : DownloadTask.ContentType.MOVIE)
                 .title(card.titolo())
                 .year(infoOpt.flatMap(RaiPlayProgramInfo::extractYear).orElse(null))
-                .overview(infoOpt.map(RaiPlayProgramInfo::description).orElse(null));
+                .overview(infoOpt.map(RaiPlayProgramInfo::description).orElse(null))
+                .posterUrl(infoOpt.map(RaiPlayProgramInfo::images)
+                        .or(() -> pageOpt.map(RaiPlayProgramPage::programInfo)
+                                .map(RaiPlayProgramPage.ProgramInfo::images))
+                        .flatMap(RaiPlayProgramInfo.Images::posterPath)
+                        .map(this::posterUrl)
+                        .orElse(null));
 
         if (isTv) {
             int seasons = infoOpt.flatMap(RaiPlayProgramInfo::seasonCount)
@@ -137,6 +143,17 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
             });
         }
         return builder.build();
+    }
+
+    /**
+     * RaiPlay serves originals at ~2048px; the {@code /cropgd/WxH} prefix makes
+     * the CDN return a server-side crop (~25 KB vs ~400 KB). 228x330 is 3x the
+     * UI poster box (76x110).
+     */
+    private String posterUrl(String path) {
+        if (path.startsWith("http")) return path;
+        String rel = path.startsWith("/") ? path : "/" + path;
+        return properties.getBaseUrl() + "/cropgd/228x330" + rel;
     }
 
     /**
