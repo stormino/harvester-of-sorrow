@@ -1,0 +1,14 @@
+.group {
+  display: flex; align-items: center; gap: 2px; padding: 4px; height: 44px;
+  border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border);
+}
+.opt {
+  padding: 7px 14px; border-radius: 7px; border: none; white-space: nowrap;
+  font-size: 13px; font-weight: 600; background: transparent; color: var(--text-muted);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.opt:hover { color: var(--text); }
+.on, .on:hover { background: var(--brand); color: var(--on-brand); }
+.full { width: 100%; height: auto; padding: 0; gap: 7px; background: none; border: none; }
+.full .opt { flex: 1; padding: 9px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); }
+.full .on { border-color: var(--brand); background: var(--brand); }

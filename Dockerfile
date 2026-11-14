@@ -1,20 +1,21 @@
-# Stage 1: Build the application
+# Stage 1: build the React UI
+FROM node:22-alpine AS ui
+WORKDIR /ui
+COPY ui/package.json ui/package-lock.json ui/.npmrc ./
+RUN npm ci --no-audit --no-fund
+COPY ui/ ./
+RUN npm run build
+
+# Stage 2: build the Spring Boot jar (with the UI under static/)
 FROM maven:3.9-eclipse-temurin-21 AS build
-
 WORKDIR /app
-
-# Copy pom.xml and download dependencies (cached layer)
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
-
-# Copy source and frontend theme files
 COPY src ./src
-COPY frontend ./frontend
+COPY --from=ui /ui/dist ./ui/dist
+RUN mvn clean package -DskipTests -B
 
-# Build with production profile
-RUN mvn clean package -DskipTests -Pproduction
-
-# Stage 2: Runtime image
+# Stage 3: runtime image
 FROM eclipse-temurin:21-jre-jammy
 
 LABEL org.opencontainers.image.source="https://github.com/stormino/harvester-of-sorrow"
@@ -37,26 +38,21 @@ RUN groupadd -g ${GID} hos && useradd -u ${UID} -g hos hos
 
 WORKDIR /app
 
-# Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Create downloads and data directories and set permissions
 RUN mkdir -p /downloads/movies /downloads/tvshows /downloads/temp /app/data && \
     chown -R hos:hos /app /downloads
 
-# Set environment variables
 ENV DOWNLOAD_MOVIES_PATH=/downloads/movies
 ENV DOWNLOAD_TV_SHOWS_PATH=/downloads/tvshows
 ENV DOWNLOAD_TEMP_PATH=/downloads/temp
 ENV SERVER_PORT=8080
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
-# Switch to non-root user
 USER hos
 
 EXPOSE 8080
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget -q --spider http://localhost:8080/actuator/health || exit 1
 

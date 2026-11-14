@@ -56,6 +56,10 @@ spring:
     init:
       mode: never
 
+  # API responses omit null fields (matches the optional fields in the OpenAPI schema)
+  jackson:
+    default-property-inclusion: non_null
+
   # Servlet configuration for large file handling
   servlet:
     multipart:

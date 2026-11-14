@@ -1,0 +1,26 @@
+.overlay {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px;
+  background: var(--overlay); backdrop-filter: blur(3px); animation: hos-fade-in 0.12s ease;
+}
+.panel {
+  width: var(--w, 520px); max-width: 94vw; max-height: 88vh; overflow: hidden;
+  display: flex; flex-direction: column;
+  border-radius: 14px; background: var(--elevated); border: 1px solid var(--border-strong);
+  box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.6); animation: hos-pop 0.16s ease;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 17px 20px; border-bottom: 1px solid var(--border);
+}
+.title { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.body { padding: 20px; overflow-y: auto; }
+.footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 9px;
+  padding: 15px 20px; border-top: 1px solid var(--border); background: var(--surface);
+}
+.message { font-size: 14px; line-height: 1.55; color: var(--text); }
+
+@media (max-width: 767px) {
+  .overlay { padding: 12px; align-items: end; }
+  .panel { max-width: 100%; width: 100%; max-height: 92vh; }
+}
