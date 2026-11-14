@@ -113,6 +113,12 @@ public class TrackDownloadOrchestrator {
                 CompletableFuture.allOf(downloadFutures.toArray(new CompletableFuture[0]))
                         .get(DownloadConstants.MAX_DOWNLOAD_TIMEOUT_HOURS, TimeUnit.HOURS);
 
+                // Cancelled by the user: the interrupted tracks are not failures.
+                if (task.getStatus() == DownloadStatus.CANCELLED || isCancelled.get()) {
+                    log.info("Task cancelled during download: {}", task.getId());
+                    return false;
+                }
+
                 // Check critical failures (video or all audio tracks failed)
                 boolean videoFailed = subTasks.stream()
                         .filter(st -> st.getType() == DownloadSubTask.SubTaskType.VIDEO)
@@ -421,6 +427,8 @@ public class TrackDownloadOrchestrator {
                 // Handle different failure statuses
                 if (result.getStatus() == DownloadResult.ResultStatus.NOT_FOUND) {
                     // Status already set by strategy
+                } else if (task.getStatus() == DownloadStatus.CANCELLED) {
+                    subTask.setStatus(DownloadStatus.CANCELLED);
                 } else if (subTask.getStatus() != DownloadStatus.NOT_FOUND) {
                     subTask.setStatus(DownloadStatus.FAILED);
                     subTask.setErrorMessage(result.getErrorMessage() != null ? result.getErrorMessage() : "Download failed");
