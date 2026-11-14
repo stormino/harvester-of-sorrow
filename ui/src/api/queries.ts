@@ -18,9 +18,12 @@ export const useSources = () => useQuery({ queryKey: keys.sources, queryFn: api.
 
 export const useLibrary = () => useQuery({ queryKey: keys.library, queryFn: api.library });
 
-/** The download volume with the least free space (paths may share one volume). */
+/**
+ * Free space of the media library: the movies/TV volume with the least free space.
+ * The temp path is left out; it is often a separate local disk (Settings lists it).
+ */
 export function tightestDisk(disks: Disk[] | undefined): Disk | undefined {
   return disks
-    ?.filter((d) => d.freeBytes != null)
+    ?.filter((d) => d.freeBytes != null && d.label !== 'temp')
     .reduce<Disk | undefined>((min, d) => (!min || d.freeBytes! < min.freeBytes! ? d : min), undefined);
 }
