@@ -454,6 +454,10 @@ public class DownloadQueueService {
                 return;
             }
 
+            if (task.getStatus() == DownloadStatus.CANCELLED) {
+                log.info("Task {} was cancelled during extraction; not starting the download", task.getId());
+                return;
+            }
             task.setPlaylistUrl(playlistInfo.get().getUrl());
             persistenceService.updateTaskPlaylistUrl(task);
 
@@ -492,8 +496,16 @@ public class DownloadQueueService {
     }
     
     private void updateTaskStatus(DownloadTask task, DownloadStatus status, Double progress, String message) {
+        // A user cancel wins over whatever the worker thread reports afterwards.
+        if (task.getStatus() == DownloadStatus.CANCELLED && status != DownloadStatus.CANCELLED) {
+            log.debug("Ignoring {} for cancelled task {}", status, task.getId());
+            return;
+        }
         task.setStatus(status);
         task.setProgress(progress);
+        if (status == DownloadStatus.FAILED && task.getErrorMessage() == null && message != null) {
+            task.setErrorMessage(message);
+        }
         persistenceService.updateTaskStatus(task);
 
         ProgressUpdate update = ProgressUpdate.builder()

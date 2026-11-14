@@ -66,3 +66,8 @@ export function formatInterval(ms: number): string {
 export function pad2(n: number): string {
   return pad(n);
 }
+
+/** Library folder name to a search query: "Breaking.Bad.2008" -> "Breaking Bad". */
+export function guessTitle(dir: string): string {
+  return dir.replace(/[._]+/g, ' ').replace(/\s*\(?\b(19|20)\d{2}\)?\s*$/, '').trim() || dir;
+}

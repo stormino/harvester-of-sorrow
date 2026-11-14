@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatBytes, formatDateTime, formatEta, formatPercent, formatSpeed, formatTime } from './format';
+import { formatBytes, formatDateTime, formatEta, formatPercent, formatSpeed, formatTime, guessTitle } from './format';
 import { countTasks, isIndeterminate, overallSpeed, sortTasks, statusLine } from './tasks';
 import type { Task } from '../api/types';
 
@@ -31,6 +31,13 @@ describe('formatters', () => {
     expect(formatPercent(41.83)).toBe('41.8%');
     expect(formatPercent(120)).toBe('100.0%');
     expect(formatPercent(undefined)).toBe('0.0%');
+  });
+
+  it('guesses a search title from a folder name', () => {
+    expect(guessTitle('Breaking.Bad.2008')).toBe('Breaking Bad');
+    expect(guessTitle('Mare Fuori (2020)')).toBe('Mare Fuori');
+    expect(guessTitle('The_Bear')).toBe('The Bear');
+    expect(guessTitle('1883')).toBe('1883');
   });
 
   it('time uses the browser zone and adds the date on other days', () => {

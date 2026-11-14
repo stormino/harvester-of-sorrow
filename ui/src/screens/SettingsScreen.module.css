@@ -1,0 +1,35 @@
+.title { margin-bottom: 26px; }
+.panel { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 22px; margin-bottom: 18px; }
+.h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.h3tight { margin-bottom: 5px; }
+.desc { margin-bottom: 16px; font-size: 12.5px; color: var(--text-muted); }
+.desc a { color: var(--brand); text-decoration: none; }
+.desc a:hover { text-decoration: underline; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; }
+.span2 { grid-column: span 2; }
+.note {
+  display: flex; align-items: center; gap: 9px; margin-top: 16px; padding: 11px 13px; border-radius: 9px;
+  background: color-mix(in srgb, var(--warning) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  font-size: 12.5px; color: color-mix(in srgb, var(--warning) 65%, var(--text));
+}
+.note svg { flex: none; color: var(--warning); }
+.sys { display: flex; flex-direction: column; font-family: var(--font-mono); font-size: 13px; margin-bottom: 18px; }
+.sysRow { display: flex; justify-content: space-between; gap: 16px; padding: 9px 2px; border-bottom: 1px solid var(--border); }
+.sysRow:last-child { border-bottom: none; }
+.sysKey { color: var(--text-muted); }
+.sysVal { text-align: right; word-break: break-all; }
+.tool { display: flex; gap: 13px; }
+.toolIcon { flex: none; width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; }
+.ok { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.bad { background: color-mix(in srgb, var(--error) 16%, transparent); color: var(--error); }
+.toolHead { font-size: 13.5px; font-weight: 600; margin-bottom: 6px; }
+.toolOk { color: var(--success); }
+.toolBad { color: var(--error); }
+.toolMsg { font-family: var(--font-mono); font-size: 12px; line-height: 1.55; color: var(--text-muted); word-break: break-word; }
+
+@media (max-width: 767px) {
+  .grid { grid-template-columns: 1fr; }
+  .span2 { grid-column: auto; }
+  .panel { padding: 16px; }
+}
