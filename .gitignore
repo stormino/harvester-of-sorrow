@@ -42,16 +42,8 @@ buildNumber.properties
 .settings/
 bin/
 
-# Vaadin
+# Node (ui/ has its own .gitignore)
 node_modules/
-frontend/generated/
-package-lock.json
-pnpm-lock.yaml
-webpack.generated.js
-vite.generated.ts
-tsconfig.json
-types.d.ts
-.vaadin/
 
 # OS
 .DS_Store

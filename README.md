@@ -1,490 +1,127 @@
-# Harvester of Sorrow (HOS) - Java/Spring Boot + Vaadin
+# Harvester of Sorrow (HOS)
 
-A production-ready multi-source video downloader with web UI, built with Spring Boot and Vaadin. Supports VixSrc, RaiPlay, and more.
+Self-hosted download manager for movies and TV shows from **VixSrc** (TMDB-indexed) and **RaiPlay**.
+Spring Boot 3 (Java 21) backend with a React UI, SQLite, ffmpeg, live progress over Server-Sent Events.
+One container, one port, no authentication (run it behind your reverse proxy).
+
+> Upgrading from 3.x (VixsrcDownloader)? Read [docs/UPGRADING.md](docs/UPGRADING.md).
 
 ## Features
 
-- **Modern Web UI** - Vaadin-based interface with real-time updates
-  - Search movies and TV shows (TMDB integration)
-  - Download queue with live progress bars
-  - Library view with TV show monitoring
-  - Settings and configuration view
-- **REST API** - Complete API for automation
-- **TMDB Integration** - Search movies and TV shows, auto-generate filenames
-- **Cloudflare Bypass** - Automatic handling of Cloudflare protection
-- **Parallel Downloads** - Configurable concurrent download workers
-- **Real-time Progress** - Server-Sent Events (SSE) for live download progress
-- **Multi-language Support** - Download with multiple audio tracks (per-download selection)
-- **Smart File Organization** - Automatic directory structure (Show/Season/Episode)
-- **Flexible TV Selection** - Multi-select seasons and episodes in the download dialog (select multiple, or leave blank for all)
-- **TV Show Monitoring** - Library view to track downloaded shows and auto-enqueue new episodes when they appear on the source
-- **Production Ready** - Docker support, proper error handling, logging
+- Search VixSrc (via TMDB) and RaiPlay; results are filtered by real availability
+- Queue a movie, a whole show, whole seasons or picked episodes (episode lists come from the source)
+- Multiple audio languages and subtitles per download, quality selection
+- Live queue: per-track progress, speed, ETA, cancel, retry, clear finished
+- TV library: monitor show folders and auto-queue new episodes
+- Responsive UI (phone: bottom tab bar, cards), dark and light themes
+- REST API with OpenAPI docs at `/swagger-ui.html`
 
-## Requirements
-
-- Java 21+
-- Maven 3.6+
-- ffmpeg (for video downloading and track merging)
-- rsync (for checksum-verified file copy to NFS/network destinations)
-- Docker (optional, for containerized deployment)
-
-## Quick Start
-
-### Docker (Recommended)
+## Quick start (Docker)
 
 ```bash
-# 1. Clone repository
-git clone <repo>
+git clone https://github.com/stormino/harvester-of-sorrow.git
 cd harvester-of-sorrow
-
-# 2. Create .env file
-cp .env.example .env
-# Edit .env and add your TMDB_API_KEY
-
-# 3. Run with docker-compose
-docker-compose up -d
-
-# 4. Access Web UI
-open http://localhost:8080
-
-# 5. Access API
-curl http://localhost:8080/api/downloads
+cp .env.example .env        # set TMDB_API_KEY
+docker compose up -d --build
 ```
 
-### Manual Setup
+Open http://localhost:8080. Or use the published image `ghcr.io/stormino/harvester-of-sorrow:latest`
+(uncomment `image:` in `docker-compose.yml`).
 
-```bash
-# 1. Install ffmpeg and rsync
-sudo apt-get install ffmpeg rsync  # Debian/Ubuntu
-brew install ffmpeg rsync          # macOS
-
-# 2. Set TMDB API key
-export TMDB_API_KEY="your_api_key_here"
-
-# 3. Build and run
-mvn clean package -DskipTests
-java -jar target/harvester-of-sorrow-*.jar
-```
+Keep `.env` comments on their own line: `docker --env-file` keeps inline `# …` as part of the value.
 
 ## Configuration
 
-### Environment Variables
+All settings are environment variables; the Settings screen shows them read-only. Change and restart.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `TMDB_API_KEY` | TMDB API key for metadata | (required) |
-| `DOWNLOAD_BASE_PATH` | Download directory | `/downloads` |
-| `DOWNLOAD_TEMP_PATH` | Temporary files directory | `/downloads/temp` |
-| `PARALLEL_DOWNLOADS` | Max concurrent downloads | `3` |
-| `SEGMENT_CONCURRENCY` | HLS segment download concurrency | `5` |
-| `DEFAULT_QUALITY` | Default quality (best/720/1080) | `best` |
-| `DEFAULT_LANGUAGE` | Default language | `en` |
-| `MONITORING_ENABLED` | Enable periodic monitoring scheduler | `true` |
-| `MONITORING_INTERVAL_MS` | Monitoring check interval in milliseconds | `3600000` (1 hour) |
-| `SERVER_PORT` | Web server port | `8080` |
-| `LOG_LEVEL` | Logging level | `INFO` |
+| Variable | Default | Description |
+|---|---|---|
+| `TMDB_API_KEY` | (none) | Required for VixSrc search and metadata ([get one](https://www.themoviedb.org/settings/api)) |
+| `DOWNLOAD_MOVIES_PATH` | `/downloads/movies` (image) | Movies destination |
+| `DOWNLOAD_TV_SHOWS_PATH` | `/downloads/tvshows` (image) | TV destination; also the Library root |
+| `DOWNLOAD_TEMP_PATH` | `/downloads/temp` (image) | Work area for segments and merging |
+| `PARALLEL_DOWNLOADS` | `3` (compose) | Concurrent downloads |
+| `SEGMENT_CONCURRENCY` | `5` | Concurrent HLS segment requests per track |
+| `DEFAULT_QUALITY` | `best` | `best`, `1080`, `720`, `worst` |
+| `DEFAULT_LANGUAGE` | `en` | Preselected audio language |
+| `MONITORING_ENABLED` | `true` | Periodic check of monitored shows |
+| `MONITORING_INTERVAL_MS` | `3600000` | Check interval |
+| `RAIPLAY_USERNAME`, `RAIPLAY_PASSWORD` | (none) | Enable RaiPlay (both required) |
+| `SQLITE_DB_PATH` | `data/hos.db` | Database file (falls back to `data/vixsrc.db` if only that exists) |
+| `SERVER_PORT` | `8080` | HTTP port |
+| `LOG_LEVEL` | `INFO` | Application log level |
+| `LOGBOOK_LEVEL` | `INFO` | HTTP access log (`WARN` to silence) |
+| `JAVA_OPTS` | `-Xmx512m -Xms256m` | JVM options (image) |
 
-### application.yml
+Volumes: `/downloads` (media) and `/app/data` (database). Healthcheck: `GET /actuator/health`.
 
-See `src/main/resources/application.yml` for all configuration options.
+### Reverse proxy
 
-## Architecture
+Live updates use SSE on `GET /api/v1/events`. Disable buffering for that path, e.g. nginx:
 
-### Backend (Spring Boot)
-
-```
-├── Controllers (REST API + SSE)
-│   ├── DownloadController - Movie/TV download management
-│   └── ProgressController - Real-time progress updates (SSE)
-├── Services
-│   ├── VixSrcExtractorService - Cloudflare bypass + URL extraction
-│   ├── DownloadExecutorService - ffmpeg wrapper
-│   ├── TmdbMetadataService - TMDB API integration
-│   ├── DownloadQueueService - Download orchestration
-│   ├── FileCopyService - rsync-based file copy with Spring Retry
-│   └── ProgressBroadcastService - SSE broadcasting
-├── Models
-│   ├── DownloadTask - Download task entity
-│   ├── DownloadStatus - Task status enum (QUEUED→EXTRACTING→DOWNLOADING→MERGING→COPYING→COMPLETED)
-│   ├── ProgressUpdate - Progress event
-│   └── ContentMetadata - TMDB metadata
-└── Config
-    ├── HttpClientConfig - OkHttp with Cloudflare handling
-    ├── ExecutorConfig - Thread pool configuration
-    └── TmdbConfig - TMDB client setup
+```nginx
+location /api/v1/events {
+    proxy_pass http://hos:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}
 ```
 
-### Frontend (Vaadin)
+The server already sends `X-Accel-Buffering: no` and a heartbeat every 15 s.
 
-```
-├── Views
-│   ├── SearchView - TMDB search interface (/)
-│   ├── DownloadQueueView - Queue with real-time progress (/downloads)
-│   ├── LibraryView - TV show library and monitoring (/library)
-│   └── SettingsView - Configuration display (/settings)
-├── Components
-│   └── SearchResultCard - Movie/TV search result card
-└── Layout
-    └── MainLayout - App shell with sidebar navigation
-```
+## API
 
-## API Endpoints
-
-### Web UI
-
-The application provides a modern web interface accessible at `http://localhost:8080`
-
-**Views:**
-- `/` - Search movies and TV shows
-- `/downloads` - View download queue with real-time progress
-- `/library` - TV show library and monitoring management
-- `/settings` - View configuration and system info
-
-**Features:**
-- Real-time progress updates via SSE
-- TMDB search with metadata
-- Per-download language and quality selection
-- Color-coded status badges
-- Responsive grid layout
-
-See [UI_GUIDE.md](UI_GUIDE.md) for detailed UI documentation.
-
-### REST API
-
-### Search
-
-```http
-GET /api/search/movies?query=fight+club
-GET /api/search/tv?query=breaking+bad
-```
-
-### Downloads
-
-```http
-# Add movie download
-POST /api/download/movie
-  ?tmdbId=550
-  &languages=en,it
-  &quality=1080
-
-# Add TV episode download
-POST /api/download/tv
-  ?tmdbId=60625
-  &season=4
-  &episode=4
-  &languages=en
-  &quality=best
-
-# Get all downloads
-GET /api/downloads
-
-# Get specific download
-GET /api/downloads/{id}
-
-# Cancel download
-DELETE /api/downloads/{id}
-```
-
-### Real-time Progress
-
-```http
-# SSE endpoint (auto-reconnects)
-GET /api/progress/stream
-```
+- Swagger UI: `/swagger-ui.html`, spec: `/v3/api-docs`
+- Everything under `/api/v1`; errors are RFC 7807 `application/problem+json`
+- See [docs/REST_API_REFERENCE.md](docs/REST_API_REFERENCE.md)
 
 ## Development
 
-### Build
+Requirements: Java 21, Maven, Node 22, ffmpeg (and rsync) on the PATH.
 
 ```bash
-# Build JAR
-mvn clean package
-
-# Build without tests
-mvn clean package -DskipTests
-
-# Build for production (Vaadin optimization)
-mvn clean package -Pproduction
+mvn spring-boot:run                 # backend on :8080 (reads .env)
+cd ui && npm ci && npm run dev      # UI on :5173, proxies /api to :8080
 ```
 
-### Run Locally
+| Command | What it runs |
+|---|---|
+| `mvn test` | Unit tests |
+| `mvn verify` | Unit + API integration tests (`*IT`) |
+| `cd ui && npm test` | UI unit tests (live-update reducer, formatters) |
+| `cd ui && npm run build && cd .. && mvn package` | Jar with the UI bundled under `static/` |
+| `docker build -t hos .` | Full image (Node builds the UI, Maven the jar) |
 
-```bash
-# Run with Maven
-mvn spring-boot:run
+After changing the API, regenerate the UI types with a running backend: `cd ui && npm run fetch:api`.
 
-# Run JAR
-java -jar target/harvester-of-sorrow-*.jar
-
-# Run with specific profile
-java -jar target/harvester-of-sorrow-*.jar --spring.profiles.active=dev
-
-```
-
-### Testing
-
-```bash
-# Unit tests
-mvn test
-
-# Integration tests
-mvn verify
-```
-
-## How It Works
-
-### Download Flow
-
-1. **Search** - User searches TMDB for content
-2. **Add to Queue** - User selects content + languages
-3. **Extract URL** - System extracts HLS playlist from vixsrc.to
-   - Multiple extraction strategies (window.masterPlaylist, regex, API endpoints)
-   - Cloudflare bypass via custom OkHttp interceptor
-4. **Download** - ffmpeg downloads video tracks to local temp directory
-   - Real-time progress parsed from stdout
-   - Progress broadcast via SSE to UI
-5. **Merge** - ffmpeg merges video/audio/subtitle tracks in local temp directory
-6. **Copy** - Merged file copied to final destination via rsync
-   - Checksum verification ensures file integrity
-   - Writes to hidden `.tmp` file first, then atomic rename
-   - Automatic retry (3 attempts with exponential backoff) via Spring Retry
-   - NFS-safe: avoids writing directly to network shares during merge
-7. **Save** - File available at destination with metadata-based filename
-   - Movies: `Title.Year.mp4`
-   - TV: `Show.S01E01.Episode.mp4`
-   - Directory structure: `Show/Season XX/episode.mp4`
-
-### Multi-Language Support
-
-For downloads with multiple languages:
-1. Download primary language (video + audio)
-2. Download additional audio tracks separately
-3. Merge all tracks with ffmpeg
-4. Set language metadata for each audio track
-
-## File Organization
+### Layout
 
 ```
-/downloads/
-├── Fight.Club.1999.mp4
-├── Breaking.Bad/
-│   ├── Season 01/
-│   │   ├── Breaking.Bad.S01E01.Pilot.mp4
-│   │   └── Breaking.Bad.S01E02.Cat's.in.the.Bag.mp4
-│   └── Season 04/
-│       └── Breaking.Bad.S04E04.Ozymandias.mp4
-└── /temp/
-    └── (temporary download files)
+src/main/java/.../api        REST controllers (v1), DTOs, SSE event stream
+src/main/java/.../service    Download engine: queue, HLS, ffmpeg, sources (VixSrc, RaiPlay), monitoring
+src/main/java/.../persistence SQLite repositories (Flyway migrations in resources/db/migration)
+ui/                          React 19 + TypeScript + Vite single-page app
+e2e/                         Playwright suite for the pre-5.0 Vaadin UI (see e2e/README.md)
 ```
+
+## Files on disk
+
+```
+movies/   Title.Year.mp4
+tvshows/  Show.Year/Season 01/Show - S01E01 - Episode.mp4
+```
+
+Monitoring only queues episodes newer than the latest `SxxEyy` already in the show folder.
 
 ## Troubleshooting
 
-### "ffmpeg not found" / "rsync not found"
-
-Install required system dependencies:
-```bash
-# Debian/Ubuntu
-sudo apt-get install ffmpeg rsync
-
-# macOS
-brew install ffmpeg rsync
-```
-
-### "Failed to extract playlist URL"
-
-- Content may not be available on vixsrc.to
-- Cloudflare protection may have changed (check logs)
-- Try different content
-
-### Downloads are slow
-
-- Reduce `SEGMENT_CONCURRENCY` (HLS segment downloads)
-- Try lower quality: `quality=720`
-- Check network connection
-
-### TMDB search not working
-
-- Verify `TMDB_API_KEY` is set correctly
-- Get free API key at: https://www.themoviedb.org/settings/api
-
-## Production Deployment
-
-### Docker (Pre-built Image)
-
-The easiest way to run the application is using the pre-built image from GitHub Container Registry:
-
-```bash
-docker run -d \
-  --name harvester-of-sorrow \
-  -p 8080:8080 \
-  -e TMDB_API_KEY="your_tmdb_api_key" \
-  -v /path/to/downloads:/downloads \
-  ghcr.io/stormino/harvester-of-sorrow:latest
-```
-
-### Docker (Build Locally)
-
-```bash
-# Build image
-docker build -t harvester-of-sorrow .
-
-# Run container
-docker run -d \
-  --name harvester-of-sorrow \
-  -p 8080:8080 \
-  -e TMDB_API_KEY="your_tmdb_api_key" \
-  -v /path/to/downloads:/downloads \
-  harvester-of-sorrow
-```
-
-### Docker Run - All Options
-
-```bash
-docker run -d \
-  --name harvester-of-sorrow \
-  -p 8080:8080 \
-  -e TMDB_API_KEY="your_tmdb_api_key" \
-  -e PARALLEL_DOWNLOADS=3 \
-  -e SEGMENT_CONCURRENCY=5 \
-  -e DEFAULT_QUALITY=best \
-  -e DEFAULT_LANGUAGE=en \
-  -e LOG_LEVEL=INFO \
-  -e JAVA_OPTS="-Xmx512m -Xms256m" \
-  -v /path/to/downloads:/downloads \
-  --restart unless-stopped \
-  ghcr.io/stormino/harvester-of-sorrow:latest
-```
-
-### Docker Compose
-
-1. Create a `.env` file:
-```bash
-TMDB_API_KEY=your_tmdb_api_key
-DOWNLOAD_PATH=/path/to/downloads
-PARALLEL_DOWNLOADS=3
-DEFAULT_QUALITY=best
-LOG_LEVEL=INFO
-```
-
-2. Run with docker-compose:
-```bash
-# Start
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
-```
-
-### Docker Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `TMDB_API_KEY` | **Yes** | - | Your TMDB API key |
-| `DOWNLOAD_BASE_PATH` | No | `/downloads` | Download directory inside container |
-| `DOWNLOAD_TEMP_PATH` | No | `/downloads/temp` | Temp files directory |
-| `PARALLEL_DOWNLOADS` | No | `3` | Max concurrent downloads |
-| `SEGMENT_CONCURRENCY` | No | `5` | HLS segment download concurrency |
-| `DEFAULT_QUALITY` | No | `best` | Default quality (best/720/1080/worst) |
-| `DEFAULT_LANGUAGE` | No | `en` | Default language code |
-| `LOG_LEVEL` | No | `INFO` | Logging level (DEBUG/INFO/WARN/ERROR) |
-| `JAVA_OPTS` | No | `-Xmx512m -Xms256m` | JVM options |
-| `SERVER_PORT` | No | `8080` | HTTP server port |
-
-### Docker Volume Mounts
-
-| Container Path | Description |
-|----------------|-------------|
-| `/downloads` | Downloaded videos are saved here. **Must be mounted** |
-
-### Docker Image Tags
-
-| Tag | Description |
-|-----|-------------|
-| `latest` | Latest stable release from main branch |
-| `v1.0.0` | Specific version release |
-| `main` | Latest build from main branch |
-
-### Kubernetes (example)
-
-See `k8s/` directory for deployment manifests (coming soon).
-
-## Development Roadmap
-
-### Phase 1 - Backend Core ✅
-- [x] HTTP client with Cloudflare bypass
-- [x] Playlist URL extraction
-- [x] Download execution (ffmpeg)
-- [x] TMDB integration
-- [x] REST API
-- [x] SSE progress broadcasting
-- [x] Docker support
-
-### Phase 2 - Vaadin UI ✅
-- [x] Main layout and routing
-- [x] Search view with TMDB integration
-- [x] Download queue view with real-time progress
-- [x] Settings view
-- [x] Search result cards
-- [x] Responsive design
-- [x] Custom theme
-
-### Phase 3 - Production Features (Future)
-- [ ] Multi-language download implementation
-- [x] Bulk TV download UI (multi-select seasons and episodes)
-- [ ] Download queue persistence (H2/PostgreSQL)
-- [x] Retry mechanisms (Spring Retry for file copy)
-- [x] NFS-safe file copy (rsync with checksum verification)
-- [ ] Subtitle download support
-- [ ] Webhook notifications
-- [ ] API authentication
-- [ ] Dark mode
-- [ ] Download history view
-
-## Running E2E tests
-
-Local-only suite that drives the real UI against the real backend.
-Takes ~15 minutes and downloads ~2 GB of video at lowest quality.
-
-**Prerequisites:** Node 20+, Java 21, Maven, ffmpeg/ffprobe, rsync, a valid TMDB API key.
-
-```bash
-# 1. Install Node dependencies and Playwright's Chromium
-cd e2e && npm install && npx playwright install chromium
-
-# 2. Create env file and fill in secrets
-cp .env.e2e.example .env.e2e
-# Required: TMDB_API_KEY
-# Optional: RAIPLAY_USERNAME + RAIPLAY_PASSWORD (RaiPlay scenarios skip if absent)
-
-# 3. Run the suite
-npm test
-```
-
-Traces, screenshots, and the app log on failure are written to
-`e2e/test-results/`. Set `KEEP_E2E_ARTIFACTS=1` to also preserve
-`target/e2e/` (downloads + SQLite DB) for post-run debugging.
-
-For headed debugging: `npm run test:headed`
-For interactive UI mode: `npm run test:ui`
-
----
+- **No search results:** check `TMDB_API_KEY` in Settings; VixSrc results are limited to titles VixSrc serves.
+- **"Failed to extract playlist URL":** the source is unreachable or changed; check the container log.
+- **Queue does not update live:** the SSE path is buffered by a proxy (see above); the navbar pill shows the connection state.
+- **ffmpeg missing:** Settings → Check Tools.
 
 ## License
 
-This project is for educational purposes only. Respect copyright laws and terms of service.
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## Support
-
-For issues and questions:
-- GitHub Issues: [link]
-- Documentation: [link]
+MIT

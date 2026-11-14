@@ -1,0 +1,10 @@
+.screen { padding: 18px 20px 36px; }
+.narrow { max-width: 880px; margin: 0 auto; }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px; flex-wrap: wrap; }
+.title { font-size: var(--text-xl); font-weight: 700; letter-spacing: var(--tracking-tight); }
+.empty { padding: 56px 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+.error { color: var(--error); }
+
+@media (max-width: 767px) {
+  .screen { padding: 14px 14px 36px; }
+}

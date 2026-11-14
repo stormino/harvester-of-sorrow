@@ -45,18 +45,22 @@ public class VixSrcExtractorService {
      * Get playlist URL for a movie
      */
     public Optional<PlaylistInfo> getMoviePlaylist(int tmdbId, String language) {
-        String apiUrl = String.format("%s/api/movie/%d", properties.getExtractor().getBaseUrl(), tmdbId);
+        String base = properties.getExtractor().getBaseUrl();
+        String apiUrl = String.format("%s/api/movie/%d", base, tmdbId);
+        String pageUrl = String.format("%s/movie/%d/", base, tmdbId);
         return fetchEmbedUrl(apiUrl, language)
-                .flatMap(embedUrl -> extractPlaylistUrl(embedUrl, language));
+                .flatMap(embedUrl -> extractPlaylistUrl(embedUrl, language, pageUrl));
     }
 
     /**
      * Get playlist URL for a TV episode
      */
     public Optional<PlaylistInfo> getTvPlaylist(int tmdbId, int season, int episode, String language) {
-        String apiUrl = String.format("%s/api/tv/%d/%d/%d", properties.getExtractor().getBaseUrl(), tmdbId, season, episode);
+        String base = properties.getExtractor().getBaseUrl();
+        String apiUrl = String.format("%s/api/tv/%d/%d/%d", base, tmdbId, season, episode);
+        String pageUrl = String.format("%s/tv/%d/%d/%d/", base, tmdbId, season, episode);
         return fetchEmbedUrl(apiUrl, language)
-                .flatMap(embedUrl -> extractPlaylistUrl(embedUrl, language));
+                .flatMap(embedUrl -> extractPlaylistUrl(embedUrl, language, pageUrl));
     }
 
     /**
@@ -105,10 +109,18 @@ public class VixSrcExtractorService {
      * Extract playlist URL from embed page
      */
     public Optional<PlaylistInfo> extractPlaylistUrl(String embedUrl, String language) {
+        return extractPlaylistUrl(embedUrl, language, null);
+    }
+
+    /**
+     * Extract playlist URL from embed page. VixSrc answers 403 for the embed page unless
+     * the request carries the title page as Referer, as a browser loading the iframe does.
+     */
+    public Optional<PlaylistInfo> extractPlaylistUrl(String embedUrl, String language, String pageUrl) {
         log.debug("Extracting playlist URL from: {}", embedUrl);
 
         try {
-            String htmlContent = fetchEmbedPage(embedUrl);
+            String htmlContent = fetchEmbedPage(embedUrl, pageUrl);
             // Try multiple extraction strategies
             Optional<String> playlistUrl = extractFromMasterPlaylist(htmlContent, language)
                     .or(() -> extractFromDirectPattern(htmlContent))
@@ -145,10 +157,12 @@ public class VixSrcExtractorService {
             maxDelayExpression = "#{@vixSrcProperties.extractor.maxRetryDelayMs}"
         )
     )
-    private String fetchEmbedPage(String embedUrl) throws IOException {
-        Request request = new Request.Builder()
-                .url(embedUrl)
-                .build();
+    private String fetchEmbedPage(String embedUrl, String pageUrl) throws IOException {
+        Request.Builder builder = new Request.Builder().url(embedUrl);
+        if (pageUrl != null) {
+            builder.header("Referer", pageUrl);
+        }
+        Request request = builder.build();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {

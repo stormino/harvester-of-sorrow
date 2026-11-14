@@ -1,0 +1,83 @@
+/* ─────────────────────────────────────────────
+   Harvester of Sorrow (HOS) Design System — Color Tokens
+   Palettes extracted from the album covers.
+
+   Dark:  "Ride the Lightning"
+          shadow-grey #1E1F28 → french-blue #303E84
+          → steel-blue #4A7EBC → alice-blue #D6E1EE
+
+   Light: "…And Justice for All"
+          platinum #EFF6F6 → cool-steel #93ADB2
+          → iron-grey #434A47 → old-gold #BDAA57
+   ───────────────────────────────────────────── */
+
+/* ── Dark theme (default) — Ride the Lightning ── */
+:root,
+[data-theme="dark"] {
+  /* Backgrounds — shadow-grey stepping toward french-blue */
+  --bg:            #16171f;
+  --surface:       #1E1F28;
+  --surface-2:     #222433;
+  --elevated:      #272a40;
+
+  /* Borders — french-blue as anchor */
+  --border:        #2a2e60;
+  --border-strong: #303E84;
+
+  /* Text — alice-blue hierarchy */
+  --text:          #D6E1EE;
+  --text-muted:    #8aa4c0;
+  --text-dim:      #4a6a90;
+
+  /* Brand — steel-blue */
+  --brand:         #4A7EBC;
+
+  /* Sources — steel-blue / teal-blue (distinct) */
+  --vixsrc:        #4A7EBC;
+  --raiplay:       #3a90b8;
+
+  /* Semantic — kept distinct from the blue palette */
+  --success:       #3fb950;
+  --error:         #f15f53;
+  --warning:       #f0a92c;
+  --amber:         #d4a832;
+
+  /* Content type */
+  --type-movie:    #4A7EBC;
+  --type-tv:       #c460a0;
+}
+
+/* ── Light theme — …And Justice for All ── */
+[data-theme="light"] {
+  /* Backgrounds — platinum with subtle cool tint */
+  --bg:            #EFF6F6;
+  --surface:       #FAFEFE;
+  --surface-2:     #E6E2D4;   /* warm neutral, pulling toward gold */
+  --elevated:      #FFFFFF;
+
+  /* Borders — warm-neutral / cool-steel strong */
+  --border:        #D4CCBA;
+  --border-strong: #93ADB2;
+
+  /* Text — iron-grey hierarchy */
+  --text:          #434A47;
+  --text-muted:    #6a7e80;
+  --text-dim:      #93ADB2;
+
+  /* Brand — darkened old-gold (4.7:1 vs white, gold buttons + active states) */
+  --brand:         #8a7018;
+
+  /* Sources — iron-grey / cool-steel derived (distinct) */
+  --vixsrc:        #434A47;
+  --raiplay:       #5a7a80;
+
+  /* Semantic — distinct from the teal/grey palette */
+  --success:       #2d7a35;
+  --error:         #c42c28;
+  --warning:       #b06010;
+  --amber:         #BDAA57;   /* old-gold — decorative accents, star ratings */
+
+  /* Content type */
+  --type-movie:    #434A47;
+  --type-tv:       #885080;
+}

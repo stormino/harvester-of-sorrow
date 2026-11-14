@@ -1,0 +1,50 @@
+/* ─────────────────────────────────────────────
+   Harvester of Sorrow (HOS) Design System — Spacing & Shape Tokens
+   ───────────────────────────────────────────── */
+
+:root {
+  /* Spacing scale (px-based for dense technical UI) */
+  --space-1:  3px;
+  --space-2:  6px;
+  --space-3:  8px;
+  --space-4:  11px;
+  --space-5:  14px;
+  --space-6:  18px;
+  --space-7:  22px;
+  --space-8:  28px;
+  --space-9:  34px;
+  --space-10: 48px;
+
+  /* Named layout spacers */
+  --gap-xs:   4px;
+  --gap-sm:   6px;
+  --gap-md:   9px;
+  --gap-lg:   14px;
+  --gap-xl:   22px;
+
+  /* Border radius */
+  --radius-sm:   4px;   /* badges, chips */
+  --radius-md:   7px;   /* buttons, inputs */
+  --radius-nav:  8px;   /* nav items */
+  --radius-card: 9px;   /* widget cards */
+  --radius-lg:  12px;   /* large panels */
+  --radius-xl:  16px;   /* dialogs */
+
+  /* Borders */
+  --border-width: 1px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.25);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.35);
+  --shadow-lg:  0 12px 32px rgba(0,0,0,.45);
+  --shadow-pop: 0 2px 8px rgba(0,0,0,.30), 0 0 0 1px rgba(255,255,255,.04);
+
+  /* Layout */
+  --sidebar-width:  234px;
+  --navbar-height:   56px;
+  --tabbar-height:   52px;
+  --screen-pad-x:    34px;
+  --screen-pad-y:    30px;
+  --screen-pad-mob-x:16px;
+  --screen-pad-mob-y:18px;
+}

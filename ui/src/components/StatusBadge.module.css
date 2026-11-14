@@ -1,0 +1,30 @@
+.badge {
+  --c: var(--brand);
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 6px;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 32%, transparent);
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c); flex: none; }
+.pulse { animation: hos-pulse 1.2s ease-in-out infinite; }
+
+.brand { --c: var(--brand); }
+.down { --c: var(--text); color: var(--text-muted); }
+.success { --c: var(--success); }
+.error { --c: var(--error); }
+.warning { --c: var(--warning); }
+.muted { --c: var(--text-muted); }
+.plain { --c: var(--text); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+  padding: 5px 10px; border-radius: var(--radius-md);
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.pillDot {
+  width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent);
+}

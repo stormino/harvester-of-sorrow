@@ -1,3 +1,8 @@
+> **Note (5.0):** this Playwright suite was written for the pre-5.0 Vaadin UI and has not been ported
+> to the React UI. Many selectors (`#search-input`, `[data-testid=result-card]`, `#queue-grid`, …) were
+> kept, but Vaadin-specific steps (combo boxes, `vaadin-side-nav-item`) will fail. Backend behaviour is
+> covered by the `*ApiIT` integration tests (`mvn verify`).
+
 # E2E Tests
 
 Playwright + Chromium suite that drives the real UI against the real backend.

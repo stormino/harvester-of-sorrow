@@ -24,10 +24,17 @@ services:
       - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-en}
       # Optional - JVM settings
       - JAVA_OPTS=${JAVA_OPTS:--Xmx512m -Xms256m}
+      # Optional - Library monitoring
+      - MONITORING_ENABLED=${MONITORING_ENABLED:-true}
+      - MONITORING_INTERVAL_MS=${MONITORING_INTERVAL_MS:-3600000}
+      # Optional - RaiPlay (enabled only when both are set)
+      - RAIPLAY_USERNAME=${RAIPLAY_USERNAME:-}
+      - RAIPLAY_PASSWORD=${RAIPLAY_PASSWORD:-}
       # Optional - Logging
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ${DOWNLOAD_PATH:-./downloads}:/downloads
+      # Database. Upgrading from 3.x: see docs/UPGRADING.md (vixsrc-data -> hos-data)
       - hos-data:/app/data
     restart: unless-stopped
     healthcheck:

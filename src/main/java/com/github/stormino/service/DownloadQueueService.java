@@ -22,8 +22,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -102,345 +100,159 @@ public class DownloadQueueService {
         }
     }
     
-    public DownloadTask addDownload(int tmdbId, DownloadTask.ContentType contentType,
-                                   Integer season, Integer episode,
-                                   List<String> languages, String quality) {
-        if (contentType == DownloadTask.ContentType.TV) {
-            if (season == null && episode == null) {
-                return addEntireShowDownload(tmdbId, languages, quality);
-            } else if (season != null && episode == null) {
-                return addEntireSeasonDownload(tmdbId, season, languages, quality);
-            }
+    /**
+     * Queue a download request and return every task it created.
+     *
+     * <ul>
+     *   <li>Movie: one task.</li>
+     *   <li>TV, no seasons: the whole show (episodes the source really has).</li>
+     *   <li>TV, seasons but no episodes: each selected season in full.</li>
+     *   <li>TV, seasons and episodes: the (season, episode) pairs.</li>
+     * </ul>
+     * TV episodes are expanded via {@link MediaSourceProvider#listEpisodes} so each
+     * task carries the episode's own source metadata and name.
+     */
+    public List<DownloadTask> enqueue(ContentMetadata content, DownloadTask.ContentType contentType,
+                                      List<Integer> seasons, List<Integer> episodes,
+                                      List<String> languages, String quality) {
+        List<String> langs = (languages == null || languages.isEmpty())
+                ? properties.getDownload().getDefaultLanguageList() : List.copyOf(languages);
+        String q = (quality == null || quality.isBlank()) ? properties.getDownload().getDefaultQuality() : quality;
+        List<Integer> seasonSel = seasons == null ? List.of() : seasons;
+        List<Integer> episodeSel = episodes == null ? List.of() : episodes;
+
+        List<DownloadTask> created;
+        if (contentType == DownloadTask.ContentType.MOVIE) {
+            created = List.of(createMovieTask(content, langs, q));
+        } else {
+            created = enqueueTv(content, seasonSel, episodeSel, langs, q);
         }
-        return addSingleDownload(tmdbId, contentType, season, episode, languages, quality);
+        log.info("Queued {} task(s) for '{}' ({})", created.size(), content.getTitle(), content.getSource());
+        processQueue();
+        return created;
     }
 
     /**
-     * Multi-selection overload: accepts lists of seasons and episodes.
-     * Expands the selection into individual addDownload calls:
-     * - empty seasons + empty episodes → entire show
-     * - specific seasons + empty episodes → each selected season in full
-     * - specific seasons + specific episodes → cartesian product (season, episode) pairs
+     * Queue a single, fully resolved TV episode (used by monitoring). No source lookups.
      */
-    public DownloadTask addDownload(ContentMetadata content, DownloadTask.ContentType contentType,
-                                   List<Integer> seasons, List<Integer> episodes,
-                                   List<String> languages, String quality) {
-        if (contentType != DownloadTask.ContentType.TV || (seasons == null || seasons.isEmpty())) {
-            // Fall back to single-value path for movies or "all seasons" case
-            Integer singleSeason = (seasons != null && seasons.size() == 1) ? seasons.get(0) : null;
-            Integer singleEpisode = (episodes != null && episodes.size() == 1) ? episodes.get(0) : null;
-            return addDownload(content, contentType, singleSeason, singleEpisode, languages, quality);
+    public DownloadTask enqueueEpisode(ContentMetadata episodeMeta, List<String> languages, String quality) {
+        DownloadTask task = createEpisodeTask(episodeMeta, episodeMeta.getSeason(), episodeMeta.getEpisode(),
+                episodeMeta.getEpisodeName(), episodeMeta.getSourceMetadata(), languages, quality);
+        processQueue();
+        return task;
+    }
+
+    private List<DownloadTask> enqueueTv(ContentMetadata show, List<Integer> seasons, List<Integer> episodes,
+                                         List<String> languages, String quality) {
+        if (!episodes.isEmpty() && seasons.size() != 1) {
+            throw new IllegalArgumentException("Episodes can only be selected together with exactly one season");
+        }
+        MediaSourceProvider provider = sourceRegistry.get(show.getSource());
+        Integer singleSeason = seasons.size() == 1 ? seasons.get(0) : null;
+
+        List<EpisodeRef> available;
+        try {
+            available = provider.listEpisodes(show, singleSeason);
+        } catch (Exception e) {
+            log.warn("Episode listing failed for '{}': {}", show.getTitle(), e.getMessage());
+            available = List.of();
         }
 
-        DownloadTask first = null;
-        for (Integer season : seasons) {
-            if (episodes == null || episodes.isEmpty()) {
-                DownloadTask t = addDownload(content, contentType, season, null, languages, quality);
-                if (first == null) first = t;
-            } else {
-                for (Integer episode : episodes) {
-                    DownloadTask t = addDownload(content, contentType, season, episode, languages, quality);
-                    if (first == null) first = t;
+        List<DownloadTask> created = new ArrayList<>();
+        if (!episodes.isEmpty()) {
+            int season = singleSeason;
+            for (Integer ep : episodes) {
+                EpisodeRef ref = available.stream()
+                        .filter(e -> e.season() == season && e.episode() == ep)
+                        .findFirst().orElse(null);
+                if (ref != null) {
+                    created.add(createEpisodeTask(show, season, ep, ref.name(), ref.sourceMetadata(), languages, quality));
+                } else {
+                    // Not in the listing (or listing failed): queue directly with show-level metadata;
+                    // providers resolve season/episode from it at download time.
+                    created.add(createEpisodeTask(show, season, ep, null, fallbackEpisodeMetadata(show, season, ep),
+                            languages, quality));
                 }
             }
+            return created;
         }
-        return first;
+
+        List<EpisodeRef> selected = available.stream()
+                .filter(e -> seasons.isEmpty() || seasons.contains(e.season()))
+                .toList();
+        if (selected.isEmpty()) {
+            throw new IllegalArgumentException("No episodes found on " + show.getSource().getDisplayName()
+                    + " for '" + show.getTitle() + "'" + (seasons.isEmpty() ? "" : " season(s) " + seasons));
+        }
+        for (EpisodeRef ref : selected) {
+            created.add(createEpisodeTask(show, ref.season(), ref.episode(), ref.name(), ref.sourceMetadata(),
+                    languages, quality));
+        }
+        return created;
     }
 
-    /**
-     * Add a download task using pre-populated {@link ContentMetadata}. Use this for
-     * sources that are not TMDB-keyed (e.g. RaiPlay). For VIXSRC content with a
-     * known tmdbId the call is forwarded to the tmdbId-based path so that batch
-     * season/show downloads continue to work.
-     */
-    public DownloadTask addDownload(ContentMetadata content, DownloadTask.ContentType contentType,
-                                   Integer season, Integer episode,
-                                   List<String> languages, String quality) {
-        if (content.getSource() == MediaSource.VIXSRC && content.getTmdbId() != null) {
-            return addDownload(content.getTmdbId(), contentType, season, episode, languages, quality);
+    private static com.github.stormino.model.source.SourceMetadata fallbackEpisodeMetadata(
+            ContentMetadata show, int season, int episode) {
+        if (show.getSource() == MediaSource.VIXSRC && show.getTmdbId() != null) {
+            return new VixSrcMetadata(show.getTmdbId(), season, episode);
         }
-        // TV batch (whole show / whole season) for non-TMDB sources: expand via the provider.
-        if (contentType == DownloadTask.ContentType.TV && episode == null) {
-            return addBatchSourceDownload(content, season, languages, quality);
-        }
-        return addSourceDownload(content, contentType, season, episode, languages, quality);
+        return show.getSourceMetadata();
     }
 
-    /**
-     * Expand a non-TMDB TV show into per-episode tasks via {@link MediaSourceProvider#listEpisodes}.
-     * If {@code season} is non-null only that season is queued; otherwise the entire show is queued.
-     */
-    private DownloadTask addBatchSourceDownload(ContentMetadata show, Integer season,
-                                                List<String> languages, String quality) {
-        MediaSourceProvider provider = sourceRegistry.get(show.getSource());
-        List<EpisodeRef> episodes = provider.listEpisodes(show);
-        if (season != null) {
-            episodes = episodes.stream().filter(e -> e.season() == season).toList();
-        }
-        if (episodes.isEmpty()) {
-            log.warn("No episodes found for show '{}' (source={}, season={})",
-                    show.getTitle(), show.getSource(), season);
-            return null;
-        }
-        log.info("Expanding {} into {} episode task(s) (season={})",
-                show.getTitle(), episodes.size(), season != null ? season : "all");
-
-        DownloadTask first = null;
-        for (EpisodeRef ep : episodes) {
-            ContentMetadata episodeMeta = ContentMetadata.builder()
-                    .source(show.getSource())
-                    .sourceMetadata(ep.sourceMetadata())
-                    .title(show.getTitle())
-                    .episodeName(ep.name())
-                    .year(show.getYear())
-                    .season(ep.season())
-                    .episode(ep.episode())
-                    .build();
-            DownloadTask task = addSourceDownload(episodeMeta, DownloadTask.ContentType.TV,
-                    ep.season(), ep.episode(), languages, quality);
-            if (first == null) first = task;
-        }
-        return first;
-    }
-
-    /**
-     * Create a task directly from {@link ContentMetadata} without TMDB lookups.
-     * Used for sources like RaiPlay where metadata is already resolved at search time.
-     */
-    private DownloadTask addSourceDownload(ContentMetadata content, DownloadTask.ContentType contentType,
-                                           Integer season, Integer episode,
-                                           List<String> languages, String quality) {
-        // For a single TV episode from a non-TMDB source, always resolve the episode
-        // name from the provider listing so the correct title for the requested
-        // season/episode is used. The search-result card may represent a different
-        // episode (e.g. RaiPlay returns E01 as the card, carrying E01's title), so
-        // content.getEpisodeName() must not be used as-is for other episodes.
-        String episodeName = content.getEpisodeName();
-        if (contentType == DownloadTask.ContentType.TV && season != null && episode != null
-                && content.getSource() != null) {
-            try {
-                String resolved = sourceRegistry.get(content.getSource())
-                        .listEpisodes(content).stream()
-                        .filter(e -> e.season() == season && e.episode() == episode)
-                        .map(EpisodeRef::name)
-                        .findFirst()
-                        .orElse(null);
-                if (resolved != null) episodeName = resolved;
-            } catch (Exception ex) {
-                log.debug("Could not resolve episode name for {}: {}", content.getTitle(), ex.getMessage());
+    private DownloadTask createMovieTask(ContentMetadata content, List<String> languages, String quality) {
+        ContentMetadata metadata = content;
+        Integer tmdbId = content.getTmdbId();
+        com.github.stormino.model.source.SourceMetadata sourceMetadata = content.getSourceMetadata();
+        if (content.getSource() == MediaSource.VIXSRC && tmdbId != null) {
+            sourceMetadata = new VixSrcMetadata(tmdbId, null, null);
+            if (content.getTitle() == null) {
+                metadata = metadataService.getMovieMetadata(tmdbId).orElse(content);
             }
         }
-
         DownloadTask task = DownloadTask.builder()
                 .source(content.getSource() != null ? content.getSource() : MediaSource.VIXSRC)
-                .sourceMetadata(content.getSourceMetadata())
-                .contentType(contentType)
-                .tmdbId(content.getTmdbId())
-                .season(season)
-                .episode(episode)
-                .title(content.getTitle())
-                .episodeName(episodeName)
-                .year(content.getYear())
-                .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
-                .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
-                .build();
-
-        task.setOutputPath(generateOutputPath(task, content));
-
-        tasks.put(task.getId(), task);
-        queue.offer(task);
-        persistenceService.saveTask(task);
-
-        log.info("Added download task: {} [{}]", task.getDisplayName(), task.getId());
-        processQueue();
-        return task;
-    }
-
-    /**
-     * Add a single download task (movie or specific TV episode)
-     */
-    private DownloadTask addSingleDownload(int tmdbId, DownloadTask.ContentType contentType,
-                                          Integer season, Integer episode,
-                                          List<String> languages, String quality) {
-
-        // Fetch metadata
-        ContentMetadata metadata = null;
-        if (contentType == DownloadTask.ContentType.TV && season != null && episode != null) {
-            metadata = metadataService.getTvMetadata(tmdbId, season, episode).orElse(null);
-        } else if (contentType == DownloadTask.ContentType.MOVIE) {
-            metadata = metadataService.getMovieMetadata(tmdbId).orElse(null);
-        }
-
-        // Build task
-        DownloadTask.DownloadTaskBuilder taskBuilder = DownloadTask.builder()
-                .source(MediaSource.VIXSRC)
-                .sourceMetadata(new VixSrcMetadata(tmdbId, season, episode))
-                .contentType(contentType)
+                .sourceMetadata(sourceMetadata)
+                .contentType(DownloadTask.ContentType.MOVIE)
                 .tmdbId(tmdbId)
-                .season(season)
-                .episode(episode)
-                .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
-                .quality(quality != null ? quality : properties.getDownload().getDefaultQuality());
-
-        if (metadata != null) {
-            taskBuilder
-                    .title(metadata.getTitle())
-                    .episodeName(metadata.getEpisodeName())
-                    .year(metadata.getYear());
-        }
-
-        DownloadTask task = taskBuilder.build();
-
-        // Generate output path
-        String outputPath = generateOutputPath(task, metadata);
-        task.setOutputPath(outputPath);
-
-        // Store and queue
-        tasks.put(task.getId(), task);
-        queue.offer(task);
-        persistenceService.saveTask(task);
-
-        log.info("Added download task: {} [{}]", task.getDisplayName(), task.getId());
-
-        processQueue();
-
+                .title(metadata.getTitle())
+                .year(metadata.getYear())
+                .languages(languages)
+                .quality(quality)
+                .build();
+        task.setOutputPath(generateOutputPath(task, ContentMetadata.builder()
+                .title(metadata.getTitle()).year(metadata.getYear()).build()));
+        register(task);
         return task;
     }
 
-    /**
-     * Add download tasks for entire show (all seasons and episodes)
-     */
-    private DownloadTask addEntireShowDownload(int tmdbId, List<String> languages, String quality) {
-        log.info("Queueing entire show download for TMDB ID: {}", tmdbId);
-
-        // Fetch show metadata once
-        var showMetadata = metadataService.getTvShowMetadata(tmdbId).orElse(null);
-        String showTitle = showMetadata != null ? showMetadata.getTitle() : null;
-        Integer year = showMetadata != null ? showMetadata.getYear() : null;
-
-        var seasons = metadataService.getSeasons(tmdbId);
-        int totalEpisodes = 0;
-        DownloadTask firstTask = null;
-
-        // Queue all episodes without fetching individual metadata
-        for (var season : seasons) {
-            var episodes = metadataService.getEpisodes(tmdbId, season.season_number);
-            for (var episode : episodes) {
-                DownloadTask task = createTaskWithoutMetadataFetch(
-                    tmdbId, season.season_number, episode.episode_number,
-                    showTitle, episode.name, year, languages, quality);
-                if (firstTask == null) {
-                    firstTask = task;
-                }
-                totalEpisodes++;
-
-                // Broadcast queued status periodically for UI responsiveness
-                if (totalEpisodes % DownloadConstants.BATCH_QUEUE_BROADCAST_INTERVAL == 0) {
-                    broadcastQueuedStatus(task);
-                }
-            }
-        }
-
-        // Broadcast final queued tasks
-        tasks.values().stream()
-            .filter(t -> t.getStatus() == DownloadStatus.QUEUED)
-            .forEach(this::broadcastQueuedStatus);
-
-        log.info("Queued {} episodes from {} seasons", totalEpisodes, seasons.size());
-
-        // Start processing once for all queued episodes
-        processQueue();
-
-        return firstTask;
-    }
-
-    /**
-     * Add download tasks for entire season
-     */
-    private DownloadTask addEntireSeasonDownload(int tmdbId, int season, List<String> languages, String quality) {
-        log.info("Queueing entire season download for TMDB ID: {}, Season: {}", tmdbId, season);
-
-        // Fetch show metadata once
-        var showMetadata = metadataService.getTvShowMetadata(tmdbId).orElse(null);
-        String showTitle = showMetadata != null ? showMetadata.getTitle() : null;
-        Integer year = showMetadata != null ? showMetadata.getYear() : null;
-
-        var episodes = metadataService.getEpisodes(tmdbId, season);
-        DownloadTask firstTask = null;
-
-        // Queue all episodes without fetching individual metadata
-        int episodeCount = 0;
-        for (var episode : episodes) {
-            DownloadTask task = createTaskWithoutMetadataFetch(
-                tmdbId, season, episode.episode_number,
-                showTitle, episode.name, year, languages, quality);
-            if (firstTask == null) {
-                firstTask = task;
-            }
-            episodeCount++;
-
-            // Broadcast queued status periodically for UI responsiveness
-            if (episodeCount % DownloadConstants.SEASON_QUEUE_BROADCAST_INTERVAL == 0) {
-                broadcastQueuedStatus(task);
-            }
-        }
-
-        // Broadcast final queued tasks
-        tasks.values().stream()
-            .filter(t -> t.getStatus() == DownloadStatus.QUEUED)
-            .forEach(this::broadcastQueuedStatus);
-
-        log.info("Queued {} episodes for season {}", episodes.size(), season);
-
-        // Start processing once for all queued episodes
-        processQueue();
-
-        return firstTask;
-    }
-
-    /**
-     * Broadcast queued status to update UI
-     */
-    private void broadcastQueuedStatus(DownloadTask task) {
-        progressBroadcast.broadcastProgress(ProgressUpdate.builder()
-                .taskId(task.getId())
-                .status(DownloadStatus.QUEUED)
-                .progress(0.0)
-                .message("Queued")
-                .build());
-    }
-
-    /**
-     * Create task directly without individual metadata fetch
-     */
-    private DownloadTask createTaskWithoutMetadataFetch(int tmdbId, int season, int episode,
-                                                        String title, String episodeName, Integer year,
-                                                        List<String> languages, String quality) {
-        // Build task
+    private DownloadTask createEpisodeTask(ContentMetadata show, int season, int episode, String episodeName,
+                                           com.github.stormino.model.source.SourceMetadata sourceMetadata,
+                                           List<String> languages, String quality) {
         DownloadTask task = DownloadTask.builder()
-                .source(MediaSource.VIXSRC)
-                .sourceMetadata(new VixSrcMetadata(tmdbId, season, episode))
+                .source(show.getSource() != null ? show.getSource() : MediaSource.VIXSRC)
+                .sourceMetadata(sourceMetadata)
                 .contentType(DownloadTask.ContentType.TV)
-                .tmdbId(tmdbId)
+                .tmdbId(show.getTmdbId())
                 .season(season)
                 .episode(episode)
-                .title(title)
+                .title(show.getTitle())
                 .episodeName(episodeName)
-                .year(year)
-                .languages(languages != null ? languages : properties.getDownload().getDefaultLanguageList())
+                .year(show.getYear())
+                .languages(languages != null && !languages.isEmpty() ? languages : properties.getDownload().getDefaultLanguageList())
                 .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
                 .build();
+        task.setOutputPath(generateOutputPathFast(task));
+        register(task);
+        return task;
+    }
 
-        // Generate output path
-        String outputPath = generateOutputPathFast(task);
-        task.setOutputPath(outputPath);
-
-        // Store and queue
+    /** Store, persist, queue and announce a new task. */
+    private void register(DownloadTask task) {
         tasks.put(task.getId(), task);
         queue.offer(task);
         persistenceService.saveTask(task);
-
-        return task;
+        progressBroadcast.taskCreated(task.getId());
+        log.debug("Added download task: {} [{}]", task.getDisplayName(), task.getId());
     }
 
     /**
@@ -468,13 +280,8 @@ public class DownloadQueueService {
             }
             String seasonDir = String.format(DownloadConstants.SEASON_DIR_FORMAT, task.getSeason());
 
-            try {
-                java.nio.file.Files.createDirectories(
-                    java.nio.file.Paths.get(basePath, showDir, seasonDir));
-            } catch (IOException e) {
-                log.error("Failed to create directories: {}", e.getMessage());
-            }
-
+            // Folders are created when the finished file is copied (FileCopyService), so a
+            // failed or cancelled download leaves no empty show folder in the library.
             return java.nio.file.Paths.get(basePath, showDir, seasonDir, filename).toString();
         } else {
             filename = String.format("tv_%d_s%02de%02d.mp4",
@@ -497,44 +304,66 @@ public class DownloadQueueService {
         return Optional.ofNullable(tasks.get(taskId));
     }
     
+    /** Outcome of a cancel/retry request. */
+    public enum ActionResult { OK, NOT_FOUND, INVALID_STATE }
+
+    /** Terminal states for a parent task. */
+    public static boolean isTerminal(DownloadStatus status) {
+        return status == DownloadStatus.COMPLETED || status == DownloadStatus.FAILED
+                || status == DownloadStatus.CANCELLED || status == DownloadStatus.NOT_FOUND;
+    }
+
+    /** Tasks can be cancelled in any non-terminal state, including QUEUED. */
+    public static boolean canCancel(DownloadStatus status) {
+        return !isTerminal(status);
+    }
+
+    /**
+     * Tasks can be retried when FAILED or CANCELLED. NOT_FOUND is only ever set on
+     * sub-tasks (a missing optional track), so it is not retryable on a parent task.
+     */
+    public static boolean canRetry(DownloadStatus status) {
+        return status == DownloadStatus.FAILED || status == DownloadStatus.CANCELLED;
+    }
+
     /**
      * Cancel a task
      */
-    public boolean cancelTask(String taskId) {
+    public ActionResult cancelTask(String taskId) {
         DownloadTask task = tasks.get(taskId);
-        if (task != null && !task.isCompleted()) {
-            task.setStatus(DownloadStatus.CANCELLED);
-            queue.remove(task);
-            persistenceService.updateTaskStatus(task);
-
-            // Kill the running process if it exists
-            executorService.cancelDownload(taskId);
-
-            // Broadcast cancellation
-            progressBroadcast.broadcastProgress(ProgressUpdate.builder()
-                    .taskId(taskId)
-                    .status(DownloadStatus.CANCELLED)
-                    .progress(task.getProgress())
-                    .downloadedBytes(task.getAggregatedDownloadedBytes())
-                    .totalBytes(task.getAggregatedTotalBytes())
-                    .downloadSpeed(null)
-                    .etaSeconds(null)
-                    .message("Download cancelled by user")
-                    .build());
-
-            log.info("Cancelled task: {}", task.getDisplayName());
-            return true;
+        if (task == null) {
+            return ActionResult.NOT_FOUND;
         }
-        return false;
+        if (!canCancel(task.getStatus())) {
+            return ActionResult.INVALID_STATE;
+        }
+        task.setStatus(DownloadStatus.CANCELLED);
+        queue.remove(task);
+        persistenceService.updateTaskStatus(task);
+
+        // Kill the running process if it exists
+        executorService.cancelDownload(taskId);
+
+        progressBroadcast.broadcastProgress(ProgressUpdate.builder()
+                .taskId(taskId)
+                .status(DownloadStatus.CANCELLED)
+                .message("Download cancelled by user")
+                .build());
+
+        log.info("Cancelled task: {}", task.getDisplayName());
+        return ActionResult.OK;
     }
 
     /**
      * Retry a failed or cancelled task by resetting it to QUEUED and re-scheduling it.
      */
-    public boolean retryTask(String taskId) {
+    public ActionResult retryTask(String taskId) {
         DownloadTask task = tasks.get(taskId);
-        if (task == null || (task.getStatus() != DownloadStatus.FAILED && task.getStatus() != DownloadStatus.CANCELLED)) {
-            return false;
+        if (task == null) {
+            return ActionResult.NOT_FOUND;
+        }
+        if (!canRetry(task.getStatus())) {
+            return ActionResult.INVALID_STATE;
         }
 
         task.setStatus(DownloadStatus.QUEUED);
@@ -560,28 +389,25 @@ public class DownloadQueueService {
 
         log.info("Retrying task: {} [{}]", task.getDisplayName(), taskId);
         processQueue();
-        return true;
+        return ActionResult.OK;
     }
 
     /**
      * Clear all tasks in final states (COMPLETED, FAILED, CANCELLED, NOT_FOUND)
      */
     public int clearCompletedTasks() {
-        List<String> toRemove = tasks.values().stream()
-                .filter(task -> task.getStatus() == DownloadStatus.COMPLETED ||
-                               task.getStatus() == DownloadStatus.FAILED ||
-                               task.getStatus() == DownloadStatus.CANCELLED ||
-                               task.getStatus() == DownloadStatus.NOT_FOUND)
-                .map(DownloadTask::getId)
+        List<DownloadTask> toRemove = tasks.values().stream()
+                .filter(task -> isTerminal(task.getStatus()))
                 .toList();
 
-        toRemove.forEach(tasks::remove);
+        toRemove.forEach(t -> tasks.remove(t.getId()));
         persistenceService.deleteCompleted();
+        toRemove.forEach(progressBroadcast::taskRemoved);
         log.info("Cleared {} completed tasks", toRemove.size());
 
         return toRemove.size();
     }
-    
+
     /**
      * Process download queue - triggers async task processing
      */
@@ -621,6 +447,10 @@ public class DownloadQueueService {
                 return;
             }
 
+            if (task.getStatus() == DownloadStatus.CANCELLED) {
+                log.info("Task {} was cancelled during extraction; not starting the download", task.getId());
+                return;
+            }
             task.setPlaylistUrl(playlistInfo.get().getUrl());
             persistenceService.updateTaskPlaylistUrl(task);
 
@@ -659,8 +489,16 @@ public class DownloadQueueService {
     }
     
     private void updateTaskStatus(DownloadTask task, DownloadStatus status, Double progress, String message) {
+        // A user cancel wins over whatever the worker thread reports afterwards.
+        if (task.getStatus() == DownloadStatus.CANCELLED && status != DownloadStatus.CANCELLED) {
+            log.debug("Ignoring {} for cancelled task {}", status, task.getId());
+            return;
+        }
         task.setStatus(status);
         task.setProgress(progress);
+        if (status == DownloadStatus.FAILED && task.getErrorMessage() == null && message != null) {
+            task.setErrorMessage(message);
+        }
         persistenceService.updateTaskStatus(task);
 
         ProgressUpdate update = ProgressUpdate.builder()
@@ -719,21 +557,9 @@ public class DownloadQueueService {
             }
             String seasonDir = String.format(DownloadConstants.SEASON_DIR_FORMAT, task.getSeason());
             outputPath = Paths.get(basePath, showDir, seasonDir, filename).toString();
-
-            // Create directories
-            try {
-                Files.createDirectories(Paths.get(basePath, showDir, seasonDir));
-            } catch (IOException e) {
-                log.error("Failed to create directories: {}", e.getMessage());
-            }
         } else {
             // Movies go directly in base path
             outputPath = Paths.get(basePath, filename).toString();
-            try {
-                Files.createDirectories(Paths.get(basePath));
-            } catch (IOException e) {
-                log.error("Failed to create directories: {}", e.getMessage());
-            }
         }
 
         return outputPath;

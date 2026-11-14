@@ -29,6 +29,13 @@ public class DatabaseConfig {
         String url = properties.getUrl();
         String filePath = url.replace("jdbc:sqlite:", "");
         Path dbPath = Paths.get(filePath);
+        Path legacy = legacyDatabase(dbPath);
+        if (legacy != null) {
+            log.warn("Database {} not found; using the pre-4.0 database {} instead. "
+                    + "Rename it (or set SQLITE_DB_PATH) to silence this warning.", dbPath, legacy);
+            dbPath = legacy;
+            properties.setUrl("jdbc:sqlite:" + legacy);
+        }
         if (dbPath.getParent() != null) {
             Files.createDirectories(dbPath.getParent());
             log.info("Ensured SQLite database directory exists: {}", dbPath.getParent());
@@ -39,6 +46,22 @@ public class DatabaseConfig {
             log.info("SQLite WAL journal mode enabled");
         }
         return ds;
+    }
+
+    /** Pre-4.0 (VixsrcDownloader) default database location. */
+    static final Path LEGACY_DB = Paths.get("data", "vixsrc.db");
+
+    /**
+     * Returns the legacy {@code data/vixsrc.db} when the configured database file does not
+     * exist yet and the legacy one does; otherwise {@code null}.
+     */
+    static Path legacyDatabase(Path configured) {
+        if (configured.toString().isBlank() || configured.toString().startsWith(":memory:")
+                || Files.exists(configured)) {
+            return null;
+        }
+        return Files.isRegularFile(LEGACY_DB) && !LEGACY_DB.toAbsolutePath().equals(configured.toAbsolutePath())
+                ? LEGACY_DB : null;
     }
 
     /**

@@ -1,0 +1,14 @@
+.chip {
+  min-width: 42px; padding: 7px 12px; border-radius: 8px;
+  font-family: var(--font-mono); font-size: 12.5px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
+  transition: background var(--duration-fast), color var(--duration-fast), border-color var(--duration-base);
+}
+.chip:hover:not(:disabled) { color: var(--text); }
+.sm { min-width: 40px; padding: 6px 10px; border-radius: 7px; font-size: 12px; }
+.sans { font-family: var(--font-sans); }
+.on, .on:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--brand); border-color: var(--brand);
+}
+.grow { flex: 1; padding: 9px 0; }
+.list { display: flex; flex-wrap: wrap; gap: 7px; }

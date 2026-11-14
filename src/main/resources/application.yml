@@ -56,10 +56,9 @@ spring:
     init:
       mode: never
 
-  # Vaadin configuration
-  vaadin:
-    launch-browser: false
-    exclude-urls: /swagger-ui/**, /v3/api-docs/**
+  # API responses omit null fields (matches the optional fields in the OpenAPI schema)
+  jackson:
+    default-property-inclusion: non_null
 
   # Servlet configuration for large file handling
   servlet:
@@ -78,11 +77,20 @@ logging:
   level:
     com.github.stormino: ${LOG_LEVEL:INFO}
     okhttp3: WARN
+    org.zalando.logbook: ${LOGBOOK_LEVEL:INFO}
   pattern:
   #   console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: ${LOG_FILE:logs/harvester-of-sorrow.log}
+
+logbook:
+  exclude:
+    - /actuator/**
+    - /swagger-ui/**
+    - /v3/api-docs/**
+    - /assets/**
+    - /favicon.svg
 
 # OpenAPI / Swagger UI — available at /swagger-ui.html and /v3/api-docs
 springdoc:
@@ -92,7 +100,6 @@ springdoc:
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
-  paths-to-exclude: /vaadinServlet/**, /VAADIN/**, /PUSH/**
 
 # Management endpoints
 management:

@@ -116,6 +116,7 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
         ContentMetadata.ContentMetadataBuilder builder = ContentMetadata.builder()
                 .source(MediaSource.RAIPLAY)
                 .sourceMetadata(sourceMeta)
+                .contentType(isTv ? DownloadTask.ContentType.TV : DownloadTask.ContentType.MOVIE)
                 .title(card.titolo())
                 .year(infoOpt.flatMap(RaiPlayProgramInfo::extractYear).orElse(null))
                 .overview(infoOpt.map(RaiPlayProgramInfo::description).orElse(null));

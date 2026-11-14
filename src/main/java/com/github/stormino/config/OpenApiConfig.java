@@ -34,7 +34,8 @@ public class OpenApiConfig {
                                 **Notes:**
                                 - No authentication is required
                                 - VixSrc availability checks use the Italian (`it`) catalogue
-                                - SSE endpoint (`/api/progress/stream`) uses `text/event-stream`
+                                - Live updates: `GET /api/v1/events` (`text/event-stream`)
+                                - Errors are RFC 7807 `application/problem+json`
                                 """)
                         .version(appVersion)
                         .contact(new Contact()
@@ -42,7 +43,7 @@ public class OpenApiConfig {
                                 .url("https://github.com/stormino/harvester-of-sorrow"))
                         .license(new License().name("MIT")))
                 .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Local")
+                        new Server().url("/").description("This server")
                 ));
     }
 }

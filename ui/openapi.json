@@ -1,0 +1,1551 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Harvester of Sorrow API",
+        "description": "REST API for Harvester of Sorrow \u2014 a video downloader supporting VixSrc and RaiPlay sources.\n\n**Key features:**\n- Search movies and TV shows across multiple sources\n- Queue, monitor, cancel and retry downloads\n- Real-time progress updates via Server-Sent Events\n- TV show library scanning and automatic episode monitoring\n\n**Notes:**\n- No authentication is required\n- VixSrc availability checks use the Italian (`it`) catalogue\n- Live updates: `GET /api/v1/events` (`text/event-stream`)\n- Errors are RFC 7807 `application/problem+json`\n",
+        "contact": {
+            "name": "stormino",
+            "url": "https://github.com/stormino/harvester-of-sorrow"
+        },
+        "license": {
+            "name": "MIT"
+        },
+        "version": "5.0.0"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "This server"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Content",
+            "description": "Search, sources and episode listings"
+        },
+        {
+            "name": "System",
+            "description": "Version, configuration and tool checks"
+        },
+        {
+            "name": "Library",
+            "description": "TV library folders and monitoring"
+        },
+        {
+            "name": "Downloads",
+            "description": "Download queue"
+        },
+        {
+            "name": "Events",
+            "description": "Live task updates"
+        }
+    ],
+    "paths": {
+        "/api/v1/library/monitored/{id}": {
+            "get": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Get a monitored show",
+                "operationId": "getMonitored",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MonitoredShowDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Change a monitored show's source match",
+                "operationId": "updateMonitored",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MonitoredShowRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MonitoredShowDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Stop monitoring a show",
+                "description": "Files on disk are kept.",
+                "operationId": "removeMonitored",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "204": {
+                        "description": "Removed"
+                    }
+                }
+            }
+        },
+        "/api/v1/system/tools/check": {
+            "post": {
+                "tags": [
+                    "System"
+                ],
+                "summary": "Check that ffmpeg is installed",
+                "description": "Runs `ffmpeg -version`.",
+                "operationId": "checkTools",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ToolCheckDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/library/monitored": {
+            "get": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "List monitored shows",
+                "operationId": "listMonitored",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/MonitoredShowDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Start monitoring a library folder",
+                "operationId": "addMonitored",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MonitoredShowRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MonitoredShowDto"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Folder already monitored",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MonitoredShowDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/library/monitored/{id}/enable": {
+            "post": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Resume monitoring",
+                "operationId": "enable",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MonitoredShowDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/library/monitored/{id}/disable": {
+            "post": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Pause monitoring",
+                "operationId": "disable",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MonitoredShowDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/library/monitored/{id}/check": {
+            "post": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Check for new episodes now",
+                "description": "Queues episodes newer than the latest one on disk. Returns how many were queued.",
+                "operationId": "check",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CheckResultDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/downloads": {
+            "get": {
+                "tags": [
+                    "Downloads"
+                ],
+                "summary": "List all tasks",
+                "operationId": "list",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TaskDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Downloads"
+                ],
+                "summary": "Queue a download",
+                "description": "Expands shows and seasons server-side and returns every task created.",
+                "operationId": "create",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DownloadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tasks created",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TaskDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TaskDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Downloads"
+                ],
+                "summary": "Clear finished tasks",
+                "description": "Removes completed, failed, cancelled and not-found tasks. Files on disk are kept.",
+                "operationId": "clear",
+                "parameters": [
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "finished"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClearResultDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/downloads/{id}/retry": {
+            "post": {
+                "tags": [
+                    "Downloads"
+                ],
+                "summary": "Retry a task",
+                "description": "Allowed for FAILED and CANCELLED tasks.",
+                "operationId": "retry",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskDto"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Task is not failed or cancelled",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/downloads/{id}/cancel": {
+            "post": {
+                "tags": [
+                    "Downloads"
+                ],
+                "summary": "Cancel a task",
+                "description": "Allowed in any non-terminal state, including QUEUED.",
+                "operationId": "cancel",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "409": {
+                        "description": "Task is already finished",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/content/episodes": {
+            "post": {
+                "tags": [
+                    "Content"
+                ],
+                "summary": "Episodes really available on the source",
+                "description": "VixSrc: TMDB episodes filtered by the VixSrc catalogue (falls back to TMDB when the catalogue is unavailable). RaiPlay: the program's episode listings. Each episode has its own sourceRef.",
+                "operationId": "episodes",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EpisodesRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/EpisodeDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/system": {
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "summary": "Runtime information and free disk space of the download paths",
+                "operationId": "system",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SystemDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sources": {
+            "get": {
+                "tags": [
+                    "Content"
+                ],
+                "summary": "Enabled sources, their languages, and download defaults",
+                "operationId": "sources",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SourcesDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/settings": {
+            "get": {
+                "tags": [
+                    "System"
+                ],
+                "summary": "Read-only configuration",
+                "description": "Change via environment variables and restart.",
+                "operationId": "settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SettingsDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/search": {
+            "get": {
+                "tags": [
+                    "Content"
+                ],
+                "summary": "Search movies and TV shows",
+                "description": "Searches every enabled source in parallel. VixSrc results are filtered by real availability.",
+                "operationId": "search",
+                "parameters": [
+                    {
+                        "name": "query",
+                        "in": "query",
+                        "description": "Free-text query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "Breaking Bad"
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "BOTH",
+                            "enum": [
+                                "MOVIES",
+                                "TV",
+                                "BOTH"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "source",
+                        "in": "query",
+                        "description": "Limit to one source",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "VIXSRC",
+                                "RAIPLAY"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SearchResultDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/library": {
+            "get": {
+                "tags": [
+                    "Library"
+                ],
+                "summary": "Library entries",
+                "description": "Every folder under DOWNLOAD_TV_SHOWS_PATH plus monitored shows whose folder is gone, with on-disk season/episode counts and monitoring config.",
+                "operationId": "library",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/LibraryEntryDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/events": {
+            "get": {
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Task event stream (SSE)",
+                "description": "Named events, each `data` is JSON:\n- `snapshot`: array of all tasks, sent first on every (re)connect\n- `task.created`, `task.updated`, `task.removed`: one full task\nA `:heartbeat` comment is sent about every 15 s. Updates are throttled to ~4/s per task;\nterminal states are sent immediately. Clients should replace their state on `snapshot`\nand upsert/delete by id on the others.",
+                "operationId": "stream",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/downloads/{id}": {
+            "get": {
+                "tags": [
+                    "Downloads"
+                ],
+                "summary": "Get one task",
+                "operationId": "get",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "MonitoredShowRequest": {
+                "required": [
+                    "source",
+                    "title"
+                ],
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "example": "Breaking Bad"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY"
+                        ]
+                    },
+                    "sourceRef": {
+                        "type": "string",
+                        "description": "sourceRef from a search result"
+                    },
+                    "directoryName": {
+                        "type": "string",
+                        "description": "Folder under DOWNLOAD_TV_SHOWS_PATH (required on create)",
+                        "example": "Breaking.Bad.2008"
+                    }
+                },
+                "description": "Create or update a monitored show. `directoryName` is ignored on update."
+            },
+            "MonitoredShowDto": {
+                "required": [
+                    "directoryName",
+                    "enabled",
+                    "id",
+                    "source",
+                    "title"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY"
+                        ]
+                    },
+                    "sourceRef": {
+                        "type": "string"
+                    },
+                    "directoryName": {
+                        "type": "string"
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "lastCheckedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "lastNewEpisodeAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "description": "A show directory linked to a source for automatic new-episode downloads"
+            },
+            "ToolCheckDto": {
+                "required": [
+                    "available",
+                    "tool"
+                ],
+                "type": "object",
+                "properties": {
+                    "tool": {
+                        "type": "string",
+                        "example": "ffmpeg"
+                    },
+                    "available": {
+                        "type": "boolean"
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": "First line of `-version` output"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                },
+                "description": "Result of probing an external tool"
+            },
+            "CheckResultDto": {
+                "required": [
+                    "newEpisodesEnqueued"
+                ],
+                "type": "object",
+                "properties": {
+                    "newEpisodesEnqueued": {
+                        "type": "integer",
+                        "format": "int32",
+                        "example": 3
+                    }
+                }
+            },
+            "DownloadRequest": {
+                "required": [
+                    "contentType",
+                    "source",
+                    "sourceRef",
+                    "title"
+                ],
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY"
+                        ]
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "sourceRef": {
+                        "type": "string",
+                        "description": "sourceRef from a search result"
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Breaking Bad"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "seasons": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    "episodes": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    "languages": {
+                        "type": "array",
+                        "description": "Audio languages; empty = server default",
+                        "example": [
+                            "en"
+                        ],
+                        "items": {
+                            "type": "string",
+                            "description": "Audio languages; empty = server default",
+                            "example": "[\"en\"]"
+                        }
+                    },
+                    "quality": {
+                        "type": "string",
+                        "description": "best, 1080, 720 or worst; empty = server default",
+                        "example": "best"
+                    }
+                },
+                "description": "Queue a movie, a whole show, whole seasons or specific episodes.\nTV: empty `seasons` = whole show; one or more `seasons` with empty `episodes` = those seasons in full;\nexactly one season plus `episodes` = those episodes."
+            },
+            "SubTaskDto": {
+                "required": [
+                    "displayName",
+                    "id",
+                    "progress",
+                    "status",
+                    "type"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "VIDEO",
+                            "AUDIO",
+                            "SUBTITLE"
+                        ]
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "displayName": {
+                        "type": "string",
+                        "example": "Video (1920x1080)"
+                    },
+                    "resolution": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "QUEUED",
+                            "EXTRACTING",
+                            "DOWNLOADING",
+                            "MERGING",
+                            "COPYING",
+                            "COMPLETED",
+                            "FAILED",
+                            "CANCELLED",
+                            "NOT_FOUND"
+                        ]
+                    },
+                    "progress": {
+                        "type": "number",
+                        "description": "0-100",
+                        "format": "double"
+                    },
+                    "downloadedBytes": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalBytes": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "speedBps": {
+                        "type": "number",
+                        "description": "Bytes per second",
+                        "format": "double"
+                    },
+                    "etaSeconds": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "errorMessage": {
+                        "type": "string"
+                    },
+                    "startedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "completedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "description": "One track (video, audio or subtitle) of a download task"
+            },
+            "TaskDto": {
+                "required": [
+                    "canCancel",
+                    "canRetry",
+                    "contentType",
+                    "createdAt",
+                    "displayName",
+                    "id",
+                    "languages",
+                    "progress",
+                    "source",
+                    "status",
+                    "subTasks"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY"
+                        ]
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "displayName": {
+                        "type": "string",
+                        "example": "Breaking Bad S01E01 - Pilot"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "episodeName": {
+                        "type": "string"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "season": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "episode": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "languages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "quality": {
+                        "type": "string"
+                    },
+                    "outputPath": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "QUEUED",
+                            "EXTRACTING",
+                            "DOWNLOADING",
+                            "MERGING",
+                            "COPYING",
+                            "COMPLETED",
+                            "FAILED",
+                            "CANCELLED",
+                            "NOT_FOUND"
+                        ]
+                    },
+                    "progress": {
+                        "type": "number",
+                        "description": "0-100",
+                        "format": "double"
+                    },
+                    "downloadedBytes": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalBytes": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "speedBps": {
+                        "type": "number",
+                        "description": "Bytes per second",
+                        "format": "double"
+                    },
+                    "etaSeconds": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "errorMessage": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "startedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "completedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "canCancel": {
+                        "type": "boolean",
+                        "description": "Whether POST /cancel is allowed"
+                    },
+                    "canRetry": {
+                        "type": "boolean",
+                        "description": "Whether POST /retry is allowed"
+                    },
+                    "subTasks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SubTaskDto"
+                        }
+                    }
+                },
+                "description": "A download task with its tracks"
+            },
+            "EpisodesRequest": {
+                "required": [
+                    "source",
+                    "sourceRef"
+                ],
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY"
+                        ]
+                    },
+                    "sourceRef": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Show title (used for logging only)"
+                    },
+                    "season": {
+                        "type": "integer",
+                        "description": "Limit to one season",
+                        "format": "int32"
+                    }
+                },
+                "description": "Which show (and optionally which season) to list episodes for"
+            },
+            "EpisodeDto": {
+                "required": [
+                    "episode",
+                    "season",
+                    "sourceRef"
+                ],
+                "type": "object",
+                "properties": {
+                    "season": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "episode": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "sourceRef": {
+                        "type": "string"
+                    }
+                },
+                "description": "An episode that is really available on the source"
+            },
+            "DiskDto": {
+                "required": [
+                    "label",
+                    "path"
+                ],
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "example": "movies"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "freeBytes": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalBytes": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "description": "Disk usage of a configured download path"
+            },
+            "SystemDto": {
+                "required": [
+                    "appVersion",
+                    "cpuCount",
+                    "disks",
+                    "javaVersion",
+                    "os"
+                ],
+                "type": "object",
+                "properties": {
+                    "appVersion": {
+                        "type": "string",
+                        "example": "5.0.0"
+                    },
+                    "javaVersion": {
+                        "type": "string"
+                    },
+                    "os": {
+                        "type": "string"
+                    },
+                    "cpuCount": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "disks": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DiskDto"
+                        }
+                    }
+                },
+                "description": "Runtime information"
+            },
+            "SourceDto": {
+                "required": [
+                    "displayName",
+                    "id",
+                    "languages"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY"
+                        ]
+                    },
+                    "displayName": {
+                        "type": "string",
+                        "example": "VixSrc"
+                    },
+                    "languages": {
+                        "type": "array",
+                        "description": "Audio languages the source serves; empty = no restriction",
+                        "items": {
+                            "type": "string",
+                            "description": "Audio languages the source serves; empty = no restriction"
+                        }
+                    }
+                },
+                "description": "An enabled media source"
+            },
+            "SourcesDto": {
+                "required": [
+                    "defaultLanguage",
+                    "defaultQuality",
+                    "qualities",
+                    "sources"
+                ],
+                "type": "object",
+                "properties": {
+                    "sources": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SourceDto"
+                        }
+                    },
+                    "defaultLanguage": {
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "defaultQuality": {
+                        "type": "string",
+                        "example": "best"
+                    },
+                    "qualities": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "description": "Enabled sources and download defaults"
+            },
+            "SettingsDto": {
+                "required": [
+                    "defaultLanguage",
+                    "defaultQuality",
+                    "extractorBaseUrl",
+                    "extractorTimeoutSeconds",
+                    "monitoringEnabled",
+                    "monitoringIntervalMs",
+                    "moviesPath",
+                    "parallelDownloads",
+                    "raiPlayEnabled",
+                    "segmentConcurrency",
+                    "tempPath",
+                    "tmdbApiKeySet",
+                    "tvShowsPath"
+                ],
+                "type": "object",
+                "properties": {
+                    "moviesPath": {
+                        "type": "string"
+                    },
+                    "tvShowsPath": {
+                        "type": "string"
+                    },
+                    "tempPath": {
+                        "type": "string"
+                    },
+                    "parallelDownloads": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "segmentConcurrency": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "defaultQuality": {
+                        "type": "string"
+                    },
+                    "defaultLanguage": {
+                        "type": "string"
+                    },
+                    "extractorBaseUrl": {
+                        "type": "string"
+                    },
+                    "extractorTimeoutSeconds": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "monitoringEnabled": {
+                        "type": "boolean"
+                    },
+                    "monitoringIntervalMs": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "tmdbApiKeySet": {
+                        "type": "boolean"
+                    },
+                    "tmdbApiKeyMasked": {
+                        "type": "string",
+                        "description": "Masked TMDB key, e.g. `\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u20223f9a`; null when unset"
+                    },
+                    "raiPlayEnabled": {
+                        "type": "boolean"
+                    }
+                },
+                "description": "Read-only configuration (change via environment variables and restart)"
+            },
+            "SearchResultDto": {
+                "required": [
+                    "contentType",
+                    "seasons",
+                    "source",
+                    "sourceRef",
+                    "title"
+                ],
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY"
+                        ]
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Breaking Bad"
+                    },
+                    "originalTitle": {
+                        "type": "string"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "overview": {
+                        "type": "string"
+                    },
+                    "rating": {
+                        "type": "number",
+                        "description": "Rating 0-10",
+                        "format": "double",
+                        "example": 8.9
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "externalUrl": {
+                        "type": "string",
+                        "description": "Public page of the title (TMDB or RaiPlay)"
+                    },
+                    "posterUrl": {
+                        "type": "string"
+                    },
+                    "seasons": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SeasonDto"
+                        }
+                    },
+                    "totalEpisodes": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "sourceRef": {
+                        "type": "string",
+                        "description": "Opaque source reference; pass back unchanged to /content/episodes and /downloads"
+                    }
+                },
+                "description": "One search hit"
+            },
+            "SeasonDto": {
+                "required": [
+                    "number"
+                ],
+                "type": "object",
+                "properties": {
+                    "number": {
+                        "type": "integer",
+                        "format": "int32",
+                        "example": 1
+                    },
+                    "episodeCount": {
+                        "type": "integer",
+                        "description": "Episode count, when known",
+                        "format": "int32",
+                        "example": 10
+                    }
+                },
+                "description": "A season of a TV show as known at search time"
+            },
+            "LibraryEntryDto": {
+                "required": [
+                    "directoryExists",
+                    "directoryName",
+                    "episodeCount",
+                    "seasonCount"
+                ],
+                "type": "object",
+                "properties": {
+                    "directoryName": {
+                        "type": "string"
+                    },
+                    "seasonCount": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "episodeCount": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "directoryExists": {
+                        "type": "boolean",
+                        "description": "False when a monitored show's folder is gone"
+                    },
+                    "monitored": {
+                        "$ref": "#/components/schemas/MonitoredShowDto"
+                    }
+                },
+                "description": "A show folder on disk, with its monitoring config if any"
+            },
+            "ClearResultDto": {
+                "required": [
+                    "removed"
+                ],
+                "type": "object",
+                "properties": {
+                    "removed": {
+                        "type": "integer",
+                        "description": "Number of tasks removed",
+                        "format": "int32"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,119 +1,39 @@
 package com.github.stormino.service;
 
+import com.github.stormino.api.events.TaskEventStream;
+import com.github.stormino.model.DownloadStatus;
+import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.ProgressUpdate;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
-
-@Slf4j
+/**
+ * Entry point the download engine uses to announce task changes. It never blocks:
+ * it only marks the task as changed in {@link TaskEventStream}, whose dispatcher
+ * thread sends the current task state to clients.
+ */
 @Service
 public class ProgressBroadcastService {
 
-    private final ConcurrentHashMap<String, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
+    private final TaskEventStream events;
 
-    // Vaadin UI listeners for push updates
-    private final CopyOnWriteArrayList<Consumer<ProgressUpdate>> uiListeners = new CopyOnWriteArrayList<>();
-
-    /**
-     * Register a new SSE emitter
-     */
-    public SseEmitter createEmitter() {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        String id = "global";
-
-        emitters.computeIfAbsent(id, k -> new CopyOnWriteArrayList<>()).add(emitter);
-
-        emitter.onCompletion(() -> removeEmitter(id, emitter));
-        emitter.onTimeout(() -> {
-            log.debug("SSE emitter timed out");
-            removeEmitter(id, emitter);
-        });
-        emitter.onError(e -> {
-            log.warn("SSE emitter error: {}", e.getMessage());
-            removeEmitter(id, emitter);
-        });
-
-        log.debug("New SSE emitter registered. Total: {}", emitters.get(id).size());
-
-        return emitter;
+    public ProgressBroadcastService(TaskEventStream events) {
+        this.events = events;
     }
 
-    /**
-     * Register a UI listener for push updates
-     */
-    public void registerListener(Consumer<ProgressUpdate> listener) {
-        uiListeners.add(listener);
-        log.debug("UI listener registered. Total: {}", uiListeners.size());
-    }
-
-    /**
-     * Unregister a UI listener
-     */
-    public void unregisterListener(Consumer<ProgressUpdate> listener) {
-        uiListeners.remove(listener);
-        log.debug("UI listener unregistered. Remaining: {}", uiListeners.size());
-    }
-
-    /**
-     * Broadcast progress update to all connected clients
-     */
     public void broadcastProgress(ProgressUpdate update) {
-        log.debug("Broadcasting progress for task {}: {}%", update.getTaskId(), update.getProgress());
-
-        // Broadcast to SSE clients
-        broadcastToSSE(update);
-
-        // Broadcast to Vaadin UI listeners
-        broadcastToUI(update);
-    }
-
-    private void broadcastToSSE(ProgressUpdate update) {
-        String id = "global";
-        CopyOnWriteArrayList<SseEmitter> emitterList = emitters.get(id);
-
-        if (emitterList == null || emitterList.isEmpty()) {
+        if (update == null) {
             return;
         }
-
-        for (SseEmitter emitter : emitterList) {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name("progress")
-                        .data(update));
-
-            } catch (IOException e) {
-                log.warn("Failed to send SSE event for task {}: {}", update.getTaskId(), e.getMessage());
-                removeEmitter(id, emitter);
-            }
-        }
+        boolean terminal = update.getSubTaskId() == null && update.getStatus() != null
+                && DownloadQueueService.isTerminal(update.getStatus());
+        events.taskChanged(update.getTaskId(), terminal || update.getStatus() == DownloadStatus.QUEUED);
     }
 
-    private void broadcastToUI(ProgressUpdate update) {
-        for (Consumer<ProgressUpdate> listener : uiListeners) {
-            try {
-                listener.accept(update);
-            } catch (Exception e) {
-                log.error("Error in UI listener: {}", e.getMessage(), e);
-            }
-        }
+    public void taskCreated(String taskId) {
+        events.taskCreated(taskId);
     }
 
-    private void removeEmitter(String id, SseEmitter emitter) {
-        CopyOnWriteArrayList<SseEmitter> emitterList = emitters.get(id);
-        if (emitterList != null) {
-            emitterList.remove(emitter);
-            log.debug("SSE emitter removed. Remaining: {}", emitterList.size());
-        }
-    }
-
-    public int getActiveConnections() {
-        return emitters.values().stream()
-                .mapToInt(CopyOnWriteArrayList::size)
-                .sum();
+    public void taskRemoved(DownloadTask task) {
+        events.taskRemoved(task);
     }
 }
