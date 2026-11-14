@@ -1,4 +1,4 @@
-package com.github.stormino.controller;
+package com.github.stormino.api;
 
 import com.github.stormino.service.DownloadQueueService;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +23,13 @@ abstract class AbstractApiIT {
     protected JdbcTemplate jdbc;
 
     @Autowired
-    private DownloadQueueService downloadQueueService;
+    protected DownloadQueueService downloadQueueService;
+
+    protected static org.springframework.http.HttpEntity<String> json(String body) {
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        return new org.springframework.http.HttpEntity<>(body, headers);
+    }
 
     @BeforeEach
     void prepareForTest() throws Exception {

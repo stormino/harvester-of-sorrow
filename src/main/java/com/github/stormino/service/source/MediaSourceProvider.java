@@ -73,4 +73,14 @@ public interface MediaSourceProvider {
     default List<EpisodeRef> listEpisodes(ContentMetadata show) {
         return List.of();
     }
+
+    /**
+     * Like {@link #listEpisodes(ContentMetadata)} but limited to one season when
+     * {@code season} is non-null. Providers may override to avoid walking the
+     * whole show.
+     */
+    default List<EpisodeRef> listEpisodes(ContentMetadata show, Integer season) {
+        List<EpisodeRef> all = listEpisodes(show);
+        return season == null ? all : all.stream().filter(e -> e.season() == season).toList();
+    }
 }

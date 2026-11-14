@@ -252,6 +252,10 @@ public class MonitoringService {
         }
 
         List<String> defaultLanguages = properties.getDownload().getDefaultLanguageList();
+        if (!provider.supportedLanguages().isEmpty()
+                && !provider.supportedLanguages().contains(properties.getDownload().getDefaultLanguage())) {
+            defaultLanguages = List.of(provider.supportedLanguages().iterator().next());
+        }
         String quality = properties.getDownload().getDefaultQuality();
 
         int enqueued = 0;
@@ -281,8 +285,7 @@ public class MonitoringService {
                     .build();
 
             try {
-                downloadQueueService.addDownload(episodeMeta, DownloadTask.ContentType.TV,
-                        ep.season(), ep.episode(), defaultLanguages, quality);
+                downloadQueueService.enqueueEpisode(episodeMeta, defaultLanguages, quality);
                 log.info("Enqueued new episode: {} S{}E{} - {}", show.getTitle(),
                         ep.season(), ep.episode(), ep.name());
                 enqueued++;
@@ -382,6 +385,7 @@ public class MonitoringService {
         return ContentMetadata.builder()
                 .source(show.getSource())
                 .sourceMetadata(show.getSourceMetadata())
+                .contentType(DownloadTask.ContentType.TV)
                 .tmdbId(show.getTmdbId())
                 .title(show.getTitle())
                 .year(show.getYear())

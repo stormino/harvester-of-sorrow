@@ -1,6 +1,6 @@
 package com.github.stormino.e2e;
 
-import com.github.stormino.model.ContentMetadata;
+import com.github.stormino.api.dto.SearchResultDto;
 import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.model.MediaSource;
 import org.junit.jupiter.api.DisplayName;
@@ -40,30 +40,30 @@ class RaiPlayE2EIT {
     }
 
     @Test
-    @DisplayName("GET /api/search?source=RAIPLAY returns real results for 'montalbano'")
+    @DisplayName("GET /api/v1/search?source=RAIPLAY returns real results for 'montalbano'")
     void search_raiplay_returnsRealResults() {
         assumeRaiPlayAvailable();
 
-        ResponseEntity<List<ContentMetadata>> resp = rest.exchange(
-                "/api/search?query=montalbano&source=RAIPLAY", HttpMethod.GET, null,
+        ResponseEntity<List<SearchResultDto>> resp = rest.exchange(
+                "/api/v1/search?query=montalbano&source=RAIPLAY", HttpMethod.GET, null,
                 new ParameterizedTypeReference<>() {});
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isNotEmpty();
-        assertThat(resp.getBody().get(0).getTitle()).isNotBlank();
+        assertThat(resp.getBody().get(0).title()).isNotBlank();
     }
 
     @Test
-    @DisplayName("GET /api/search?source=RAIPLAY&type=TV returns TV results for 'rai'")
+    @DisplayName("GET /api/v1/search?source=RAIPLAY&type=TV returns TV results for 'rai'")
     void search_raiplay_tv_returnsRealResults() {
         assumeRaiPlayAvailable();
 
-        ResponseEntity<List<ContentMetadata>> resp = rest.exchange(
-                "/api/search?query=rai&source=RAIPLAY&type=TV", HttpMethod.GET, null,
+        ResponseEntity<List<SearchResultDto>> resp = rest.exchange(
+                "/api/v1/search?query=rai&source=RAIPLAY&type=TV", HttpMethod.GET, null,
                 new ParameterizedTypeReference<>() {});
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isNotEmpty();
-        assertThat(resp.getBody().get(0).getTitle()).isNotBlank();
+        assertThat(resp.getBody().get(0).title()).isNotBlank();
     }
 }

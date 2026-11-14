@@ -12,6 +12,7 @@ import com.uwetrottmann.tmdb2.entities.TvShow;
 import com.uwetrottmann.tmdb2.entities.TvShowResultsPage;
 import com.uwetrottmann.tmdb2.enumerations.AppendToResponseItem;
 import com.github.stormino.model.ContentMetadata;
+import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.source.VixSrcMetadata;
 import lombok.extern.slf4j.Slf4j;
@@ -152,6 +153,12 @@ public class TmdbMetadataService {
         }
     }
     
+    private static final String POSTER_BASE_URL = "https://image.tmdb.org/t/p/w342";
+
+    private static String posterUrl(String posterPath) {
+        return posterPath == null || posterPath.isBlank() ? null : POSTER_BASE_URL + posterPath;
+    }
+
     /**
      * Search for movies
      */
@@ -187,8 +194,10 @@ public class TmdbMetadataService {
                 results.add(ContentMetadata.builder()
                         .source(MediaSource.VIXSRC)
                         .sourceMetadata(new VixSrcMetadata(movie.id, null, null))
+                        .contentType(DownloadTask.ContentType.MOVIE)
                         .tmdbId(movie.id)
                         .title(movie.title)
+                        .posterUrl(posterUrl(movie.poster_path))
                         .originalTitle(movie.original_title)
                         .year(year)
                         .overview(movie.overview)
@@ -265,8 +274,10 @@ public class TmdbMetadataService {
                     results.add(ContentMetadata.builder()
                             .source(MediaSource.VIXSRC)
                             .sourceMetadata(new VixSrcMetadata(show.id, null, null))
+                            .contentType(DownloadTask.ContentType.TV)
                             .tmdbId(show.id)
                             .title(show.name)
+                            .posterUrl(posterUrl(show.poster_path))
                             .originalTitle(show.original_name)
                             .year(year)
                             .numberOfSeasons(numberOfSeasons)

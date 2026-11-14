@@ -12,7 +12,6 @@ import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.VixSrcExtractorService;
 import com.github.stormino.model.source.VixSrcMetadata;
-import com.github.stormino.service.VixSrcAvailabilityService;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import lombok.RequiredArgsConstructor;
@@ -86,7 +85,9 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
         // so we use that as the discriminator instead of season.
         // VixSrc catalogue list endpoint is only reliable for "it" language
         Set<String> vixSrcLanguages = Set.of(VixSrcAvailabilityService.EPISODE_LIST_LANG);
-        boolean isTv = content.getNumberOfSeasons() != null;
+        boolean isTv = content.getContentType() != null
+                ? content.getContentType() == DownloadTask.ContentType.TV
+                : content.getNumberOfSeasons() != null;
         if (isTv) {
             return availabilityService.checkTvAvailability(content.getTmdbId(), vixSrcLanguages);
         }
@@ -120,6 +121,11 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
 
     @Override
     public List<EpisodeRef> listEpisodes(ContentMetadata show) {
+        return listEpisodes(show, null);
+    }
+
+    @Override
+    public List<EpisodeRef> listEpisodes(ContentMetadata show, Integer onlySeason) {
         if (!tmdbService.isAvailable() || show.getTmdbId() == null) {
             log.debug("TMDB not configured or no tmdbId; cannot list episodes for '{}'", show.getTitle());
             return List.of();
@@ -142,11 +148,14 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
         List<EpisodeRef> result = new ArrayList<>();
         var seasons = tmdbService.getSeasons(show.getTmdbId());
         for (var season : seasons) {
+            if (onlySeason != null && !onlySeason.equals(season.season_number)) {
+                continue;
+            }
             var episodes = tmdbService.getEpisodes(show.getTmdbId(), season.season_number);
             for (var ep : episodes) {
                 if (filterByAvailability &&
                         !available.contains(new VixSrcAvailabilityService.EpisodeKey(season.season_number, ep.episode_number))) {
-                    log.info("Skipping {}: S{}E{} not in VixSrc episode list",
+                    log.debug("Skipping {}: S{}E{} not in VixSrc episode list",
                             show.getTitle(), season.season_number, ep.episode_number);
                     continue;
                 }

@@ -14,12 +14,17 @@ public class ContentMetadata {
     private MediaSource source = MediaSource.VIXSRC;
     private SourceMetadata sourceMetadata;
 
+    /** MOVIE or TV; set by every provider at search time. */
+    private DownloadTask.ContentType contentType;
+
     private Integer tmdbId;
     private String title;
     private String originalTitle;
     private Integer year;
     private String overview;
     private Double voteAverage;
+    /** Absolute poster image URL, when the source provides one. */
+    private String posterUrl;
     
     // TV-specific
     private Integer season;
