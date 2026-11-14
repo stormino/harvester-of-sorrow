@@ -92,9 +92,10 @@ class DownloadsApiIT extends AbstractApiIT {
     @Test
     @DisplayName("POST /downloads whole show with nothing to expand returns 400 problem")
     void create_wholeShow_nothingAvailable() {
-        // TMDB is not configured in tests, so the show cannot be expanded.
+        // A TMDB id that does not exist: nothing to expand whether or not TMDB_API_KEY is set.
         ResponseEntity<ProblemDetail> resp = postExpectingProblem("""
-                {"source":"VIXSRC","contentType":"TV","sourceRef":"%s","title":"Breaking Bad"}""".formatted(VIX_TV_REF));
+                {"source":"VIXSRC","contentType":"TV","sourceRef":"{\\"type\\":\\"VIXSRC\\",\\"tmdbId\\":999999999}",
+                 "title":"No Such Show"}""");
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(resp.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
         assertThat(resp.getBody().getDetail()).contains("No episodes found");

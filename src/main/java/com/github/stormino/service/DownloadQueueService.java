@@ -22,8 +22,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -282,13 +280,8 @@ public class DownloadQueueService {
             }
             String seasonDir = String.format(DownloadConstants.SEASON_DIR_FORMAT, task.getSeason());
 
-            try {
-                java.nio.file.Files.createDirectories(
-                    java.nio.file.Paths.get(basePath, showDir, seasonDir));
-            } catch (IOException e) {
-                log.error("Failed to create directories: {}", e.getMessage());
-            }
-
+            // Folders are created when the finished file is copied (FileCopyService), so a
+            // failed or cancelled download leaves no empty show folder in the library.
             return java.nio.file.Paths.get(basePath, showDir, seasonDir, filename).toString();
         } else {
             filename = String.format("tv_%d_s%02de%02d.mp4",
@@ -564,21 +557,9 @@ public class DownloadQueueService {
             }
             String seasonDir = String.format(DownloadConstants.SEASON_DIR_FORMAT, task.getSeason());
             outputPath = Paths.get(basePath, showDir, seasonDir, filename).toString();
-
-            // Create directories
-            try {
-                Files.createDirectories(Paths.get(basePath, showDir, seasonDir));
-            } catch (IOException e) {
-                log.error("Failed to create directories: {}", e.getMessage());
-            }
         } else {
             // Movies go directly in base path
             outputPath = Paths.get(basePath, filename).toString();
-            try {
-                Files.createDirectories(Paths.get(basePath));
-            } catch (IOException e) {
-                log.error("Failed to create directories: {}", e.getMessage());
-            }
         }
 
         return outputPath;
