@@ -50,8 +50,19 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build JAR
-        run: mvn clean package -DskipTests -Pproduction
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Build UI
+        working-directory: ui
+        run: npm ci && npm test && npm run build
+
+      - name: Build JAR (UI bundled under static/)
+        run: mvn clean package -DskipTests -B
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
