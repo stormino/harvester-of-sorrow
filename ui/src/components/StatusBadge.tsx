@@ -60,3 +60,13 @@ export function ConnectionPill({ state }: { state: ConnectionState }) {
     </span>
   );
 }
+
+/** Marks a library show that TMDB reports as Ended / Canceled. */
+export function CompletedBadge({ status }: { status?: string }) {
+  return (
+    <span className={`${s.badge} ${s.muted}`} data-testid="completed-badge"
+      title={status ? `TMDB status: ${status}. Not checked for new episodes automatically.` : undefined}>
+      Completed
+    </span>
+  );
+}

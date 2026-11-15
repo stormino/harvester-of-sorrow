@@ -343,6 +343,55 @@ public class TmdbMetadataService {
     }
 
     /**
+     * TMDB show status: "Returning Series", "In Production", "Planned",
+     * "Pilot", "Ended" or "Canceled". Empty when unavailable or on error.
+     */
+    public Optional<String> getTvShowStatus(int tmdbId) {
+        if (!isAvailable()) {
+            return Optional.empty();
+        }
+        try {
+            Response<TvShow> response = tmdb.tvService().tv(tmdbId, null, null).execute();
+            TvShow show = response.body();
+            if (!response.isSuccessful() || show == null) {
+                log.warn("Failed to fetch TV status for ID {}: {}", tmdbId, response.code());
+                return Optional.empty();
+            }
+            return Optional.ofNullable(show.status).filter(st -> !st.isBlank());
+        } catch (IOException e) {
+            log.warn("Error fetching TV status for ID {}: {}", tmdbId, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Best TMDB TV match for a title, optionally restricted to a first-air
+     * year. Takes TMDB's top-ranked result. Empty when nothing matches.
+     */
+    public Optional<Integer> findTvShowId(String title, @Nullable Integer firstAirYear) {
+        if (!isAvailable()) {
+            return Optional.empty();
+        }
+        try {
+            Response<TvShowResultsPage> response = tmdb.searchService()
+                    .tv(title, null, null, firstAirYear, null)
+                    .execute();
+            TvShowResultsPage page = response.body();
+            if (!response.isSuccessful() || page == null || page.results == null) {
+                log.warn("TV search for '{}' failed: {}", title, response.code());
+                return Optional.empty();
+            }
+            return page.results.stream()
+                    .filter(r -> r != null && r.id != null)
+                    .map(r -> r.id)
+                    .findFirst();
+        } catch (IOException e) {
+            log.warn("Error searching TV show '{}': {}", title, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Get all seasons for a TV show
      */
     public List<TvSeason> getSeasons(int tmdbId) {

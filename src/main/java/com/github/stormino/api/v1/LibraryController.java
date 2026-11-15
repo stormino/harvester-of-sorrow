@@ -12,6 +12,7 @@ import com.github.stormino.model.MonitoredShow;
 import com.github.stormino.model.source.SourceMetadata;
 import com.github.stormino.model.source.VixSrcMetadata;
 import com.github.stormino.service.MonitoringService;
+import com.github.stormino.service.ShowStatusService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/library")
@@ -41,22 +43,32 @@ import java.util.List;
 public class LibraryController {
 
     private final MonitoringService monitoring;
+    private final ShowStatusService showStatus;
     private final SourceRefCodec sourceRefCodec;
     private final AppProperties properties;
 
     @Operation(summary = "Library entries",
             description = "Every folder under DOWNLOAD_TV_SHOWS_PATH plus monitored shows whose folder is gone, "
-                    + "with on-disk season/episode counts and monitoring config.")
+                    + "with on-disk season/episode counts, monitoring config and TMDB airing status "
+                    + "(folders without a TMDB id are matched by name).")
     @GetMapping
     public List<LibraryEntryDto> library() {
         Path base = Paths.get(properties.getDownload().getTvShowsPath());
-        return monitoring.scanLibrary().stream()
-                .map(e -> new LibraryEntryDto(
-                        e.directoryName(),
-                        e.seasonCount(),
-                        e.episodeCount(),
-                        e.directoryName() != null && Files.isDirectory(base.resolve(e.directoryName())),
-                        e.monitoredShow() != null ? toDto(e.monitoredShow()) : null))
+        List<MonitoringService.LibraryEntry> entries = monitoring.scanLibrary();
+        Map<String, ShowStatusService.ShowStatus> statuses = showStatus.statusesFor(entries);
+        return entries.stream()
+                .map(e -> {
+                    ShowStatusService.ShowStatus st = statuses.getOrDefault(
+                            e.directoryName(), ShowStatusService.ShowStatus.UNKNOWN);
+                    return new LibraryEntryDto(
+                            e.directoryName(),
+                            e.seasonCount(),
+                            e.episodeCount(),
+                            e.directoryName() != null && Files.isDirectory(base.resolve(e.directoryName())),
+                            st.completed(),
+                            st.status(),
+                            e.monitoredShow() != null ? toDto(e.monitoredShow()) : null);
+                })
                 .sorted(Comparator.comparing(LibraryEntryDto::directoryName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }

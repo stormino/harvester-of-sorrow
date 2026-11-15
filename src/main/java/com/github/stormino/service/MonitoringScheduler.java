@@ -17,12 +17,21 @@ import java.util.List;
 public class MonitoringScheduler {
 
     private final MonitoringService monitoringService;
+    private final ShowStatusService showStatusService;
 
     @Scheduled(fixedDelayString = "${hos.monitoring.interval-ms:3600000}")
     public void checkAllMonitoredShows() {
-        List<MonitoredShow> shows = monitoringService.listAll().stream()
+        List<MonitoredShow> enabled = monitoringService.listAll().stream()
                 .filter(MonitoredShow::isEnabled)
                 .toList();
+        // Shows TMDB reports as Ended/Canceled get no new episodes; "Check now"
+        // still works on them manually.
+        List<MonitoredShow> shows = enabled.stream()
+                .filter(s -> !showStatusService.isCompleted(s))
+                .toList();
+        if (shows.size() < enabled.size()) {
+            log.info("Skipping {} completed show(s)", enabled.size() - shows.size());
+        }
 
         if (shows.isEmpty()) {
             log.debug("No enabled monitored shows, skipping check");
