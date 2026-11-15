@@ -93,6 +93,8 @@ class RaiPlayDtoParseTest {
         assertTrue(info.seasonCount().isEmpty());
         assertNotNull(info.description(), "movie info must carry a description");
         assertEquals(2009, info.extractYear().orElse(-1));
+        assertEquals("/dl/img/2020/05/21/1590076691329_1536x2048.jpg",
+                info.images().posterPath().orElse(null), "prefers the 3:4 portrait crop");
     }
 
     @Test
@@ -116,6 +118,7 @@ class RaiPlayDtoParseTest {
         assertTrue(page.isMovie());
         assertEquals("Film", page.programInfo().typology());
         assertEquals("single", page.programInfo().layout());
+        assertTrue(page.programInfo().images().posterPath().isPresent());
         assertEquals(
                 "/video/2018/12/COSMONAUTA-f5cbe4fd-7eb2-490f-af5b-ff0cd2009973.json",
                 page.firstItemPath());
