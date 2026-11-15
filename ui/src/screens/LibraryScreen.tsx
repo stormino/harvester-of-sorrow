@@ -8,13 +8,16 @@ import { Button } from '../components/Button';
 import { ConfirmDialog } from '../components/Dialog';
 import { BellIcon, EditIcon, FolderIcon, RetryIcon, SearchIcon, TrashIcon } from '../components/Icons';
 import { SearchField } from '../components/Input';
-import { MonitorBadge, type MonitorState } from '../components/StatusBadge';
+import { CompletedBadge, MonitorBadge, type MonitorState } from '../components/StatusBadge';
+import { Switch } from '../components/Switch';
 import { useToast } from '../components/Toast';
 import { formatDateTime } from '../lib/format';
 import { useIsMobile } from '../lib/useMediaQuery';
 import { MonitorDialog } from './MonitorDialog';
 import base from './Screen.module.css';
 import s from './LibraryScreen.module.css';
+
+const SHOW_COMPLETED_KEY = 'hos-library-show-completed';
 
 const monitorState = (m?: MonitoredShow): MonitorState => (!m ? 'none' : m.enabled ? 'monitoring' : 'paused');
 
@@ -38,14 +41,22 @@ export function LibraryScreen() {
   const [removing, setRemoving] = useState<LibraryEntry | null>(null);
   const [checking, setChecking] = useState<Set<string>>(new Set());
   const [pausing, setPausing] = useState<Set<string>>(new Set());
+  const [showCompleted, setShowCompleted] = useState(() => localStorage.getItem(SHOW_COMPLETED_KEY) === 'true');
+
+  const toggleCompleted = (on: boolean) => {
+    setShowCompleted(on);
+    localStorage.setItem(SHOW_COMPLETED_KEY, String(on));
+  };
 
   const refresh = () => qc.invalidateQueries({ queryKey: keys.library });
 
+  const completedCount = useMemo(() => (library.data ?? []).filter((e) => e.completed).length, [library.data]);
+
   const rows = useMemo(() => {
     const f = filter.trim().toLowerCase();
-    return (library.data ?? []).filter((e) => !f || e.directoryName.toLowerCase().includes(f)
-      || e.monitored?.title.toLowerCase().includes(f));
-  }, [library.data, filter]);
+    return (library.data ?? []).filter((e) => (showCompleted || !e.completed)
+      && (!f || e.directoryName.toLowerCase().includes(f) || e.monitored?.title.toLowerCase().includes(f)));
+  }, [library.data, filter, showCompleted]);
 
   const mark = (set: typeof setChecking, id: string, on: boolean) => set((x) => {
     const n = new Set(x);
@@ -100,7 +111,8 @@ export function LibraryScreen() {
     <div className={base.empty}>
       {library.isLoading ? 'Loading...'
         : library.isError ? <span className={base.error}>Could not load the library: {(library.error as Error).message}</span>
-          : filter ? `No shows match "${filter}"`
+          : filter ? `No ${showCompleted ? '' : 'ongoing '}shows match "${filter}"`
+            : !showCompleted && completedCount > 0 ? `All ${completedCount} shows are completed. Turn on "Show completed" to see them.`
             : <>No show folders found{settings ? <> in <span className="mono">{settings.tvShowsPath}</span></> : null}.</>}
     </div>
   );
@@ -112,12 +124,18 @@ export function LibraryScreen() {
         <SearchField id="library-filter-input" size="md" wrapClassName={s.filter} prefix={<SearchIcon size={16} />}
           value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter by title..."
           aria-label="Filter by title" type="search" />
+        <Switch id="library-show-completed" checked={showCompleted} onChange={toggleCompleted}>
+          Show completed{completedCount > 0 ? ` (${completedCount})` : ''}
+        </Switch>
         <Button id="library-refresh-button" variant="secondary" size="lg"
           icon={<RetryIcon size={15} className={library.isFetching ? s.spin : undefined} />} onClick={() => void refresh()}>
           Refresh
         </Button>
       </div>
-      <p className={s.sub}>Downloaded TV shows detected on disk. Monitor them to queue new episodes automatically.</p>
+      <p className={s.sub}>
+        Downloaded TV shows detected on disk. Monitor them to queue new episodes automatically.
+        {!showCompleted && completedCount > 0 && ` ${completedCount} completed show${completedCount > 1 ? 's' : ''} hidden.`}
+      </p>
 
       {isMobile ? (
         <div id="library-grid" className={s.cards}>
@@ -185,10 +203,12 @@ function RowButtons({ e, actions }: { e: LibraryEntry; actions: RowActions }) {
 function LibraryRow({ e, actions }: { e: LibraryEntry; actions: RowActions }) {
   const m = e.monitored;
   return (
-    <div className={`${s.cols} ${s.row}`} role="row" data-testid="library-row" data-directory={e.directoryName}>
+    <div className={`${s.cols} ${s.row}`} role="row" data-testid="library-row" data-directory={e.directoryName}
+      data-completed={e.completed}>
       <div className={s.dirCell} role="cell">
         <span className={s.dirIcon}><FolderIcon size={15} /></span>
         <span className={s.dir} title={e.directoryName}>{e.directoryName}</span>
+        {e.completed && <CompletedBadge status={e.showStatus} />}
         {!e.directoryExists && <span className={s.missing}>folder missing</span>}
       </div>
       <div className={s.actions} role="cell"><RowButtons e={e} actions={actions} /></div>
@@ -204,10 +224,11 @@ function LibraryRow({ e, actions }: { e: LibraryEntry; actions: RowActions }) {
 function LibraryCard({ e, actions }: { e: LibraryEntry; actions: RowActions }) {
   const m = e.monitored;
   return (
-    <div className={s.card} data-testid="library-row" data-directory={e.directoryName}>
+    <div className={s.card} data-testid="library-row" data-directory={e.directoryName} data-completed={e.completed}>
       <div className={s.cardHead}>
         <span className={s.dirIcon}><FolderIcon size={15} /></span>
         <span className={s.dir}>{e.directoryName}</span>
+        {e.completed && <CompletedBadge status={e.showStatus} />}
       </div>
       <div className={s.cardMeta}>
         <MonitorBadge state={monitorState(m)} />

@@ -286,7 +286,7 @@ export interface paths {
         };
         /**
          * Library entries
-         * @description Every folder under DOWNLOAD_TV_SHOWS_PATH plus monitored shows whose folder is gone, with on-disk season/episode counts and monitoring config.
+         * @description Every folder under DOWNLOAD_TV_SHOWS_PATH plus monitored shows whose folder is gone, with on-disk season/episode counts, monitoring config and TMDB airing status (folders without a TMDB id are matched by name).
          */
         get: operations["library"];
         put?: never;
@@ -648,6 +648,13 @@ export interface components {
             episodeCount: number;
             /** @description False when a monitored show's folder is gone */
             directoryExists: boolean;
+            /** @description True when TMDB reports the show as Ended or Canceled. Completed monitored shows are skipped by scheduled checks. */
+            completed: boolean;
+            /**
+             * @description TMDB show status (e.g. "Returning Series", "Ended"); null when unknown (TMDB not configured or no match)
+             * @example Ended
+             */
+            showStatus?: string;
             monitored?: components["schemas"]["MonitoredShowDto"];
         };
         ClearResultDto: {

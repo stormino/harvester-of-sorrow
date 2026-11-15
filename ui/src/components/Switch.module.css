@@ -1,0 +1,19 @@
+.switch {
+  display: inline-flex; align-items: center; gap: 9px; flex: none;
+  background: none; border: none; padding: 4px 2px; cursor: pointer;
+  color: var(--text-muted); font: inherit; font-size: 13px;
+}
+.switch:hover { color: var(--text); }
+.switch:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
+.track {
+  position: relative; width: 34px; height: 20px; border-radius: 999px; flex: none;
+  background: var(--surface-2); border: 1px solid var(--border);
+  transition: background 0.15s, border-color 0.15s;
+}
+.thumb {
+  position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--text-muted); transition: transform 0.15s, background 0.15s;
+}
+.on { background: var(--brand); border-color: var(--brand); }
+.on .thumb { transform: translateX(14px); background: #fff; }
+.label { white-space: nowrap; }
