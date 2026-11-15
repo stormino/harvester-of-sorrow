@@ -14,8 +14,9 @@ import com.github.stormino.persistence.MonitoredShowRepository;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
-import com.github.stormino.util.DownloadConstants;
 import com.github.stormino.util.PathUtils;
+import com.github.stormino.util.ShowDirectoryScanner;
+import com.github.stormino.util.ShowDirectoryScanner.EpisodeKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -149,12 +150,12 @@ public class MonitoringService {
             List<Path> dirs = stream.filter(Files::isDirectory).sorted().toList();
             for (Path dir : dirs) {
                 String dirName = dir.getFileName().toString();
-                int[] counts = countSeasonsAndEpisodes(dir);
+                ShowDirectoryScanner.Scan scan = ShowDirectoryScanner.scan(dir);
                 MonitoredShow monitored = monitoredShows.stream()
                         .filter(s -> s.getDirectoryName().equals(dirName))
                         .findFirst()
                         .orElse(null);
-                entries.add(new LibraryEntry(dirName, counts[0], counts[1], monitored));
+                entries.add(new LibraryEntry(dirName, scan.seasonCount(), scan.episodeCount(), monitored));
             }
         } catch (IOException e) {
             log.error("Failed to scan TV shows directory: {}", e.getMessage());
@@ -170,27 +171,6 @@ public class MonitoringService {
         }
 
         return entries;
-    }
-
-    private int[] countSeasonsAndEpisodes(Path showDir) {
-        int seasons = 0;
-        int episodes = 0;
-        try (var stream = Files.list(showDir)) {
-            List<Path> seasonDirs = stream.filter(Files::isDirectory).toList();
-            seasons = seasonDirs.size();
-            for (Path seasonDir : seasonDirs) {
-                try (var epStream = Files.list(seasonDir)) {
-                    episodes += (int) epStream
-                            .filter(p -> p.toString().endsWith(DownloadConstants.VIDEO_EXTENSION))
-                            .count();
-                } catch (IOException e) {
-                    log.debug("Could not list season dir {}: {}", seasonDir, e.getMessage());
-                }
-            }
-        } catch (IOException e) {
-            log.debug("Could not list show dir {}: {}", showDir, e.getMessage());
-        }
-        return new int[]{seasons, episodes};
     }
 
     // -------------------------------------------------------------------------
@@ -240,7 +220,8 @@ public class MonitoringService {
 
         // Feature: only enqueue episodes that come AFTER the latest one already on disk.
         // This prevents filling gaps in a back-catalogue the user intentionally skipped.
-        EpisodeKey latestOnDisk = findLatestEpisodeOnDisk(showDir);
+        ShowDirectoryScanner.Scan onDisk = ShowDirectoryScanner.scan(showDir);
+        EpisodeKey latestOnDisk = onDisk.latest().orElse(null);
         if (latestOnDisk != null) {
             log.info("Latest episode on disk for '{}': S{}E{} — will only enqueue subsequent episodes",
                     show.getTitle(), latestOnDisk.season(), latestOnDisk.episode());
@@ -264,7 +245,7 @@ public class MonitoringService {
             if (!isAfter(ep, latestOnDisk)) {
                 continue;
             }
-            if (isAlreadyPresent(showDir, show.getTitle(), ep)) {
+            if (onDisk.contains(ep.season(), ep.episode())) {
                 log.debug("Already present: {} S{}E{}", show.getTitle(), ep.season(), ep.episode());
                 continue;
             }
@@ -300,61 +281,10 @@ public class MonitoringService {
         return enqueued;
     }
 
-    /**
-     * Scans the show directory and returns the highest (season, episode) found on disk,
-     * or null if no episodes are present.
-     */
-    private EpisodeKey findLatestEpisodeOnDisk(Path showDir) {
-        EpisodeKey latest = null;
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("S(\\d+)E(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE);
-        try (var seasonStream = Files.list(showDir)) {
-            List<Path> seasonDirs = seasonStream.filter(Files::isDirectory).toList();
-            for (Path seasonDir : seasonDirs) {
-                try (var epStream = Files.list(seasonDir)) {
-                    List<Path> files = epStream
-                            .filter(p -> p.toString().endsWith(DownloadConstants.VIDEO_EXTENSION))
-                            .toList();
-                    for (Path file : files) {
-                        var matcher = pattern.matcher(file.getFileName().toString());
-                        if (matcher.find()) {
-                            int s = Integer.parseInt(matcher.group(1));
-                            int e = Integer.parseInt(matcher.group(2));
-                            if (latest == null || s > latest.season() || (s == latest.season() && e > latest.episode())) {
-                                latest = new EpisodeKey(s, e);
-                            }
-                        }
-                    }
-                } catch (IOException ex) {
-                    log.debug("Could not read season dir {}: {}", seasonDir, ex.getMessage());
-                }
-            }
-        } catch (IOException ex) {
-            log.debug("Could not read show dir {}: {}", showDir, ex.getMessage());
-        }
-        return latest;
-    }
-
     /** Returns true if {@code ep} comes strictly after {@code anchor} in watch order. */
     private boolean isAfter(EpisodeRef ep, EpisodeKey anchor) {
         return ep.season() > anchor.season()
                 || (ep.season() == anchor.season() && ep.episode() > anchor.episode());
-    }
-
-    private record EpisodeKey(int season, int episode) {}
-
-    private boolean isAlreadyPresent(Path showDir, String showTitle, EpisodeRef ep) {
-        // Check all season subdirectories for a file matching S{nn}E{nn}
-        String episodePattern = String.format("S%02dE%02d", ep.season(), ep.episode());
-        Path seasonDir = showDir.resolve(String.format(DownloadConstants.SEASON_DIR_FORMAT, ep.season()));
-        if (!Files.isDirectory(seasonDir)) {
-            return false;
-        }
-        try (var stream = Files.list(seasonDir)) {
-            return stream.anyMatch(p -> p.getFileName().toString().contains(episodePattern)
-                    && p.toString().endsWith(DownloadConstants.VIDEO_EXTENSION));
-        } catch (IOException e) {
-            return false;
-        }
     }
 
     private boolean isAlreadyQueued(MonitoredShow show, EpisodeRef ep) {
