@@ -10,6 +10,8 @@ RUN npm run build
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
+# Retry settings for Maven Central (rate limits answer 429)
+COPY .mvn ./.mvn
 RUN mvn dependency:go-offline -B
 COPY src ./src
 COPY --from=ui /ui/dist ./ui/dist
