@@ -1,177 +1,276 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { api } from '../api/client';
-import type { SearchResult, SearchType } from '../api/types';
-import { CountChip, SourcePill } from '../components/Badge';
 import { Button } from '../components/Button';
-import { DownloadIcon, SearchIcon, StarIcon } from '../components/Icons';
+import { AlertIcon, DownloadIcon, RetryIcon, SearchIcon, StarIcon } from '../components/Icons';
 import { SearchField } from '../components/Input';
-import { Segmented } from '../components/Segmented';
-import { DownloadDialog } from './DownloadDialog';
+import { band, bestRelease, mergeTitles, type TitleGroup } from '../lib/titles';
 import { LinkDialog, looksLikeLink } from './LinkDialog';
+import { TitlePanel } from './TitlePanel';
 import s from './SearchScreen.module.css';
 import base from './Screen.module.css';
 
-const TYPES: { value: SearchType; label: string }[] = [
-  { value: 'MOVIES', label: 'Movies' },
-  { value: 'TV', label: 'TV Shows' },
-  { value: 'BOTH', label: 'Both' },
-];
+type TypeFilter = 'ALL' | 'MOVIE' | 'TV';
+const parseType = (t: string | null): TypeFilter => (t === 'MOVIE' || t === 'TV' ? t : 'ALL');
 
-const parseType = (t: string | null): SearchType => (t === 'MOVIES' || t === 'TV' ? t : 'BOTH');
+const RECENT_KEY = 'hos-recent-searches';
+function readRecent(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+function pushRecent(q: string): string[] {
+  const next = [q, ...readRecent().filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 8);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+  return next;
+}
 
+/** One search over every source (VixSrc, RaiPlay, XDCC); results grouped per title. */
 export function SearchScreen() {
-  // The submitted search lives in the URL (?q=&type=) so it survives navigation and can be linked.
+  // Search, type filter and the open title live in the URL, so back/refresh/links work.
   const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '';
   const type = parseType(params.get('type'));
+  const openKey = params.get('open');
   const [input, setInput] = useState(q);
-  const [inputType, setInputType] = useState<SearchType>(type);
-  const [selected, setSelected] = useState<SearchResult | null>(null);
+  const [recent, setRecent] = useState(readRecent);
   // undefined = closed; '' = open without a link; otherwise the link to inspect.
   const [link, setLink] = useState<string | undefined>(undefined);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isLink = looksLikeLink(input);
 
   useEffect(() => setInput(q), [q]);
-  useEffect(() => setInputType(type), [type]);
 
-  const search = useQuery({
-    queryKey: ['search', q, type],
-    queryFn: () => api.search(q, type),
+  // "/" focuses the search box from anywhere on the page.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.key !== '/' || t.closest('input, textarea, select, [contenteditable]')) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const streams = useQuery({
+    queryKey: ['search', q, 'BOTH'],
+    queryFn: () => api.search(q, 'BOTH'),
     enabled: q.trim().length > 0,
     staleTime: 5 * 60_000,
     retry: false,
   });
+  const xdccStatus = useQuery({ queryKey: ['xdcc-status'], queryFn: api.xdccStatus, staleTime: 60_000 });
+  const xdccEnabled = q.trim().length >= 3 && !!xdccStatus.data?.available;
+  const xdcc = useQuery({
+    queryKey: ['xdcc-search', q],
+    queryFn: () => api.xdccSearch(q),
+    enabled: xdccEnabled,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
 
-  const submit = (nextType = inputType) => {
-    const query = input.trim();
+  const groups = useMemo(() => mergeTitles(streams.data ?? [], xdcc.data?.titles ?? [], q), [streams.data, xdcc.data, q]);
+  const movies = groups.filter((g) => g.contentType === 'MOVIE').length;
+  const shows = groups.length - movies;
+  const shown = type === 'ALL' ? groups : groups.filter((g) => g.contentType === type);
+  const open = openKey ? groups.find((g) => g.key === openKey) : undefined;
+
+  const update = (patch: Record<string, string | null>) => {
+    const next = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(patch)) {
+      if (v == null || v === '') next.delete(k);
+      else next.set(k, v);
+    }
+    setParams(next);
+  };
+
+  const run = (raw: string) => {
+    const query = raw.trim();
     if (!query) return;
     if (looksLikeLink(query)) {
       setLink(query);
       return;
     }
-    if (query === q && nextType === type) {
-      void search.refetch();
+    setRecent(pushRecent(query));
+    if (query === q) {
+      void streams.refetch();
+      if (xdccEnabled) void xdcc.refetch();
     } else {
-      setParams({ q: query, type: nextType });
+      setParams({ q: query });
     }
   };
 
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') submit();
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    run(input);
   };
 
-  const busy = search.isFetching;
+  const loading = streams.isFetching || xdcc.isFetching;
+  const nothing = q && !loading && groups.length === 0 && !streams.isError;
 
   return (
     <div className={base.screen}>
-      <div className={base.head}>
-        <h2 className={base.title}>Search</h2>
-        <Button id="link-open" variant="outline" size="md" icon={<DownloadIcon size={15} />} onClick={() => setLink('')}>
-          Download from link
+      <form className={s.toolbar} onSubmit={submit}>
+        <SearchField ref={inputRef} id="search-input" wrapClassName={s.query} prefix={<SearchIcon size={18} />}
+          value={input} onChange={(e) => setInput(e.target.value)}
+          placeholder="Search a film or a show, or paste a link…" aria-label="Search films and shows, or paste a link"
+          autoComplete="off" enterKeyHint="search" autoFocus={!q} />
+        <Button id="search-button" type="submit" size="xl" className={s.searchBtn}
+          icon={isLink ? <DownloadIcon size={17} /> : <SearchIcon size={17} />} disabled={!input.trim()}>
+          {isLink ? 'Open link' : 'Search'}
         </Button>
-      </div>
+        <Button id="link-open" type="button" variant="ghost" size="xl" iconOnly icon={<DownloadIcon size={18} />}
+          onClick={() => setLink('')} aria-label="Download from a link" title="Download from a link (Mega, direct file, XDCC)" />
+      </form>
 
-      <div className={s.toolbar}>
-        <SearchField id="search-input" wrapClassName={s.query} prefix={<SearchIcon size={18} />}
-          value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey}
-          placeholder="Search movies and TV shows, or paste a link..." aria-label="Search movies and TV shows, or paste a link" autoComplete="off"
-          enterKeyHint="search" />
-        <Segmented id="content-type-filter" ariaLabel="Type" value={inputType} options={TYPES}
-          onChange={(t) => { setInputType(t); if (q && input.trim()) submit(t); }} />
-        <Button id="search-button" size="xl" className={s.searchBtn}
-          icon={isLink ? <DownloadIcon size={17} /> : <SearchIcon size={17} />}
-          onClick={() => submit()} disabled={busy || !input.trim()}>
-          {isLink ? 'Open link' : busy ? 'Searching...' : 'Search'}
-        </Button>
-      </div>
-
-      <div id="search-results" aria-busy={busy}>
-        {search.isError && (
-          <div className={`${base.empty} ${base.error}`} role="alert">
-            Search failed: {(search.error as Error).message}
+      {q && (
+        <div className={s.statusRow}>
+          <div className={s.status} data-testid="search-status">
+            <SourceStatus name="VixSrc" loading={streams.isFetching} error={streams.error as Error | null}
+              count={streams.data?.filter((r) => r.source === 'VIXSRC').length} onRetry={() => void streams.refetch()} />
+            <SourceStatus name="RaiPlay" loading={streams.isFetching} error={streams.error as Error | null}
+              count={streams.data?.filter((r) => r.source === 'RAIPLAY').length} onRetry={() => void streams.refetch()} />
+            {xdccItems()}
           </div>
-        )}
-        {!search.isError && search.data && search.data.length === 0 && !busy && (
-          <div className={base.empty}>No results found for: <span className={s.strong}>{q}</span></div>
-        )}
+          {movies > 0 && shows > 0 && (
+            <div className={s.filter} role="radiogroup" aria-label="Show">
+              {([['ALL', 'All', groups.length], ['MOVIE', 'Films', movies], ['TV', 'Shows', shows]] as const).map(([v, label, n]) => (
+                <button key={v} type="button" role="radio" aria-checked={type === v}
+                  className={`${s.filterOpt} ${type === v ? s.filterOn : ''}`}
+                  onClick={() => update({ type: v === 'ALL' ? null : v })}>
+                  {label} <span className={s.filterCount}>{n}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div id="search-results" aria-busy={loading}>
         {!q && (
           <div className={s.hint}>
-            Search TMDB-backed VixSrc and RaiPlay titles by name, or paste a link (Mega, direct file) to download it.
+            <p>Search once: VixSrc, RaiPlay and XDCC are all looked up, and each title shows where you can get it.</p>
+            <p className={s.hintDim}>Paste a Mega or direct link to download it · press <kbd>/</kbd> to search</p>
+            {recent.length > 0 && (
+              <div className={s.recent}>
+                {recent.map((r) => (
+                  <button key={r} type="button" className={s.recentChip} onClick={() => { setInput(r); run(r); }}>{r}</button>
+                ))}
+              </div>
+            )}
           </div>
         )}
-        {search.data && search.data.length > 0 && (
+        {nothing && <div className={base.empty}>Nothing found for <span className={s.strong}>{q}</span></div>}
+
+        {q && (shown.length > 0 || streams.isFetching) && (
           <div className={s.grid}>
-            {search.data.map((r) => (
-              <ResultCard key={`${r.source}:${r.sourceRef}`} r={r} onDownload={() => setSelected(r)} />
+            {shown.map((g, i) => (
+              <Fragment key={g.key}>
+                {band(g) === 1 && i > 0 && band(shown[i - 1]) === 0 && (
+                  <div className={s.divider}><span>Other matches</span></div>
+                )}
+                <ResultCard g={g} xdccPending={xdcc.isFetching} onOpen={() => update({ open: g.key })} />
+              </Fragment>
             ))}
+            {streams.isFetching && groups.length === 0 && Array.from({ length: 6 }, (_, i) => <div key={i} className={s.skeleton} />)}
           </div>
         )}
       </div>
 
-      {selected && <DownloadDialog item={selected} onClose={() => setSelected(null)} />}
+      {open && <TitlePanel key={open.key} group={open} onClose={() => update({ open: null })} />}
       {link !== undefined && <LinkDialog initialUrl={link || undefined} onClose={() => setLink(undefined)} />}
     </div>
   );
+
+  function xdccItems() {
+    if (xdccStatus.data && !xdccStatus.data.available) {
+      return <SourceStatus name="XDCC" error={new Error(xdccStatus.data.sources.map((x) => x.message ?? 'unavailable').join('; '))} />;
+    }
+    if (q.trim().length < 3) return <SourceStatus name="XDCC" note="needs 3+ letters" />;
+    if (xdcc.isError) return <SourceStatus name="XDCC" error={xdcc.error as Error} onRetry={() => void xdcc.refetch()} />;
+    if (!xdcc.data || xdcc.isFetching) return <SourceStatus name="XDCC" loading />;
+    return (
+      <>
+        {xdcc.data.sources.map((x) => (
+          <SourceStatus key={x.name} name={x.name} error={x.available ? null : new Error(x.message ?? 'unavailable')}
+            note={x.available ? x.message : undefined} />
+        ))}
+      </>
+    );
+  }
 }
 
-function ResultCard({ r, onDownload }: { r: SearchResult; onDownload: () => void }) {
-  const isTV = r.contentType === 'TV';
-  const episodes = r.totalEpisodes ?? r.seasons.reduce((n, x) => n + (x.episodeCount ?? 0), 0);
-  const open = () => {
-    if (r.externalUrl) window.open(r.externalUrl, '_blank', 'noopener,noreferrer');
-  };
-  const onDownloadClick = (e: MouseEvent) => {
-    e.stopPropagation();
-    onDownload();
-  };
+function SourceStatus({ name, loading, error, count, note, onRetry }: {
+  name: string; loading?: boolean; error?: Error | null; count?: number; note?: string; onRetry?: () => void;
+}) {
+  if (loading) return <span className={s.src}><span className={s.spinner} />{name}</span>;
+  if (error) {
+    return (
+      <span className={`${s.src} ${s.srcErr}`} title={error.message}>
+        <AlertIcon size={13} />{name}
+        {onRetry && <button type="button" className={s.retry} onClick={onRetry} aria-label={`Retry ${name}`}><RetryIcon size={12} /></button>}
+      </span>
+    );
+  }
   return (
-    <article
-      className={`${s.card} ${isTV ? s.tv : ''} ${r.externalUrl ? '' : s.noLink}`}
-      data-testid="result-card"
-      data-source={r.source.toLowerCase()}
-      data-type={r.contentType}
-      data-title={r.title}
-      onClick={open}
-      tabIndex={r.externalUrl ? 0 : undefined}
-      onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) open(); }}
-      aria-label={r.externalUrl ? `${r.title} — open source page` : r.title}
-    >
-      <div className={s.top}>
-        <div className={s.poster}>
-          {r.posterUrl
-            ? <img src={r.posterUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
-            : <span className={s.posterLabel}>{isTV ? 'tv' : 'movie'}</span>}
-        </div>
-        <div className={s.info}>
-          <h3 className={s.title}>{r.title}</h3>
-          <div className={s.chips}>
-            <SourcePill source={r.source} large upper={false} />
-            {isTV && r.seasons.length > 0 && <CountChip>{r.seasons.length}S</CountChip>}
-            {isTV && episodes > 0 && <CountChip>{episodes}E</CountChip>}
-          </div>
-          <div className={s.meta}>
-            {r.year && <span className={s.year}>{r.year}</span>}
-            {r.rating != null && (
-              <span className={s.rating}><StarIcon size={13} />{r.rating.toFixed(1)}</span>
-            )}
-            {r.tmdbId != null && <span className={s.tmdb}>TMDB {r.tmdbId}</span>}
-          </div>
-        </div>
+    <span className={s.src} title={note}>
+      <span className={s.ok}>✓</span>{name}
+      {count != null && <span className={s.srcCount}>{count}</span>}
+      {count == null && note && <span className={s.srcNote}>{note}</span>}
+    </span>
+  );
+}
+
+function ResultCard({ g, xdccPending, onOpen }: { g: TitleGroup; xdccPending: boolean; onOpen: () => void }) {
+  const isTV = g.contentType === 'TV';
+  const tv = g.streams.find((r) => r.contentType === 'TV' && r.seasons.length > 0);
+  return (
+    <button type="button" className={`${s.card} ${isTV ? s.tv : ''}`} onClick={onOpen}
+      data-testid="result-card" data-type={g.contentType} data-title={g.title}
+      data-source={g.streams[0]?.source.toLowerCase() ?? 'xdcc'}>
+      <div className={s.poster}>
+        {g.posterUrl
+          ? <img src={g.posterUrl} alt="" loading="lazy" referrerPolicy="no-referrer"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          : <span className={s.posterLabel}>{isTV ? 'tv' : 'film'}</span>}
       </div>
-      {r.overview && <p className={s.overview}>{r.overview}</p>}
-      <div className={s.fill} />
-      <button
-        type="button"
-        className={s.download}
-        data-testid="result-card-download"
-        id={r.tmdbId != null ? `result-card-download-${r.tmdbId}` : undefined}
-        onClick={onDownloadClick}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        <DownloadIcon size={15} />Download
-      </button>
-    </article>
+      <div className={s.info}>
+        <div className={s.titleRow}>
+          <h3 className={s.title}>{g.title}</h3>
+        </div>
+        <div className={s.meta}>
+          <span className={s.kind}>{isTV ? 'TV' : 'Film'}</span>
+          {g.year && <span>{g.year}</span>}
+          {g.rating != null && g.rating > 0 && <span className={s.rating}><StarIcon size={12} />{g.rating.toFixed(1)}</span>}
+          {tv && <span>{tv.seasons.length}S</span>}
+        </div>
+        {g.overview && <p className={s.overview}>{g.overview}</p>}
+        <div className={s.fill} />
+        <ul className={s.sources} aria-label="Available from">
+          {g.streams.map((r) => (
+            <li key={r.source} className={`${s.source} ${s[`src${r.source}`] ?? ''}`}>
+              <span className={s.dot} />{r.source === 'VIXSRC' ? 'VixSrc' : 'RaiPlay'}
+            </li>
+          ))}
+          {g.xdcc.length > 0 && (
+            <li className={`${s.source} ${s.srcXDCC}`}>
+              <span className={s.dot} />XDCC <span className={s.sourceNote}>{[g.xdcc.length, bestRelease(g.xdcc)].filter(Boolean).join(' · ')}</span>
+            </li>
+          )}
+          {g.xdcc.length === 0 && xdccPending && <li className={`${s.source} ${s.sourcePending}`}><span className={s.spinner} />XDCC</li>}
+        </ul>
+      </div>
+    </button>
   );
 }

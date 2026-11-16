@@ -11,7 +11,7 @@ import { Segmented } from '../components/Segmented';
 import { useToast } from '../components/Toast';
 import { formatBytes } from '../lib/format';
 import { useTaskStream } from '../live/TaskStream';
-import dd from './DownloadDialog.module.css';
+import dd from './Form.module.css';
 import s from './LinkDialog.module.css';
 
 interface Props {
@@ -19,7 +19,8 @@ interface Props {
   initialUrl?: string;
   /** Already resolved links (e.g. XDCC packs picked from a search): no link field. */
   resolved?: LinkResolution;
-  onClose: () => void;
+  /** `queued` is true when the dialog closed because downloads were added. */
+  onClose: (queued?: boolean) => void;
 }
 
 const TYPES: { value: ContentType; label: string }[] = [
@@ -144,7 +145,7 @@ export function LinkDialog({ initialUrl, resolved, onClose }: Props) {
   const confirm = () => {
     if (!res) return;
     const pending = toast('Adding to queue...', 'contrast', { durationMs: 60_000 });
-    onClose();
+    onClose(true);
     api.createLinkDownload({ provider: res.provider, url: res.url, items }).then(
       (tasks) => {
         dismiss(pending);
@@ -167,10 +168,10 @@ export function LinkDialog({ initialUrl, resolved, onClose }: Props) {
     setRows((r) => ({ ...r, [key]: { ...r[key], ...patch } }));
 
   return (
-    <Dialog open title={resolved ? `Download from ${resolved.providerName}` : 'Download from link'} onClose={onClose} width={640} testId="link-dialog"
+    <Dialog open title={resolved ? `Download from ${resolved.providerName}` : 'Download from link'} onClose={() => onClose()} width={640} testId="link-dialog"
       footer={
         <>
-          <Button variant="outline" size="lg" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" size="lg" onClick={() => onClose()}>Cancel</Button>
           {res
             ? <Button id="link-confirm" size="lg" onClick={confirm} disabled={!canConfirm}>
                 {items.length > 1 ? `Add ${items.length} to Queue` : 'Add to Queue'}
@@ -200,6 +201,7 @@ export function LinkDialog({ initialUrl, resolved, onClose }: Props) {
           </div>
           {resolving && <div className={s.note}>Inspecting link...</div>}
           {error && <div className={dd.error} role="alert">{error}</div>}
+          {!res && !resolving && <ManualXdcc onOpen={(x) => { setUrl(x); resolve(x, ''); }} />}
         </div>}
 
         {res && (
@@ -350,4 +352,31 @@ function toInt(v: string): number | undefined {
 
 function digits(v: string): string {
   return v.replace(/\D/g, '').slice(0, 3);
+}
+
+/** An XDCC pack known by heart: server, channel, bot and pack number. */
+function ManualXdcc({ onOpen }: { onOpen: (url: string) => void }) {
+  const [server, setServer] = useState('');
+  const [channel, setChannel] = useState('#');
+  const [bot, setBot] = useState('');
+  const [pack, setPack] = useState('');
+  const valid = server.trim() && channel.trim().length > 1 && bot.trim() && Number(pack) > 0;
+  const submit = () => {
+    if (!valid) return;
+    const host = server.trim().includes(':') ? server.trim() : `${server.trim()}:6667`;
+    const ch = channel.trim().startsWith('#') ? channel.trim() : `#${channel.trim()}`;
+    onOpen(`xdcc://${host}/${encodeURIComponent(ch)}/${encodeURIComponent(bot.trim())}/${Number(pack)}`);
+  };
+  return (
+    <details className={s.manual}>
+      <summary>Or request an XDCC pack by hand</summary>
+      <div className={s.manualForm}>
+        <TextField value={server} onChange={(e) => setServer(e.target.value)} placeholder="irc.server.it[:6667]" aria-label="IRC server" />
+        <TextField value={channel} onChange={(e) => setChannel(e.target.value)} placeholder="#channel" aria-label="Channel" />
+        <TextField value={bot} onChange={(e) => setBot(e.target.value)} placeholder="Bot nick" aria-label="Bot" />
+        <TextField value={pack} onChange={(e) => setPack(e.target.value.replace(/\D/g, ''))} placeholder="Pack #" inputMode="numeric" aria-label="Pack number" />
+        <Button size="md" variant="outline" onClick={submit} disabled={!valid}>Inspect</Button>
+      </div>
+    </details>
+  );
 }

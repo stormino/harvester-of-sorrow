@@ -20,7 +20,23 @@
 }
 .message { font-size: 14px; line-height: 1.55; color: var(--text); }
 
+.headerBody { flex: 1; min-width: 0; }
+.drawer { place-items: stretch end; padding: 0; }
+.drawer .panel {
+  height: 100vh; max-height: 100vh; max-width: 100vw; border-radius: 0; border-width: 0 0 0 1px;
+  animation: hos-slide-in 0.18s ease;
+}
+@keyframes hos-slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
 @media (max-width: 767px) {
+  .drawer .panel { height: 100dvh; max-height: 100dvh; border-width: 0; }
   .overlay { padding: 12px; align-items: end; }
   .panel { max-width: 100%; width: 100%; max-height: 92vh; }
 }
+
+@media (max-width: 767px) {
+  .drawer.overlay { padding: 0; }
+}
+
+/* Drawer: the body fills the height so content can push an action bar to the bottom. */
+.drawer .body { flex: 1; display: flex; flex-direction: column; }
