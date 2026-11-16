@@ -268,7 +268,7 @@ export interface paths {
          * Search movies and TV shows
          * @description Searches every enabled source in parallel. VixSrc results are filtered by real availability.
          */
-        get: operations["search"];
+        get: operations["search_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -408,6 +408,63 @@ export interface paths {
         };
         /** Link providers and their readiness */
         get: operations["providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/links/resolve-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inspect several links as one group
+         * @description Like POST /links/resolve for a list of links of the same provider (e.g. XDCC packs picked from a search), returned as one folder-like resolution.
+         */
+        post: operations["resolveBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/xdcc/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether XDCC search is available, per source */
+        get: operations["status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/xdcc/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search packs by file name
+         * @description Queries every source at once, merges the bots offering the same file, folds multi-part archives, and groups releases by title (most relevant first, best quality first, TMDB poster for the top titles). Pass a release's `urls` to POST /links/resolve-batch, then queue with POST /links/downloads.
+         */
+        get: operations["search"];
         put?: never;
         post?: never;
         delete?: never;
@@ -590,7 +647,7 @@ export interface components {
             /** @description Whether POST /retry is allowed */
             canRetry: boolean;
             subTasks: components["schemas"]["SubTaskDto"][];
-            /** @description What a queued task is waiting for (e.g. a link provider warming up) */
+            /** @description What a queued or downloading task is waiting for (a link provider warming up, an XDCC bot queue, ...) */
             statusMessage?: string;
         };
         /** @description Which show (and optionally which season) to list episodes for */
@@ -881,6 +938,110 @@ export interface components {
             fileName: string;
             /** Format: int64 */
             size?: number;
+        };
+        /** @description Several links of one provider to queue together (e.g. XDCC packs picked from a search) */
+        ResolveLinksRequest: {
+            urls: string[];
+            /** @description Name shown for the group, e.g. the search words */
+            name?: string;
+        };
+        /** @description Whether XDCC search can run, per source */
+        XdccStatusDto: {
+            /** @description At least one source can search */
+            available: boolean;
+            /** @description Sent to the search sources */
+            userAgent: string;
+            sources: components["schemas"]["XdccSourceDto"][];
+        };
+        /** @description XDCC search results: titles, each with its releases (bots merged) */
+        XdccSearchDto: {
+            /**
+             * Format: int32
+             * @description Raw hits before merging
+             */
+            packs: number;
+            sources: components["schemas"]["XdccSourceDto"][];
+            titles: components["schemas"]["XdccTitleDto"][];
+        };
+        /** @description One XDCC search source and how it did */
+        XdccSourceDto: {
+            /** @example xdcc.eu */
+            name: string;
+            available: boolean;
+            /** @description Detail: why it is unavailable, or what it found */
+            message?: string;
+        };
+        /** @description Quality tags read from a release name */
+        XdccQualityDto: {
+            /**
+             * Format: int32
+             * @description Vertical resolution
+             * @example 1080
+             */
+            resolution?: number;
+            /** @example WEB-DL */
+            source?: string;
+            /** @example x265 */
+            codec?: string;
+            hdr: boolean;
+            /** @example AC3 */
+            audio?: string;
+            /**
+             * @example [
+             *       "ITA"
+             *     ]
+             */
+            languages: string[];
+            /**
+             * @example [
+             *       "ITA"
+             *     ]
+             */
+            subtitles: string[];
+            /** @description CAM/TS or line-dubbed */
+            lowQuality: boolean;
+        };
+        /** @description One file (or multi-part archive) and every bot offering it */
+        XdccReleaseDto: {
+            /** @description File name, or archive set name */
+            label: string;
+            /** @example S01E02 */
+            episode?: string;
+            size?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            quality: components["schemas"]["XdccQualityDto"];
+            /** @example mkv */
+            format: string;
+            /**
+             * Format: int32
+             * @description Bots offering it (tried in turn)
+             */
+            bots: number;
+            networks: string[];
+            /** @description Links to pass to POST /links/resolve-batch: one, or one per archive volume */
+            urls: string[];
+            /** @description False when archive volumes are missing */
+            complete: boolean;
+            missingParts: number[];
+        };
+        /** @description Releases of one title, best first */
+        XdccTitleDto: {
+            title: string;
+            /** Format: int32 */
+            year?: number;
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            /**
+             * Format: int32
+             * @description 3: starts with the search words, 2: contains them in order, 1: contains them all, 0: matched elsewhere
+             */
+            relevance: number;
+            /** Format: int32 */
+            tmdbId?: number;
+            tmdbTitle?: string;
+            posterUrl?: string;
+            releases: components["schemas"]["XdccReleaseDto"][];
         };
     };
     responses: never;
@@ -1326,7 +1487,7 @@ export interface operations {
             };
         };
     };
-    search: {
+    search_1: {
         parameters: {
             query: {
                 /**
@@ -1514,6 +1675,72 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LinkProviderDto"][];
+                };
+            };
+        };
+    };
+    resolveBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveLinksRequest"];
+            };
+        };
+        responses: {
+            /** @description Unsupported links, or links of different providers */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LinkResolutionDto"];
+                };
+            };
+        };
+    };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["XdccStatusDto"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                query: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["XdccSearchDto"];
                 };
             };
         };

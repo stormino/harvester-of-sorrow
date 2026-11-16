@@ -11,6 +11,9 @@ const base = (size = 16, extra?: SVGProps<SVGSVGElement>) => ({
 export const SearchIcon = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
 );
+export const AntennaIcon = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}><path d="M4.9 16.1a10 10 0 0 1 0-8.2" /><path d="M19.1 7.9a10 10 0 0 1 0 8.2" /><path d="M7.8 13.4a5 5 0 0 1 0-2.8" /><path d="M16.2 10.6a5 5 0 0 1 0 2.8" /><circle cx="12" cy="12" r="1.5" /><path d="M12 13.5V21" /></svg>
+);
 export const DownloadIcon = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><path d="M12 3v12" /><path d="m7 12 5 5 5-5" /><path d="M5 21h14" /></svg>
 );

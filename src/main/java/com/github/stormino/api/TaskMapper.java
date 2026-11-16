@@ -54,7 +54,8 @@ public final class TaskMapper {
                         ? (t.getSpeedBps() != null ? t.getSpeedBps() : speed(downloaded, t.getStartedAt())) : null,
                 running ? t.getAggregatedEtaSeconds() : null,
                 t.getErrorMessage(),
-                t.getStatus() == DownloadStatus.QUEUED ? t.getStatusMessage() : null,
+                t.getStatus() == DownloadStatus.QUEUED || t.getStatus() == DownloadStatus.DOWNLOADING
+                        ? t.getStatusMessage() : null,
                 toInstant(t.getCreatedAt()),
                 toInstant(t.getStartedAt()),
                 toInstant(t.getCompletedAt()),
