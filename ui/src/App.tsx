@@ -7,6 +7,7 @@ import { LibraryScreen } from './screens/LibraryScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { XdccScreen } from './screens/XdccScreen';
+import { RouteError } from './shell/RouteError';
 import { Shell } from './shell/Shell';
 
 const queryClient = new QueryClient({
@@ -18,6 +19,7 @@ const queryClient = new QueryClient({
 const router = createBrowserRouter([
   {
     element: <Shell />,
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <SearchScreen /> },
       { path: 'xdcc', element: <XdccScreen /> },
