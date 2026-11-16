@@ -77,6 +77,9 @@ public class DownloadTask {
                 return String.format("%s %s - %s", base, seasonEp, episodeName);
             }
             return String.format("%s %s", base, seasonEp);
+        } else if (contentType == ContentType.TV && season != null) {
+            // Season pack (an archive with several episodes)
+            return String.format("%s S%02d", title != null ? title : "TV " + tmdbId, season);
         } else {
             String base = title != null ? title : "Movie " + tmdbId;
             if (year != null) {

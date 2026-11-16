@@ -1,7 +1,7 @@
 import type { Task, TaskStatus } from '../api/types';
 import { pad2 } from './format';
 
-export const ACTIVE: readonly TaskStatus[] = ['DOWNLOADING', 'MERGING', 'COPYING', 'EXTRACTING'];
+export const ACTIVE: readonly TaskStatus[] = ['DOWNLOADING', 'UNPACKING', 'MERGING', 'COPYING', 'EXTRACTING'];
 export const FAILED_LIKE: readonly TaskStatus[] = ['FAILED', 'CANCELLED', 'NOT_FOUND'];
 
 export const isActive = (s: TaskStatus) => ACTIVE.includes(s);

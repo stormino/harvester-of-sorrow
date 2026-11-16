@@ -76,10 +76,13 @@ public class SystemController {
                 sourceRegistry.all().stream().anyMatch(p -> p.source() == MediaSource.RAIPLAY));
     }
 
-    @Operation(summary = "Check that ffmpeg is installed", description = "Runs `ffmpeg -version`.")
+    @Operation(summary = "Check that the external tools are installed",
+            description = "ffmpeg (HLS downloads), 7zip and unrar (unpacking archives from links).")
     @PostMapping("/system/tools/check")
     public List<ToolCheckDto> checkTools() {
-        return List.of(probe("ffmpeg"));
+        return List.of(probe("ffmpeg", "ffmpeg", "-version"),
+                probe("7zip", com.github.stormino.service.link.archive.ArchiveExtractor.sevenZipBinary()),
+                probe("unrar", "unrar"));
     }
 
     static String mask(String key) {
@@ -101,15 +104,19 @@ public class SystemController {
         return new DiskDto(label, path, f.getUsableSpace(), f.getTotalSpace());
     }
 
-    private static ToolCheckDto probe(String tool) {
+    /** Runs {@code command}; its first non-blank output line is reported as {@code tool}'s version. */
+    private static ToolCheckDto probe(String tool, String... command) {
         try {
-            Process process = new ProcessBuilder(tool, "-version").redirectErrorStream(true).start();
-            String firstLine;
+            Process process = new ProcessBuilder(command).redirectErrorStream(true)
+                    .redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null"))).start();
+            String firstLine = null;
             try (BufferedReader r = new BufferedReader(
                     new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                firstLine = r.readLine();
-                while (r.readLine() != null) {
-                    // drain
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (firstLine == null && !line.isBlank()) {
+                        firstLine = line.strip();
+                    }
                 }
             }
             if (!process.waitFor(10, TimeUnit.SECONDS)) {

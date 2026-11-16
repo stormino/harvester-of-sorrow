@@ -6,6 +6,7 @@ const TASK: Record<TaskStatus, { label: string; tone: string }> = {
   QUEUED: { label: 'Queued', tone: 'brand' },
   EXTRACTING: { label: 'Extracting', tone: 'brand' },
   DOWNLOADING: { label: 'Downloading', tone: 'down' },
+  UNPACKING: { label: 'Unpacking', tone: 'brand' },
   MERGING: { label: 'Merging', tone: 'brand' },
   COPYING: { label: 'Copying', tone: 'brand' },
   COMPLETED: { label: 'Completed', tone: 'success' },
@@ -14,7 +15,7 @@ const TASK: Record<TaskStatus, { label: string; tone: string }> = {
   NOT_FOUND: { label: 'Not found', tone: 'warning' },
 };
 
-const ANIMATED: TaskStatus[] = ['QUEUED', 'EXTRACTING', 'DOWNLOADING', 'MERGING', 'COPYING'];
+const ANIMATED: TaskStatus[] = ['QUEUED', 'EXTRACTING', 'DOWNLOADING', 'UNPACKING', 'MERGING', 'COPYING'];
 
 export function statusLabel(status: TaskStatus): string {
   return TASK[status]?.label ?? status;

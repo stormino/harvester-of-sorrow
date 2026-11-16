@@ -16,11 +16,13 @@ import com.github.stormino.service.link.LinkProviderReadyEvent;
 import com.github.stormino.service.link.LinkProviderRegistry;
 import com.github.stormino.service.link.LinkProviderStatusEvent;
 import com.github.stormino.service.link.LinkTaskSpec;
+import com.github.stormino.service.link.archive.ArchiveFormats;
 import com.github.stormino.service.link.ProviderStatus;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.util.DownloadConstants;
+import com.github.stormino.util.LibraryPaths;
 import com.github.stormino.util.PathUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,6 +91,7 @@ public class DownloadQueueService {
                 DownloadStatus.DOWNLOADING,
                 DownloadStatus.EXTRACTING,
                 DownloadStatus.MERGING,
+                DownloadStatus.UNPACKING,
                 DownloadStatus.COPYING
         );
 
@@ -162,13 +165,17 @@ public class DownloadQueueService {
             if (spec.title() == null || spec.title().isBlank()) {
                 throw new IllegalArgumentException("A title is required for " + spec.file().fileName());
             }
-            if (tv && (spec.season() == null || spec.episode() == null)) {
+            boolean archive = ArchiveFormats.isArchive(spec.file().fileName());
+            // Archives may hold a whole season: their episodes are read from the names inside.
+            if (tv && !archive && (spec.season() == null || spec.episode() == null)) {
                 throw new IllegalArgumentException("Season and episode are required for " + spec.file().fileName());
             }
+            List<LinkMetadata.Part> parts = spec.parts() == null || spec.parts().isEmpty() ? null
+                    : spec.parts().stream().map(p -> new LinkMetadata.Part(p.url(), p.fileName(), p.size())).toList();
             DownloadTask task = DownloadTask.builder()
                     .source(MediaSource.LINK)
                     .sourceMetadata(new LinkMetadata(spec.providerId(), spec.link(), spec.file().url(),
-                            spec.file().fileName(), spec.file().size()))
+                            spec.file().fileName(), spec.file().size(), parts))
                     .contentType(spec.contentType())
                     .tmdbId(spec.tmdbId())
                     .title(spec.title().strip())
@@ -179,9 +186,17 @@ public class DownloadQueueService {
                     .languages(properties.getDownload().getDefaultLanguageList())
                     .totalBytes(spec.file().size())
                     .build();
-            String path = tv ? generateOutputPathFast(task)
-                    : generateOutputPath(task, ContentMetadata.builder().title(task.getTitle()).year(task.getYear()).build());
-            task.setOutputPath(withExtension(path, spec.file().fileName()));
+            String path;
+            if (tv && (task.getSeason() == null || task.getEpisode() == null)) {
+                // Season pack: each episode's path is decided after unpacking.
+                path = LibraryPaths.tvShowDir(properties.getDownload().getTvShowsPath(), task.getTitle(), task.getYear());
+            } else {
+                path = tv ? generateOutputPathFast(task)
+                        : generateOutputPath(task, ContentMetadata.builder().title(task.getTitle()).year(task.getYear()).build());
+                // Archives: the real extension is the video's, known once unpacked.
+                path = archive ? path : withExtension(path, spec.file().fileName());
+            }
+            task.setOutputPath(path);
             register(task);
             created.add(task);
         }
@@ -192,12 +207,7 @@ public class DownloadQueueService {
 
     /** Replaces the extension of {@code path} with the one of {@code fileName} (if it has one). */
     static String withExtension(String path, String fileName) {
-        String ext = PathUtils.getExtension(fileName == null ? "" : fileName).toLowerCase(Locale.ROOT);
-        if (ext.length() < 2 || ext.length() > 6 || !ext.substring(1).chars().allMatch(Character::isLetterOrDigit)) {
-            return path;
-        }
-        String current = PathUtils.getExtension(path);
-        return path.substring(0, path.length() - current.length()) + ext;
+        return LibraryPaths.withExtension(path, fileName);
     }
 
     private static String blankToNull(String s) {
@@ -337,24 +347,10 @@ public class DownloadQueueService {
         String filename;
 
         if (task.getContentType() == DownloadTask.ContentType.TV && task.getTitle() != null) {
-            if (task.getEpisodeName() != null) {
-                filename = String.format(DownloadConstants.TV_EPISODE_WITH_NAME_FORMAT,
-                    task.getTitle(), task.getSeason(), task.getEpisode(), task.getEpisodeName());
-            } else {
-                filename = String.format(DownloadConstants.TV_EPISODE_FORMAT,
-                    task.getTitle(), task.getSeason(), task.getEpisode());
-            }
-            filename = PathUtils.sanitizeFilename(filename) + DownloadConstants.VIDEO_EXTENSION;
-
-            String showDir = PathUtils.sanitizeFilename(task.getTitle());
-            if (task.getYear() != null) {
-                showDir = showDir + "." + task.getYear();
-            }
-            String seasonDir = String.format(DownloadConstants.SEASON_DIR_FORMAT, task.getSeason());
-
             // Folders are created when the finished file is copied (FileCopyService), so a
             // failed or cancelled download leaves no empty show folder in the library.
-            return java.nio.file.Paths.get(basePath, showDir, seasonDir, filename).toString();
+            return LibraryPaths.tvEpisode(basePath, task.getTitle(), task.getYear(), task.getSeason(),
+                    task.getEpisode(), task.getEpisodeName(), DownloadConstants.VIDEO_EXTENSION);
         } else {
             filename = String.format("tv_%d_s%02de%02d.mp4",
                 task.getTmdbId(), task.getSeason(), task.getEpisode());

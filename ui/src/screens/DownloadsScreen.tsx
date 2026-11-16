@@ -136,10 +136,13 @@ export function DownloadsScreen() {
         </div>
       )}
 
-      <Dialog open={!!infoTask} title="Error details" onClose={() => setInfoTask(null)} width={460}>
+      <Dialog open={!!infoTask} title={infoTask?.status === 'COMPLETED' ? 'Details' : 'Error details'}
+        onClose={() => setInfoTask(null)} width={460}>
         {infoTask && (
           <div className={s.errorBox}>
-            <div className={s.errorIcon}><AlertIcon size={19} /></div>
+            <div className={s.errorIcon}>
+              {infoTask.status === 'COMPLETED' ? <InfoIcon size={19} /> : <AlertIcon size={19} />}
+            </div>
             <div>
               <div className={s.errorHead}>{infoTask.displayName}</div>
               <p className={s.errorMsg}>{infoTask.errorMessage || 'No additional details.'}</p>
@@ -157,9 +160,10 @@ function ActionButtons({ t, actions, card }: { t: Task; actions: Actions; card?:
   const size = card ? 'md' : 'sm';
   return (
     <>
-      {t.errorMessage && (t.status === 'FAILED' || t.status === 'NOT_FOUND') && (
+      {t.errorMessage && (t.status === 'FAILED' || t.status === 'NOT_FOUND' || t.status === 'COMPLETED') && (
         <Button variant={card ? 'outline' : 'ghost'} size={size} iconOnly icon={<InfoIcon size={15} />}
-          title="Error details" aria-label="Error details" onClick={() => actions.info(t)} />
+          title={t.status === 'COMPLETED' ? 'Details' : 'Error details'}
+          aria-label={t.status === 'COMPLETED' ? 'Details' : 'Error details'} onClick={() => actions.info(t)} />
       )}
       {t.canRetry && (
         <Button variant="success" size={size} iconOnly icon={<RetryIcon size={15} />} title="Retry" aria-label="Retry"

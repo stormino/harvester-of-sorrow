@@ -20,12 +20,13 @@ public record LinkDownloadRequest(
             @NotBlank @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "LinkFile.url") String fileUrl,
             @NotBlank @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String fileName,
             Long size,
+            @Valid @Schema(description = "LinkFile.parts of a multi-part archive") List<LinkPartDto> parts,
             @NotNull @Schema(requiredMode = Schema.RequiredMode.REQUIRED) DownloadTask.ContentType contentType,
             @Schema(description = "Confirmed TMDB match; omit for a manual title") Integer tmdbId,
             @NotBlank @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String title,
             Integer year,
-            Integer season,
-            Integer episode,
+            @Schema(description = "TV: required, except for archives (season packs), where it is the fallback season") Integer season,
+            @Schema(description = "TV: required, except for archives (episodes are read from the names inside)") Integer episode,
             @Schema(description = "Filled from TMDB when omitted and tmdbId is set") String episodeName
     ) {}
 }

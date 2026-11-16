@@ -70,11 +70,11 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
         setQuery(r.guess.title);
         setManualTitle(r.guess.title);
         setManualYear(r.guess.year ? String(r.guess.year) : '');
-        const videos = r.files.filter((f) => f.video);
-        const largest = [...(videos.length ? videos : r.files)].sort((a, b) => (b.size ?? 0) - (a.size ?? 0))[0];
+        const media = r.files.filter((f) => f.video || f.archive);
+        const largest = [...(media.length ? media : r.files)].sort((a, b) => (b.size ?? 0) - (a.size ?? 0))[0];
         setMovieFile(largest?.url ?? '');
         setRows(Object.fromEntries(r.files.map((f) => [f.url, {
-          selected: f.video || r.files.length === 1,
+          selected: f.video || f.archive || r.files.length === 1,
           season: f.guess.season != null ? String(f.guess.season) : (r.guess.season != null ? String(r.guess.season) : ''),
           episode: f.guess.episode != null ? String(f.guess.episode) : '',
         }])));
@@ -118,6 +118,7 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
     const base = (f: LinkFile) => ({
       fileUrl: f.url, fileName: f.fileName, size: f.size, contentType: type,
       tmdbId: chosen?.tmdbId, title, year,
+      parts: f.parts.length ? f.parts : undefined,
     });
     if (type === 'MOVIE') {
       const f = res.files.find((x) => x.url === movieFile);
@@ -128,8 +129,13 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
       .map((f) => ({ ...base(f), season: toInt(rows[f.url].season), episode: toInt(rows[f.url].episode) }));
   }, [res, type, movieFile, rows, title, year, chosen]);
 
-  const episodesValid = type === 'MOVIE' || items.every((i) => i.season != null && i.episode != null);
-  const duplicate = type === 'TV' && new Set(items.map((i) => `${i.season}x${i.episode}`)).size < items.length;
+  const isArchive = (i: LinkDownloadItem) => !!res?.files.find((f) => f.url === i.fileUrl)?.archive;
+  // Archives may hold whole seasons: their episodes are read from the names inside, numbers are optional.
+  const episodesValid = type === 'MOVIE'
+    || items.every((i) => isArchive(i) ? (i.episode == null || i.season != null) : i.season != null && i.episode != null);
+  const numbered = items.filter((i) => i.season != null && i.episode != null);
+  const duplicate = type === 'TV' && new Set(numbered.map((i) => `${i.season}x${i.episode}`)).size < numbered.length;
+  const anyArchive = items.some(isArchive);
   const canConfirm = !!res && items.length > 0 && !!title && episodesValid && !duplicate;
 
   const confirm = () => {
@@ -291,8 +297,10 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
                         <FileName f={f} />
                         <span className={s.se}>
                           S<TextField className={s.num} value={r.season} inputMode="numeric" aria-label="Season"
+                            placeholder={f.archive ? 'auto' : ''}
                             disabled={!r.selected} onChange={(e) => setRow(f.url, { season: digits(e.target.value) })} />
                           E<TextField className={s.num} value={r.episode} inputMode="numeric" aria-label="Episode"
+                            placeholder={f.archive ? 'auto' : ''}
                             disabled={!r.selected} onChange={(e) => setRow(f.url, { episode: digits(e.target.value) })} />
                         </span>
                       </div>
@@ -300,7 +308,16 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
                   })}
                 </div>
               )}
-              {type === 'TV' && !episodesValid && <div className={dd.error}>Every checked file needs a season and an episode.</div>}
+              {anyArchive && (
+                <div className={s.note} data-testid="link-archive-note">
+                  {type === 'TV'
+                    ? 'Archives are unpacked after downloading; each episode inside is placed by the SxxEyy in its name (leave S/E empty for "auto"). Subtitles go next to their episode.'
+                    : 'The archive is unpacked after downloading; its largest video goes into the library, with its subtitles.'}
+                </div>
+              )}
+              {type === 'TV' && !episodesValid && (
+                <div className={dd.error}>Every checked video needs a season and an episode (archives: a season if you set an episode).</div>
+              )}
               {duplicate && <div className={dd.error}>Two checked files have the same season and episode.</div>}
             </div>
           </>
@@ -316,7 +333,10 @@ function FileName({ f }: { f: LinkFile }) {
     <span className={s.fileName} title={path + f.fileName}>
       {path && <span className={dd.dim}>{path}</span>}
       {f.fileName}
-      <span className={s.fileSize}>{formatBytes(f.size)}{f.video ? '' : ' · not a video'}</span>
+      <span className={s.fileSize}>
+        {formatBytes(f.size)}
+        {f.archive ? ` · archive${f.parts.length > 1 ? `, ${f.parts.length} parts` : ''}` : f.video ? '' : ' · not a video'}
+      </span>
     </span>
   );
 }
