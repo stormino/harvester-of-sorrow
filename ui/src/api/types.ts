@@ -22,5 +22,12 @@ export type Disk = S['DiskDto'];
 export type Settings = S['SettingsDto'];
 export type ToolCheck = S['ToolCheckDto'];
 export type ClearResult = S['ClearResultDto'];
+export type LinkProvider = S['LinkProviderDto'];
+export type LinkResolution = S['LinkResolutionDto'];
+export type LinkFile = S['LinkFileDto'];
+export type LinkGuess = S['LinkGuessDto'];
+export type TmdbMatch = S['TmdbMatchDto'];
+export type LinkDownloadRequest = S['LinkDownloadRequest'];
+export type LinkDownloadItem = S['LinkDownloadItem'];
 
 export type SearchType = 'MOVIES' | 'TV' | 'BOTH';

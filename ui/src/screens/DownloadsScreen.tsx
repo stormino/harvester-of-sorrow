@@ -185,7 +185,10 @@ function TaskRow({ t, actions, expanded, onToggle }: { t: Task; actions: Actions
             <ChevronIcon size={14} />
           </button>
           <SourcePill source={t.source} />
-          <span className={s.name} title={t.outputPath ?? t.displayName}>{t.displayName}</span>
+          <div className={s.nameCol}>
+            <span className={s.name} title={t.outputPath ?? t.displayName}>{t.displayName}</span>
+            {t.statusMessage && <span className={s.waiting} data-testid="queue-row-message">{t.statusMessage}</span>}
+          </div>
         </div>
         <div className={s.td} role="cell">
           <TaskStatusBadge status={t.status} taskId={t.id} testId="queue-row-status" />
@@ -237,6 +240,7 @@ function TaskCard({ t, actions, expanded, onToggle }: { t: Task; actions: Action
             <TaskStatusBadge status={t.status} taskId={t.id} testId="queue-row-status" />
             <span className={s.cellDim}>{formatTime(t.createdAt)}</span>
           </div>
+          {t.statusMessage && <div className={s.waiting} data-testid="queue-row-message">{t.statusMessage}</div>}
         </div>
         <div className={s.cardActions}><ActionButtons t={t} actions={actions} card /></div>
       </div>

@@ -170,6 +170,7 @@ public class ContentController {
                     : "https://www.themoviedb.org/" + (type == DownloadTask.ContentType.MOVIE ? "movie" : "tv")
                     + "/" + c.getTmdbId();
             case RAIPLAY -> c.getSourceMetadata() instanceof RaiPlayMetadata m ? m.webUrl() : null;
+            case LINK -> null; // never a search result
         };
     }
 

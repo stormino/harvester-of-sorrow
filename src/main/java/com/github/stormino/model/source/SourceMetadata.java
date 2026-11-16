@@ -7,8 +7,9 @@ import com.github.stormino.model.MediaSource;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = VixSrcMetadata.class, name = "VIXSRC"),
-        @JsonSubTypes.Type(value = RaiPlayMetadata.class, name = "RAIPLAY")
+        @JsonSubTypes.Type(value = RaiPlayMetadata.class, name = "RAIPLAY"),
+        @JsonSubTypes.Type(value = LinkMetadata.class, name = "LINK")
 })
-public sealed interface SourceMetadata permits VixSrcMetadata, RaiPlayMetadata {
+public sealed interface SourceMetadata permits VixSrcMetadata, RaiPlayMetadata, LinkMetadata {
     MediaSource source();
 }

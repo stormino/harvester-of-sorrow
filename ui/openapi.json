@@ -2,7 +2,7 @@
     "openapi": "3.0.1",
     "info": {
         "title": "Harvester of Sorrow API",
-        "description": "REST API for Harvester of Sorrow \u2014 a video downloader supporting VixSrc and RaiPlay sources.\n\n**Key features:**\n- Search movies and TV shows across multiple sources\n- Queue, monitor, cancel and retry downloads\n- Real-time progress updates via Server-Sent Events\n- TV show library scanning and automatic episode monitoring\n\n**Notes:**\n- No authentication is required\n- VixSrc availability checks use the Italian (`it`) catalogue\n- Live updates: `GET /api/v1/events` (`text/event-stream`)\n- Errors are RFC 7807 `application/problem+json`\n",
+        "description": "REST API for Harvester of Sorrow \u2014 a video downloader supporting VixSrc and RaiPlay sources and direct links (Mega, HTTP).\n\n**Key features:**\n- Search movies and TV shows across multiple sources\n- Download from a link: Mega files and folders, direct HTTP files\n- Queue, monitor, cancel and retry downloads\n- Real-time progress updates via Server-Sent Events\n- TV show library scanning and automatic episode monitoring\n\n**Notes:**\n- No authentication is required\n- VixSrc availability checks use the Italian (`it`) catalogue\n- Live updates: `GET /api/v1/events` (`text/event-stream`)\n- Errors are RFC 7807 `application/problem+json`\n",
         "contact": {
             "name": "stormino",
             "url": "https://github.com/stormino/harvester-of-sorrow"
@@ -34,6 +34,10 @@
         {
             "name": "Downloads",
             "description": "Download queue"
+        },
+        {
+            "name": "Links",
+            "description": "Download from a link (Mega, direct HTTP files, ...)"
         },
         {
             "name": "Events",
@@ -647,7 +651,8 @@
                             "type": "string",
                             "enum": [
                                 "VIXSRC",
-                                "RAIPLAY"
+                                "RAIPLAY",
+                                "LINK"
                             ]
                         }
                     }
@@ -746,6 +751,167 @@
                     }
                 }
             }
+        },
+        "/api/v1/links/resolve": {
+            "post": {
+                "tags": [
+                    "Links"
+                ],
+                "summary": "Inspect a link",
+                "description": "Lists the file(s) behind the link without downloading, guesses title/year/episode from the names and suggests TMDB matches. The provider is detected from the URL unless `provider` is given. Also starts the provider's preparation (e.g. Mega's proxy warm-up) in the background.",
+                "operationId": "resolve",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResolveLinkRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "400": {
+                        "description": "Unsupported, invalid or unreachable link",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LinkResolutionDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/links/downloads": {
+            "post": {
+                "tags": [
+                    "Links"
+                ],
+                "summary": "Queue files of a link",
+                "description": "One task per item. Items must come from POST /links/resolve of the same link; the library path is built from the confirmed title/year (and season/episode for TV).",
+                "operationId": "download",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LinkDownloadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tasks created",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TaskDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TaskDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/links/tmdb": {
+            "get": {
+                "tags": [
+                    "Links"
+                ],
+                "summary": "Search TMDB for the title of a link",
+                "description": "For correcting a wrong guess.",
+                "operationId": "searchTmdb",
+                "parameters": [
+                    {
+                        "name": "query",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "MOVIE",
+                            "enum": [
+                                "MOVIE",
+                                "TV"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TmdbMatchDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/links/providers": {
+            "get": {
+                "tags": [
+                    "Links"
+                ],
+                "summary": "Link providers and their readiness",
+                "operationId": "providers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/LinkProviderDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -773,7 +939,8 @@
                         "type": "string",
                         "enum": [
                             "VIXSRC",
-                            "RAIPLAY"
+                            "RAIPLAY",
+                            "LINK"
                         ]
                     },
                     "sourceRef": {
@@ -816,7 +983,8 @@
                         "type": "string",
                         "enum": [
                             "VIXSRC",
-                            "RAIPLAY"
+                            "RAIPLAY",
+                            "LINK"
                         ]
                     },
                     "sourceRef": {
@@ -893,7 +1061,8 @@
                         "type": "string",
                         "enum": [
                             "VIXSRC",
-                            "RAIPLAY"
+                            "RAIPLAY",
+                            "LINK"
                         ]
                     },
                     "contentType": {
@@ -1053,7 +1222,8 @@
                         "type": "string",
                         "enum": [
                             "VIXSRC",
-                            "RAIPLAY"
+                            "RAIPLAY",
+                            "LINK"
                         ]
                     },
                     "contentType": {
@@ -1165,6 +1335,10 @@
                         "items": {
                             "$ref": "#/components/schemas/SubTaskDto"
                         }
+                    },
+                    "statusMessage": {
+                        "type": "string",
+                        "description": "What a queued task is waiting for (e.g. a link provider warming up)"
                     }
                 },
                 "description": "A download task with its tracks"
@@ -1180,7 +1354,8 @@
                         "type": "string",
                         "enum": [
                             "VIXSRC",
-                            "RAIPLAY"
+                            "RAIPLAY",
+                            "LINK"
                         ]
                     },
                     "sourceRef": {
@@ -1293,7 +1468,8 @@
                         "type": "string",
                         "enum": [
                             "VIXSRC",
-                            "RAIPLAY"
+                            "RAIPLAY",
+                            "LINK"
                         ]
                     },
                     "displayName": {
@@ -1425,7 +1601,8 @@
                         "type": "string",
                         "enum": [
                             "VIXSRC",
-                            "RAIPLAY"
+                            "RAIPLAY",
+                            "LINK"
                         ]
                     },
                     "contentType": {
@@ -1555,6 +1732,313 @@
                         "format": "int32"
                     }
                 }
+            },
+            "ResolveLinkRequest": {
+                "required": [
+                    "url"
+                ],
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "example": "https://mega.nz/file/XXXX#YYYY"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "description": "Provider id to use instead of detecting it from the URL",
+                        "example": "mega"
+                    }
+                },
+                "description": "A link to inspect"
+            },
+            "LinkFileDto": {
+                "required": [
+                    "fileName",
+                    "folders",
+                    "guess",
+                    "url",
+                    "video"
+                ],
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "Pass back unchanged when queueing"
+                    },
+                    "fileName": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "folders": {
+                        "type": "array",
+                        "description": "Folders above the file inside a shared folder",
+                        "items": {
+                            "type": "string",
+                            "description": "Folders above the file inside a shared folder"
+                        }
+                    },
+                    "video": {
+                        "type": "boolean"
+                    },
+                    "guess": {
+                        "$ref": "#/components/schemas/LinkGuessDto"
+                    }
+                },
+                "description": "One downloadable file of a link"
+            },
+            "LinkGuessDto": {
+                "required": [
+                    "contentType",
+                    "title"
+                ],
+                "type": "object",
+                "properties": {
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "May be empty"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "season": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "episode": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "episodeName": {
+                        "type": "string"
+                    }
+                },
+                "description": "What a file name looks like (a guess to confirm)"
+            },
+            "LinkResolutionDto": {
+                "required": [
+                    "files",
+                    "folder",
+                    "guess",
+                    "matches",
+                    "name",
+                    "provider",
+                    "providerName",
+                    "tmdbAvailable",
+                    "truncated",
+                    "url"
+                ],
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "example": "mega"
+                    },
+                    "providerName": {
+                        "type": "string",
+                        "example": "Mega"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "folder": {
+                        "type": "boolean"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "truncated": {
+                        "type": "integer",
+                        "description": "Files left out of a very large folder",
+                        "format": "int32"
+                    },
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LinkFileDto"
+                        }
+                    },
+                    "guess": {
+                        "$ref": "#/components/schemas/LinkGuessDto"
+                    },
+                    "matches": {
+                        "type": "array",
+                        "description": "TMDB candidates for the guess, best first; empty when TMDB is not configured",
+                        "items": {
+                            "$ref": "#/components/schemas/TmdbMatchDto"
+                        }
+                    },
+                    "tmdbAvailable": {
+                        "type": "boolean"
+                    }
+                },
+                "description": "What a link points to, with a guess of what it is and TMDB candidates"
+            },
+            "TmdbMatchDto": {
+                "required": [
+                    "contentType",
+                    "title",
+                    "tmdbId"
+                ],
+                "type": "object",
+                "properties": {
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "originalTitle": {
+                        "type": "string"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "overview": {
+                        "type": "string"
+                    },
+                    "posterUrl": {
+                        "type": "string"
+                    }
+                },
+                "description": "A TMDB title a link may be"
+            },
+            "LinkDownloadItem": {
+                "required": [
+                    "contentType",
+                    "fileName",
+                    "fileUrl",
+                    "title"
+                ],
+                "type": "object",
+                "properties": {
+                    "fileUrl": {
+                        "type": "string",
+                        "description": "LinkFile.url"
+                    },
+                    "fileName": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "description": "Confirmed TMDB match; omit for a manual title",
+                        "format": "int32"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "season": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "episode": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "episodeName": {
+                        "type": "string",
+                        "description": "Filled from TMDB when omitted and tmdbId is set"
+                    }
+                },
+                "description": "One file and what it is"
+            },
+            "LinkDownloadRequest": {
+                "required": [
+                    "items",
+                    "provider",
+                    "url"
+                ],
+                "type": "object",
+                "properties": {
+                    "provider": {
+                        "type": "string",
+                        "example": "mega"
+                    },
+                    "url": {
+                        "type": "string"
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LinkDownloadItem"
+                        }
+                    }
+                },
+                "description": "Queue files of a resolved link, each with the identity the user confirmed"
+            },
+            "LinkProviderDto": {
+                "required": [
+                    "id",
+                    "name",
+                    "state"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "mega"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Mega"
+                    },
+                    "state": {
+                        "type": "string",
+                        "enum": [
+                            "READY",
+                            "IDLE",
+                            "WARMING_UP",
+                            "ERROR"
+                        ]
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Detail, e.g. warm-up progress"
+                    },
+                    "done": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "total": {
+                        "type": "integer",
+                        "format": "int32"
+                    }
+                },
+                "description": "A link download provider and whether it can start downloads now"
             }
         }
     }

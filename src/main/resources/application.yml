@@ -18,6 +18,18 @@ hos:
   extractor:
     base-url: https://vixsrc.to
 
+  link:
+    mega:
+      enabled: ${MEGA_ENABLED:true}
+      cache-file: ${MEGA_PROXY_CACHE:data/mega-proxy-cache.json}
+      connections: ${MEGA_CONNECTIONS:10}
+      max-concurrent: ${MEGA_MAX_CONCURRENT:1}
+      warm-on-startup-hours: ${MEGA_WARM_ON_STARTUP_HOURS:72}
+      proxies: ${MEGA_PROXIES:}
+    http:
+      enabled: ${LINK_HTTP_ENABLED:true}
+      max-concurrent: ${LINK_HTTP_MAX_CONCURRENT:3}
+
 raiplay:
   base-url: https://www.raiplay.it
   search-url: https://www.raiplay.it/atomatic/raiplay-search-service/api/v1/msearch

@@ -52,6 +52,12 @@ public class DownloadTask {
     private Long etaSeconds;  // Estimated time remaining in seconds
 
     private String errorMessage;
+
+    /** Transient detail shown while QUEUED (e.g. "Waiting for Mega proxies: ..."). Not persisted. */
+    private volatile String statusMessage;
+
+    /** Current speed reported by a link provider (bytes/s); link tasks only. Not persisted. */
+    private volatile Double speedBps;
     
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
