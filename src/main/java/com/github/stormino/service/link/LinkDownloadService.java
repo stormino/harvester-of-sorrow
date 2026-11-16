@@ -8,7 +8,11 @@ import com.github.stormino.model.source.LinkMetadata;
 import com.github.stormino.persistence.TaskPersistenceService;
 import com.github.stormino.service.FileCopyService;
 import com.github.stormino.service.ProgressBroadcastService;
+import com.github.stormino.service.link.archive.ArchiveExtractor;
+import com.github.stormino.service.link.archive.ArchiveFormats;
+import com.github.stormino.service.link.archive.ArchivePlacer;
 import com.github.stormino.util.FormatUtils;
+import com.github.stormino.util.LibraryPaths;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +22,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -35,7 +42,11 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class LinkDownloadService {
 
+    static final String UNPACKED_DIR = "unpacked";
+
     private final LinkProviderRegistry providers;
+    private final ArchiveExtractor extractor;
+    private final LinkMatchService matcher;
     private final AppProperties properties;
     private final FileCopyService fileCopyService;
     private final TaskPersistenceService persistenceService;
@@ -66,16 +77,15 @@ public class LinkDownloadService {
             control.cancel();
         }
         try {
+            Optional<ArchiveFormats.Volume> archive = ArchiveFormats.volume(meta.fileName());
+            if (archive.isPresent()) {
+                return runArchive(task, meta, archive.get(), provider, workDir, control);
+            }
             LinkFile file = new LinkFile(meta.fileUrl(), meta.fileName(), meta.size(), null);
             Path downloaded = provider.download(file, workDir, destination.getFileName().toString(),
-                    new TaskProgress(task), control);
+                    new TaskProgress(task, 0, meta.size()), control);
 
-            task.setStatus(DownloadStatus.COPYING);
-            task.setDownloadSpeed(null);
-            task.setSpeedBps(null);
-            task.setEtaSeconds(null);
-            persistenceService.updateTaskStatus(task);
-            broadcast(task);
+            enterStatus(task, DownloadStatus.COPYING);
             fileCopyService.copyWithVerification(downloaded, destination);
             deleteWorkDir(task.getId());
             return true;
@@ -96,6 +106,114 @@ public class LinkDownloadService {
             return false;
         } finally {
             running.remove(task.getId());
+        }
+    }
+
+    /**
+     * Archive: downloads every volume under its own name (the tools find the other volumes by
+     * name), unpacks, then copies the videos (and their subtitles) the {@link ArchivePlacer} picks.
+     */
+    private boolean runArchive(DownloadTask task, LinkMetadata meta, ArchiveFormats.Volume first, LinkProvider provider,
+                               Path workDir, LinkControl control) throws IOException {
+        List<LinkFile> parts = meta.parts() == null || meta.parts().isEmpty()
+                ? List.of(new LinkFile(meta.fileUrl(), meta.fileName(), meta.size(), null))
+                : meta.parts().stream().map(p -> new LinkFile(p.url(), p.fileName(), p.size(), null)).toList();
+        Long total = parts.stream().allMatch(p -> p.size() != null)
+                ? parts.stream().mapToLong(LinkFile::size).sum() : null;
+        Path firstVolume = null;
+        int firstOrder = Integer.MAX_VALUE;
+        long before = 0;
+        for (LinkFile part : parts) {
+            String name = Paths.get(part.fileName()).getFileName().toString();
+            Path path = provider.download(part, workDir, name, new TaskProgress(task, before, total), control);
+            before += part.size() != null ? part.size() : 0;
+            int order = ArchiveFormats.volume(name).map(ArchiveFormats.Volume::order).orElse(Integer.MAX_VALUE);
+            if (order < firstOrder) {
+                firstOrder = order;
+                firstVolume = path;
+            }
+        }
+
+        enterStatus(task, DownloadStatus.UNPACKING);
+        task.setProgress(0.0);
+        Path unpacked = workDir.resolve(UNPACKED_DIR);
+        extractor.extract(firstVolume, first.kind(), unpacked, pct -> {
+            task.setProgress((double) pct);
+            broadcast(task);
+        }, control);
+
+        List<ArchivePlacer.Entry> entries;
+        try (Stream<Path> walk = Files.walk(unpacked)) {
+            entries = walk.filter(Files::isRegularFile)
+                    .map(p -> new ArchivePlacer.Entry(unpacked.relativize(p), sizeOf(p)))
+                    .toList();
+        }
+        ArchivePlacer.Plan plan = ArchivePlacer.plan(entries, task.getContentType(),
+                ArchiveFormats.baseName(meta.fileName()), task.getSeason(), task.getEpisode(), destinations(task));
+        if (plan.videos() == 0) {
+            task.setErrorMessage(plan.notes().isEmpty() ? "Nothing to place from the archive"
+                    : String.join("; ", plan.notes()));
+            return false;
+        }
+
+        enterStatus(task, DownloadStatus.COPYING);
+        for (ArchivePlacer.Placement p : plan.placements()) {
+            if (control.isCancelled()) {
+                throw new LinkCancelledException("Cancelled");
+            }
+            fileCopyService.copyWithVerification(unpacked.resolve(p.source()), Paths.get(p.destination()));
+            log.info("Placed {} -> {}", p.source(), p.destination());
+        }
+        if (task.getContentType() != DownloadTask.ContentType.TV || plan.videos() == 1) {
+            plan.placements().stream().findFirst().ifPresent(p -> task.setOutputPath(p.destination()));
+        }
+        // Completed, but tell the user what was left out (shown as task details).
+        task.setErrorMessage(plan.notes().isEmpty() ? null
+                : "Placed " + plan.videos() + " video(s). " + String.join("; ", plan.notes()));
+        deleteWorkDir(task.getId());
+        return true;
+    }
+
+    /** Library paths for an archive task: the movie path, or one path per episode. */
+    private ArchivePlacer.Destinations destinations(DownloadTask task) {
+        Map<Integer, Map<Integer, String>> episodeNames = new HashMap<>();
+        return new ArchivePlacer.Destinations() {
+            @Override
+            public String movie(String extension) {
+                return LibraryPaths.withExtension(task.getOutputPath(), "x" + extension);
+            }
+
+            @Override
+            public String episode(int season, int episode, String extension) {
+                String name = null;
+                if (task.getSeason() != null && task.getEpisode() != null
+                        && task.getSeason() == season && task.getEpisode() == episode) {
+                    name = task.getEpisodeName();
+                }
+                if (name == null && task.getTmdbId() != null) {
+                    name = episodeNames.computeIfAbsent(season, s -> matcher.episodeNames(task.getTmdbId(), s))
+                            .get(episode);
+                }
+                return LibraryPaths.tvEpisode(properties.getDownload().getTvShowsPath(), task.getTitle(),
+                        task.getYear(), season, episode, name, extension);
+            }
+        };
+    }
+
+    private void enterStatus(DownloadTask task, DownloadStatus status) {
+        task.setStatus(status);
+        task.setDownloadSpeed(null);
+        task.setSpeedBps(null);
+        task.setEtaSeconds(null);
+        persistenceService.updateTaskStatus(task);
+        broadcast(task);
+    }
+
+    private static long sizeOf(Path p) {
+        try {
+            return Files.size(p);
+        } catch (IOException e) {
+            return 0;
         }
     }
 
@@ -145,13 +263,20 @@ public class LinkDownloadService {
     /** Copies provider progress onto the task (link tasks have no sub-tasks). */
     private final class TaskProgress implements LinkProgress {
         private final DownloadTask task;
+        /** Bytes of earlier archive volumes, and the size of all volumes (null: per-file size). */
+        private final long offset;
+        private final Long overallTotal;
 
-        TaskProgress(DownloadTask task) {
+        TaskProgress(DownloadTask task, long offset, Long overallTotal) {
             this.task = task;
+            this.offset = offset;
+            this.overallTotal = overallTotal;
         }
 
         @Override
-        public void update(long bytesDone, long totalBytes, double bytesPerSecond) {
+        public void update(long fileDone, long fileTotal, double bytesPerSecond) {
+            long bytesDone = offset + fileDone;
+            long totalBytes = overallTotal != null && overallTotal > 0 ? overallTotal : fileTotal;
             task.setDownloadedBytes(bytesDone);
             if (totalBytes > 0) {
                 task.setTotalBytes(totalBytes);

@@ -45,7 +45,12 @@ public class DownloadStateMachine {
 
         // DOWNLOADING can transition to: MERGING, COMPLETED, FAILED, CANCELLED
         validTransitions.put(DownloadStatus.DOWNLOADING,
-            EnumSet.of(DownloadStatus.MERGING, DownloadStatus.COMPLETED, DownloadStatus.FAILED, DownloadStatus.CANCELLED));
+            EnumSet.of(DownloadStatus.MERGING, DownloadStatus.UNPACKING, DownloadStatus.COMPLETED,
+                    DownloadStatus.FAILED, DownloadStatus.CANCELLED));
+
+        // UNPACKING (link archives) can transition to: COMPLETED, FAILED, CANCELLED
+        validTransitions.put(DownloadStatus.UNPACKING,
+            EnumSet.of(DownloadStatus.COMPLETED, DownloadStatus.FAILED, DownloadStatus.CANCELLED));
 
         // MERGING can transition to: COMPLETED, FAILED, CANCELLED
         validTransitions.put(DownloadStatus.MERGING,

@@ -44,15 +44,15 @@ class SystemApiIT extends AbstractApiIT {
     }
 
     @Test
-    @DisplayName("POST /system/tools/check probes ffmpeg")
+    @DisplayName("POST /system/tools/check probes ffmpeg, 7zip and unrar")
     void toolsCheck() {
         ResponseEntity<List<ToolCheckDto>> resp = rest.exchange("/api/v1/system/tools/check", HttpMethod.POST, null,
                 new ParameterizedTypeReference<>() {});
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resp.getBody()).singleElement().satisfies(t -> {
-            assertThat(t.tool()).isEqualTo("ffmpeg");
+        assertThat(resp.getBody()).extracting(ToolCheckDto::tool).containsExactly("ffmpeg", "7zip", "unrar");
+        assertThat(resp.getBody()).allSatisfy(t -> {
             if (t.available()) {
-                assertThat(t.version()).containsIgnoringCase("ffmpeg");
+                assertThat(t.version()).isNotBlank();
             } else {
                 assertThat(t.error()).isNotBlank();
             }

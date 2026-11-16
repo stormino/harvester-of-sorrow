@@ -4,6 +4,8 @@ public enum DownloadStatus {
     QUEUED("Queued"),
     EXTRACTING("Extracting URL"),
     DOWNLOADING("Downloading"),
+    /** Link downloads: unpacking a downloaded archive. */
+    UNPACKING("Unpacking archive"),
     MERGING("Merging tracks"),
     COPYING("Copying to destination"),
     COMPLETED("Completed"),

@@ -24,11 +24,13 @@ LABEL org.opencontainers.image.source="https://github.com/stormino/harvester-of-
 LABEL org.opencontainers.image.description="Harvester of Sorrow (HOS) - Multi-source video downloader"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Install ffmpeg and wget (for healthcheck)
+# Install ffmpeg, rsync (copies), 7zip + unrar (archives from links) and wget (for healthcheck)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
     rsync \
+    7zip \
+    unrar \
     wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

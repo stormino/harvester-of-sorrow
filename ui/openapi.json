@@ -146,8 +146,8 @@
                 "tags": [
                     "System"
                 ],
-                "summary": "Check that ffmpeg is installed",
-                "description": "Runs `ffmpeg -version`.",
+                "summary": "Check that the external tools are installed",
+                "description": "ffmpeg (HLS downloads), 7zip and unrar (unpacking archives from links).",
                 "operationId": "checkTools",
                 "responses": {
                     "200": {
@@ -1161,7 +1161,8 @@
                             "COMPLETED",
                             "FAILED",
                             "CANCELLED",
-                            "NOT_FOUND"
+                            "NOT_FOUND",
+                            "UNPACKING"
                         ]
                     },
                     "progress": {
@@ -1283,7 +1284,8 @@
                             "COMPLETED",
                             "FAILED",
                             "CANCELLED",
-                            "NOT_FOUND"
+                            "NOT_FOUND",
+                            "UNPACKING"
                         ]
                     },
                     "progress": {
@@ -1760,7 +1762,9 @@
                     "folders",
                     "guess",
                     "url",
-                    "video"
+                    "video",
+                    "archive",
+                    "parts"
                 ],
                 "type": "object",
                 "properties": {
@@ -1773,7 +1777,8 @@
                     },
                     "size": {
                         "type": "integer",
-                        "format": "int64"
+                        "format": "int64",
+                        "description": "Bytes; all parts together for multi-part archives"
                     },
                     "folders": {
                         "type": "array",
@@ -1787,9 +1792,20 @@
                     },
                     "guess": {
                         "$ref": "#/components/schemas/LinkGuessDto"
+                    },
+                    "archive": {
+                        "type": "boolean",
+                        "description": "Unpacked after download"
+                    },
+                    "parts": {
+                        "type": "array",
+                        "description": "Volumes of a multi-part archive (first one included); empty otherwise; pass back when queueing",
+                        "items": {
+                            "$ref": "#/components/schemas/LinkPartDto"
+                        }
                     }
                 },
-                "description": "One downloadable file of a link"
+                "description": "One downloadable file of a link (a multi-part archive counts as one, with its parts)"
             },
             "LinkGuessDto": {
                 "required": [
@@ -1969,15 +1985,24 @@
                     },
                     "season": {
                         "type": "integer",
-                        "format": "int32"
+                        "format": "int32",
+                        "description": "TV: required, except for archives (season packs), where it is the fallback season"
                     },
                     "episode": {
                         "type": "integer",
-                        "format": "int32"
+                        "format": "int32",
+                        "description": "TV: required, except for archives (episodes are read from the names inside)"
                     },
                     "episodeName": {
                         "type": "string",
                         "description": "Filled from TMDB when omitted and tmdbId is set"
+                    },
+                    "parts": {
+                        "type": "array",
+                        "description": "LinkFile.parts of a multi-part archive",
+                        "items": {
+                            "$ref": "#/components/schemas/LinkPartDto"
+                        }
                     }
                 },
                 "description": "One file and what it is"
@@ -2048,6 +2073,28 @@
                     }
                 },
                 "description": "A link download provider and whether it can start downloads now"
+            },
+            "LinkPartDto": {
+                "type": "object",
+                "description": "One volume of a multi-part archive",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "fileName": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "required": [
+                    "fileName",
+                    "url"
+                ]
             }
         }
     }

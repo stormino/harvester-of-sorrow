@@ -108,7 +108,7 @@ export function SettingsScreen() {
               <div className={`${s.toolHead} ${t.available ? s.toolOk : s.toolBad}`}>
                 {t.tool} {t.available ? 'available' : 'not found'}
               </div>
-              <p className={s.toolMsg}>{t.available ? t.version : (t.error ?? 'Please install ffmpeg.')}</p>
+              <p className={s.toolMsg}>{t.available ? t.version : (t.error ?? `Please install ${t.tool}.`)}</p>
             </div>
           </div>
         ))}

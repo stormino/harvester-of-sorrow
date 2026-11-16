@@ -36,8 +36,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Check that ffmpeg is installed
-         * @description Runs `ffmpeg -version`.
+         * Check that the external tools are installed
+         * @description ffmpeg (HLS downloads), 7zip and unrar (unpacking archives from links).
          */
         post: operations["checkTools"];
         delete?: never;
@@ -515,7 +515,7 @@ export interface components {
             displayName: string;
             resolution?: string;
             /** @enum {string} */
-            status: "QUEUED" | "EXTRACTING" | "DOWNLOADING" | "MERGING" | "COPYING" | "COMPLETED" | "FAILED" | "CANCELLED" | "NOT_FOUND";
+            status: "QUEUED" | "EXTRACTING" | "DOWNLOADING" | "MERGING" | "COPYING" | "COMPLETED" | "FAILED" | "CANCELLED" | "NOT_FOUND" | "UNPACKING";
             /**
              * Format: double
              * @description 0-100
@@ -561,7 +561,7 @@ export interface components {
             quality?: string;
             outputPath?: string;
             /** @enum {string} */
-            status: "QUEUED" | "EXTRACTING" | "DOWNLOADING" | "MERGING" | "COPYING" | "COMPLETED" | "FAILED" | "CANCELLED" | "NOT_FOUND";
+            status: "QUEUED" | "EXTRACTING" | "DOWNLOADING" | "MERGING" | "COPYING" | "COMPLETED" | "FAILED" | "CANCELLED" | "NOT_FOUND" | "UNPACKING";
             /**
              * Format: double
              * @description 0-100
@@ -754,17 +754,24 @@ export interface components {
              */
             provider?: string;
         };
-        /** @description One downloadable file of a link */
+        /** @description One downloadable file of a link (a multi-part archive counts as one, with its parts) */
         LinkFileDto: {
             /** @description Pass back unchanged when queueing */
             url: string;
             fileName: string;
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Bytes; all parts together for multi-part archives
+             */
             size?: number;
             /** @description Folders above the file inside a shared folder */
             folders: string[];
             video: boolean;
             guess: components["schemas"]["LinkGuessDto"];
+            /** @description Unpacked after download */
+            archive: boolean;
+            /** @description Volumes of a multi-part archive (first one included); empty otherwise; pass back when queueing */
+            parts: components["schemas"]["LinkPartDto"][];
         };
         /** @description What a file name looks like (a guess to confirm) */
         LinkGuessDto: {
@@ -831,12 +838,20 @@ export interface components {
             title: string;
             /** Format: int32 */
             year?: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description TV: required, except for archives (season packs), where it is the fallback season
+             */
             season?: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description TV: required, except for archives (episodes are read from the names inside)
+             */
             episode?: number;
             /** @description Filled from TMDB when omitted and tmdbId is set */
             episodeName?: string;
+            /** @description LinkFile.parts of a multi-part archive */
+            parts?: components["schemas"]["LinkPartDto"][];
         };
         /** @description Queue files of a resolved link, each with the identity the user confirmed */
         LinkDownloadRequest: {
@@ -859,6 +874,13 @@ export interface components {
             done?: number;
             /** Format: int32 */
             total?: number;
+        };
+        /** @description One volume of a multi-part archive */
+        LinkPartDto: {
+            url: string;
+            fileName: string;
+            /** Format: int64 */
+            size?: number;
         };
     };
     responses: never;
