@@ -30,7 +30,7 @@ public record TaskDto(
         @Schema(description = "Bytes per second") Double speedBps,
         Long etaSeconds,
         String errorMessage,
-        @Schema(description = "What a queued task is waiting for (e.g. a link provider warming up)") String statusMessage,
+        @Schema(description = "What a queued or downloading task is waiting for (a link provider warming up, an XDCC bot queue, ...)") String statusMessage,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant createdAt,
         Instant startedAt,
         Instant completedAt,

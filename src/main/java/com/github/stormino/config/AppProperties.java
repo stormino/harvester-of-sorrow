@@ -95,6 +95,7 @@ public class AppProperties {
     public static class Link {
         private Mega mega = new Mega();
         private Http http = new Http();
+        private Xdcc xdcc = new Xdcc();
 
         @Data
         public static class Mega {
@@ -122,6 +123,41 @@ public class AppProperties {
             private boolean enabled = true;
             @Min(1)
             private int maxConcurrent = 3;
+        }
+
+        /** XDCC over IRC, searched through the PW Search Engine pack lists. */
+        @Data
+        public static class Xdcc {
+            private boolean enabled = true;
+            /** PW Search Engine server (networks, channels, pack database). */
+            private String pwBaseUrl = "http://www.pw-search-engine.wklm.it:8282";
+            /**
+             * Version sent as "HoS/<version>" after the browser User-Agent, as agreed with the PW
+             * Search Engine authors. Empty: this HoS version.
+             */
+            private String userAgentVersion = "";
+            /** Nick prefix; a random number is appended (HoS-12345). */
+            private String nickPrefix = "HoS-";
+            /** XDCC files downloaded at the same time (bots usually give 1-2 slots per user). */
+            @Min(1)
+            private int maxConcurrent = 2;
+            /** Seconds to wait for the bot to answer a request (offer or queue notice). */
+            @Min(10)
+            private int botReplyTimeoutSeconds = 120;
+            /** Minutes a request may wait in a bot's queue before giving up. */
+            @Min(1)
+            private int queueTimeoutMinutes = 360;
+            /** Close an IRC connection after this many idle minutes. */
+            @Min(1)
+            private int idleDisconnectMinutes = 10;
+            /** Per list page, when searching. */
+            @Min(1)
+            private int searchTimeoutSeconds = 10;
+            /** Local copy of the pack database, used when the server cannot be reached. */
+            private String databaseCacheFile = "data/pw-database.db";
+            /** Re-download the pack database after this many hours. */
+            @Min(1)
+            private int databaseRefreshHours = 24;
         }
     }
 }

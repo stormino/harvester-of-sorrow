@@ -106,6 +106,7 @@ public class LinkDownloadService {
             return false;
         } finally {
             running.remove(task.getId());
+            task.setStatusMessage(null);
         }
     }
 
@@ -202,6 +203,7 @@ public class LinkDownloadService {
 
     private void enterStatus(DownloadTask task, DownloadStatus status) {
         task.setStatus(status);
+        task.setStatusMessage(null);
         task.setDownloadSpeed(null);
         task.setSpeedBps(null);
         task.setEtaSeconds(null);
@@ -285,7 +287,18 @@ public class LinkDownloadService {
             }
             task.setDownloadSpeed(bytesPerSecond > 0 ? FormatUtils.formatSpeed(bytesPerSecond) : null);
             task.setSpeedBps(bytesPerSecond > 0 ? bytesPerSecond : null);
+            if (fileDone > 0 && task.getStatusMessage() != null) {
+                task.setStatusMessage(null); // bytes flowing: whatever we were waiting for is over
+            }
             broadcast(task);
+        }
+
+        @Override
+        public void status(String message) {
+            if (!java.util.Objects.equals(message, task.getStatusMessage())) {
+                task.setStatusMessage(message);
+                broadcast(task);
+            }
         }
     }
 }

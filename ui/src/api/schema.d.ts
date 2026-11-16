@@ -268,7 +268,7 @@ export interface paths {
          * Search movies and TV shows
          * @description Searches every enabled source in parallel. VixSrc results are filtered by real availability.
          */
-        get: operations["search"];
+        get: operations["search_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -408,6 +408,63 @@ export interface paths {
         };
         /** Link providers and their readiness */
         get: operations["providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/links/resolve-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inspect several links as one group
+         * @description Like POST /links/resolve for a list of links of the same provider (e.g. XDCC packs picked from a search), returned as one folder-like resolution.
+         */
+        post: operations["resolveBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/xdcc/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether XDCC search is available */
+        get: operations["status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/xdcc/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search packs by file name
+         * @description Queries every pack list of the PW Search Engine database. Pass the chosen packs' `url`s to POST /links/resolve-batch, then queue them with POST /links/downloads.
+         */
+        get: operations["search"];
         put?: never;
         post?: never;
         delete?: never;
@@ -590,7 +647,7 @@ export interface components {
             /** @description Whether POST /retry is allowed */
             canRetry: boolean;
             subTasks: components["schemas"]["SubTaskDto"][];
-            /** @description What a queued task is waiting for (e.g. a link provider warming up) */
+            /** @description What a queued or downloading task is waiting for (a link provider warming up, an XDCC bot queue, ...) */
             statusMessage?: string;
         };
         /** @description Which show (and optionally which season) to list episodes for */
@@ -881,6 +938,58 @@ export interface components {
             fileName: string;
             /** Format: int64 */
             size?: number;
+        };
+        /** @description Several links of one provider to queue together (e.g. XDCC packs picked from a search) */
+        ResolveLinksRequest: {
+            urls: string[];
+            /** @description Name shown for the group, e.g. the search words */
+            name?: string;
+        };
+        /** @description Whether XDCC search can run (the PW Search Engine pack database) */
+        XdccStatusDto: {
+            available: boolean;
+            /** @description Why search is unavailable */
+            message?: string;
+            /** Format: int32 */
+            networks: number;
+            /** Format: int32 */
+            lists: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** @description Sent to the PW Search Engine and list pages */
+            userAgent: string;
+        };
+        /** @description One XDCC pack found by a search */
+        XdccPackDto: {
+            network: string;
+            channel: string;
+            bot: string;
+            /** Format: int32 */
+            pack: number;
+            /** @description As listed (e.g. 1.4G) */
+            size: string;
+            /**
+             * Format: int64
+             * @description Approximate bytes
+             */
+            sizeBytes?: number;
+            fileName: string;
+            /** @description xdcc:// link; pass to POST /links/resolve-batch */
+            url: string;
+        };
+        /** @description XDCC search results */
+        XdccSearchDto: {
+            packs: components["schemas"]["XdccPackDto"][];
+            /**
+             * Format: int32
+             * @description Pack lists searched
+             */
+            lists: number;
+            /**
+             * Format: int32
+             * @description Pack lists that did not answer
+             */
+            failedLists: number;
         };
     };
     responses: never;
@@ -1326,7 +1435,7 @@ export interface operations {
             };
         };
     };
-    search: {
+    search_1: {
         parameters: {
             query: {
                 /**
@@ -1514,6 +1623,72 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LinkProviderDto"][];
+                };
+            };
+        };
+    };
+    resolveBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveLinksRequest"];
+            };
+        };
+        responses: {
+            /** @description Unsupported links, or links of different providers */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LinkResolutionDto"];
+                };
+            };
+        };
+    };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["XdccStatusDto"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                query: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["XdccSearchDto"];
                 };
             };
         };

@@ -12,4 +12,11 @@ public interface LinkProgress {
      * @param bytesPerSecond current speed
      */
     void update(long bytesDone, long totalBytes, double bytesPerSecond);
+
+    /**
+     * What the download is doing while no bytes flow (e.g. "Queued by bot: position 3");
+     * {@code null} clears it.
+     */
+    default void status(String message) {
+    }
 }

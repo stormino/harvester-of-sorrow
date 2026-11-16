@@ -29,5 +29,8 @@ export type LinkGuess = S['LinkGuessDto'];
 export type TmdbMatch = S['TmdbMatchDto'];
 export type LinkDownloadRequest = S['LinkDownloadRequest'];
 export type LinkDownloadItem = S['LinkDownloadItem'];
+export type XdccStatus = S['XdccStatusDto'];
+export type XdccSearch = S['XdccSearchDto'];
+export type XdccPack = S['XdccPackDto'];
 
 export type SearchType = 'MOVIES' | 'TV' | 'BOTH';

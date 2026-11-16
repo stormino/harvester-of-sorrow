@@ -3,7 +3,8 @@ import { NavLink, Outlet, useLocation } from 'react-router';
 import { tightestDisk, useSystem } from '../api/queries';
 import { Button } from '../components/Button';
 import {
-  CloseIcon, DiskIcon, DownloadIcon, LibraryIcon, MenuIcon, MoonIcon, ScytheLogo, SearchIcon, SettingsIcon, SunIcon,
+  AntennaIcon, CloseIcon, DiskIcon, DownloadIcon, LibraryIcon, MenuIcon, MoonIcon, ScytheLogo, SearchIcon, SettingsIcon,
+  SunIcon,
 } from '../components/Icons';
 import { NavItem, NavSection } from '../components/NavItem';
 import { ConnectionPill } from '../components/StatusBadge';
@@ -16,6 +17,7 @@ import s from './Shell.module.css';
 
 const NAV: { to: string; label: string; icon: (size: number) => ReactNode; testId: string }[] = [
   { to: '/', label: 'Search', icon: (n) => <SearchIcon size={n} />, testId: 'nav-search' },
+  { to: '/xdcc', label: 'XDCC', icon: (n) => <AntennaIcon size={n} />, testId: 'nav-xdcc' },
   { to: '/downloads', label: 'Downloads', icon: (n) => <DownloadIcon size={n} />, testId: 'nav-downloads' },
   { to: '/library', label: 'Library', icon: (n) => <LibraryIcon size={n} />, testId: 'nav-library' },
   { to: '/settings', label: 'Settings', icon: (n) => <SettingsIcon size={n} />, testId: 'nav-settings' },

@@ -10,6 +10,7 @@ import com.github.stormino.api.dto.link.LinkPartDto;
 import com.github.stormino.api.dto.link.LinkProviderDto;
 import com.github.stormino.api.dto.link.LinkResolutionDto;
 import com.github.stormino.api.dto.link.ResolveLinkRequest;
+import com.github.stormino.api.dto.link.ResolveLinksRequest;
 import com.github.stormino.api.dto.link.TmdbMatchDto;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadTask;
@@ -83,6 +84,37 @@ public class LinksController {
         if (resolution.files().isEmpty()) {
             throw ApiException.badRequest("The link contains no files");
         }
+        return describe(provider, resolution);
+    }
+
+    @Operation(summary = "Inspect several links as one group",
+            description = "Like POST /links/resolve for a list of links of the same provider (e.g. XDCC packs "
+                    + "picked from a search), returned as one folder-like resolution.")
+    @ApiResponse(responseCode = "400", description = "Unsupported links, or links of different providers")
+    @PostMapping("/resolve-batch")
+    public LinkResolutionDto resolveBatch(@Valid @RequestBody ResolveLinksRequest req) {
+        LinkProvider provider = null;
+        List<LinkFile> files = new ArrayList<>();
+        try {
+            for (String raw : req.urls()) {
+                String url = raw.strip();
+                LinkProvider p = providers.select(url, null);
+                if (provider != null && !provider.id().equals(p.id())) {
+                    throw ApiException.badRequest("All links must use the same provider");
+                }
+                provider = p;
+                files.addAll(p.resolve(url).files());
+            }
+        } catch (LinkException e) {
+            throw ApiException.badRequest(e.getMessage());
+        }
+        String name = req.name() != null && !req.name().isBlank() ? req.name().strip()
+                : files.size() == 1 ? files.get(0).fileName() : files.size() + " files";
+        return describe(provider, new LinkResolution(provider.id(), req.urls().get(0), files.size() > 1, name, files, 0));
+    }
+
+    /** Files (archive volumes folded), guesses and TMDB candidates; also starts the provider's preparation. */
+    private LinkResolutionDto describe(LinkProvider provider, LinkResolution resolution) {
         provider.prepare();
 
         List<LinkFileDto> files = groupArchiveVolumes(resolution.files()).stream()

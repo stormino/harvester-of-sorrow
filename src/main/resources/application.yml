@@ -29,6 +29,12 @@ hos:
     http:
       enabled: ${LINK_HTTP_ENABLED:true}
       max-concurrent: ${LINK_HTTP_MAX_CONCURRENT:3}
+    xdcc:
+      enabled: ${XDCC_ENABLED:true}
+      pw-base-url: ${XDCC_PW_BASE_URL:http://www.pw-search-engine.wklm.it:8282}
+      # Sent as "<browser User-Agent> HoS/<version>" (agreed with the PW Search Engine authors); empty = this version
+      user-agent-version: ${XDCC_USER_AGENT_VERSION:}
+      max-concurrent: ${XDCC_MAX_CONCURRENT:2}
 
 raiplay:
   base-url: https://www.raiplay.it

@@ -17,6 +17,8 @@ import s from './LinkDialog.module.css';
 interface Props {
   /** Link to inspect right away (e.g. pasted in the search box). */
   initialUrl?: string;
+  /** Already resolved links (e.g. XDCC packs picked from a search): no link field. */
+  resolved?: LinkResolution;
   onClose: () => void;
 }
 
@@ -35,7 +37,7 @@ export function looksLikeLink(text: string): boolean {
   return /^https?:\/\/\S+$/i.test(text.trim());
 }
 
-export function LinkDialog({ initialUrl, onClose }: Props) {
+export function LinkDialog({ initialUrl, resolved, onClose }: Props) {
   const { toast, dismiss } = useToast();
   const { upsert } = useTaskStream();
   const providers = useLinkProviders();
@@ -61,32 +63,33 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
     if (!link) return;
     setResolving(true);
     setError(null);
-    api.resolveLink(link, forced).then(
-      (r) => {
-        setRes(r);
-        setType(r.guess.contentType);
-        setMatches(r.matches);
-        setMatchId(r.matches[0]?.tmdbId ?? MANUAL);
-        setQuery(r.guess.title);
-        setManualTitle(r.guess.title);
-        setManualYear(r.guess.year ? String(r.guess.year) : '');
-        const media = r.files.filter((f) => f.video || f.archive);
-        const largest = [...(media.length ? media : r.files)].sort((a, b) => (b.size ?? 0) - (a.size ?? 0))[0];
-        setMovieFile(largest?.url ?? '');
-        setRows(Object.fromEntries(r.files.map((f) => [f.url, {
-          selected: f.video || f.archive || r.files.length === 1,
-          season: f.guess.season != null ? String(f.guess.season) : (r.guess.season != null ? String(r.guess.season) : ''),
-          episode: f.guess.episode != null ? String(f.guess.episode) : '',
-        }])));
-        void providers.refetch();
-      },
-      (e: Error) => setError(e.message),
-    ).finally(() => setResolving(false));
+    api.resolveLink(link, forced).then(apply, (e: Error) => setError(e.message))
+      .finally(() => setResolving(false));
   };
 
-  // Resolve a link handed over by the search box once, on open.
+  function apply(r: LinkResolution) {
+    setRes(r);
+    setType(r.guess.contentType);
+    setMatches(r.matches);
+    setMatchId(r.matches[0]?.tmdbId ?? MANUAL);
+    setQuery(r.guess.title);
+    setManualTitle(r.guess.title);
+    setManualYear(r.guess.year ? String(r.guess.year) : '');
+    const media = r.files.filter((f) => f.video || f.archive);
+    const largest = [...(media.length ? media : r.files)].sort((a, b) => (b.size ?? 0) - (a.size ?? 0))[0];
+    setMovieFile(largest?.url ?? '');
+    setRows(Object.fromEntries(r.files.map((f) => [f.url, {
+      selected: f.video || f.archive || r.files.length === 1,
+      season: f.guess.season != null ? String(f.guess.season) : (r.guess.season != null ? String(r.guess.season) : ''),
+      episode: f.guess.episode != null ? String(f.guess.episode) : '',
+    }])));
+    void providers.refetch();
+  }
+
+  // Resolve a link handed over by the search box once, on open (or take the given resolution).
   useEffect(() => {
-    if (initialUrl) resolve(initialUrl, '');
+    if (resolved) apply(resolved);
+    else if (initialUrl) resolve(initialUrl, '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -164,7 +167,7 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
     setRows((r) => ({ ...r, [key]: { ...r[key], ...patch } }));
 
   return (
-    <Dialog open title="Download from link" onClose={onClose} width={640} testId="link-dialog"
+    <Dialog open title={resolved ? `Download from ${resolved.providerName}` : 'Download from link'} onClose={onClose} width={640} testId="link-dialog"
       footer={
         <>
           <Button variant="outline" size="lg" onClick={onClose}>Cancel</Button>
@@ -177,7 +180,7 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
         </>
       }>
       <div className={dd.form}>
-        <div>
+        {!resolved && <div>
           <div className={dd.label}>Link</div>
           <div className={s.urlRow}>
             <TextField id="link-url" className={s.grow} value={url} placeholder="https://mega.nz/file/... or https://.../movie.mkv"
@@ -197,7 +200,7 @@ export function LinkDialog({ initialUrl, onClose }: Props) {
           </div>
           {resolving && <div className={s.note}>Inspecting link...</div>}
           {error && <div className={dd.error} role="alert">{error}</div>}
-        </div>
+        </div>}
 
         {res && (
           <>

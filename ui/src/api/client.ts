@@ -1,6 +1,6 @@
 import type {
   CheckResult, ClearResult, ContentType, DownloadRequest, Episode, LibraryEntry, LinkDownloadRequest,
-  LinkProvider, LinkResolution, MonitoredShow, TmdbMatch,
+  LinkProvider, LinkResolution, MonitoredShow, TmdbMatch, XdccSearch, XdccStatus,
   MonitoredShowRequest, SearchResult, SearchType, Settings, Source, SourcesInfo,
   SystemInfo, Task, ToolCheck,
 } from './types';
@@ -72,6 +72,11 @@ export const api = {
   linkTmdb: (query: string, type: ContentType, year?: number) =>
     request<TmdbMatch[]>('GET', `/links/tmdb?query=${enc(query)}&type=${type}${year ? `&year=${year}` : ''}`),
   createLinkDownload: (req: LinkDownloadRequest) => request<Task[]>('POST', '/links/downloads', req),
+  resolveLinks: (urls: string[], name?: string) =>
+    request<LinkResolution>('POST', '/links/resolve-batch', { urls, name: name || undefined }),
+
+  xdccStatus: () => request<XdccStatus>('GET', '/xdcc/status'),
+  xdccSearch: (query: string) => request<XdccSearch>('GET', `/xdcc/search?query=${enc(query)}`),
 
   system: () => request<SystemInfo>('GET', '/system'),
   settings: () => request<Settings>('GET', '/settings'),
