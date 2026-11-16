@@ -9,7 +9,6 @@ import io.github.stormino.megatron.download.DownloadControl;
 import io.github.stormino.megatron.download.DownloadListener;
 import io.github.stormino.megatron.download.DownloadResult;
 import io.github.stormino.megatron.download.DownloadSettings;
-import io.github.stormino.megatron.proxy.PoolRefresher;
 import io.github.stormino.megatron.proxy.ProxyCache;
 import io.github.stormino.megatron.proxy.ProxyInfo;
 import jakarta.annotation.PreDestroy;
@@ -46,13 +45,6 @@ public class MegaLinkProvider implements LinkProvider {
 
     public static final String ID = "mega";
     private static final Duration STATUS_EVENT_INTERVAL = Duration.ofSeconds(2);
-    /**
-     * Free proxy pools hold tens of proxies, not hundreds: refill only when it gets really thin
-     * (at most every 10 minutes), and otherwise top it up every 6 hours. megatron's defaults
-     * (refill below 80) would re-scrape thousands of proxies every few minutes.
-     */
-    static final PoolRefresher.Settings REFRESHER = new PoolRefresher.Settings(
-            Duration.ofMinutes(1), 8, 20, Duration.ofMinutes(10), Duration.ofHours(6));
 
     private final AppProperties.Link.Mega config;
     private final ApplicationEventPublisher events;
@@ -79,8 +71,7 @@ public class MegaLinkProvider implements LinkProvider {
                         .connectionsPerFile(config.getConnections())
                         .resolveViaProxy(false)
                         .build())
-                .validationProgress(this::onValidationProgress)
-                .refresher(REFRESHER);
+                .validationProgress(this::onValidationProgress);
         if (config.getCacheFile() != null && !config.getCacheFile().isBlank()) {
             builder.cacheFile(Path.of(config.getCacheFile()));
         }

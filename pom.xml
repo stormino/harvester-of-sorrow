@@ -21,7 +21,7 @@
     <properties>
         <java.version>21</java.version>
         <okhttp.version>5.5.1</okhttp.version>
-        <megatron.version>0.2.1-SNAPSHOT</megatron.version>
+        <megatron.version>1.0.0</megatron.version>
         <!-- OkHttp 5 needs Kotlin stdlib 2.x; Spring Boot's BOM would pin 1.9. -->
         <kotlin.version>2.1.21</kotlin.version>
         <jsoup.version>1.17.2</jsoup.version>
