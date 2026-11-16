@@ -23,10 +23,11 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Harvester of Sorrow API")
                         .description("""
-                                REST API for Harvester of Sorrow — a video downloader supporting VixSrc and RaiPlay sources.
+                                REST API for Harvester of Sorrow — a video downloader supporting VixSrc and RaiPlay sources and direct links (Mega, HTTP).
 
                                 **Key features:**
                                 - Search movies and TV shows across multiple sources
+                                - Download from a link: Mega files and folders, direct HTTP files
                                 - Queue, monitor, cancel and retry downloads
                                 - Real-time progress updates via Server-Sent Events
                                 - TV show library scanning and automatic episode monitoring

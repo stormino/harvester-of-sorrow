@@ -50,9 +50,11 @@ public final class TaskMapper {
                 progress,
                 downloaded,
                 t.getAggregatedTotalBytes(),
-                running && status == DownloadStatus.DOWNLOADING ? speed(downloaded, t.getStartedAt()) : null,
+                running && status == DownloadStatus.DOWNLOADING
+                        ? (t.getSpeedBps() != null ? t.getSpeedBps() : speed(downloaded, t.getStartedAt())) : null,
                 running ? t.getAggregatedEtaSeconds() : null,
                 t.getErrorMessage(),
+                t.getStatus() == DownloadStatus.QUEUED ? t.getStatusMessage() : null,
                 toInstant(t.getCreatedAt()),
                 toInstant(t.getStartedAt()),
                 toInstant(t.getCompletedAt()),

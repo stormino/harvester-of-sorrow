@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../api/client';
-import { useSettings, useSystem } from '../api/queries';
+import { useLinkProviders, useSettings, useSystem } from '../api/queries';
 import type { ToolCheck } from '../api/types';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
@@ -78,6 +78,8 @@ export function SettingsScreen() {
         </>
       )}
 
+      <LinkProvidersPanel />
+
       <section className={s.panel} aria-labelledby="sys-h">
         <h3 id="sys-h" className={s.h3}>System Information</h3>
         {sys && (
@@ -112,6 +114,28 @@ export function SettingsScreen() {
         ))}
       </Dialog>
     </div>
+  );
+}
+
+const PROVIDER_STATE: Record<string, string> = {
+  READY: 'ready', IDLE: 'idle (warms up on the first link)', WARMING_UP: 'warming up', ERROR: 'error',
+};
+
+function LinkProvidersPanel() {
+  const { data: providers } = useLinkProviders();
+  if (!providers || providers.length === 0) return null;
+  return (
+    <section className={s.panel} aria-labelledby="links-h">
+      <h3 id="links-h" className={s.h3}>Link Downloads</h3>
+      <div className={s.sys}>
+        {providers.map((p) => (
+          <Row key={p.id} k={p.name}
+            v={<span data-testid="link-provider" data-provider={p.id} data-state={p.state}>
+              {PROVIDER_STATE[p.state] ?? p.state}{p.message ? ` — ${p.message}` : ''}
+            </span>} />
+        ))}
+      </div>
+    </section>
   );
 }
 

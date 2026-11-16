@@ -1,7 +1,7 @@
 import type { Source } from '../api/types';
 import s from './Badge.module.css';
 
-const SOURCE_LABEL: Record<Source, string> = { VIXSRC: 'VixSrc', RAIPLAY: 'RaiPlay' };
+const SOURCE_LABEL: Record<Source, string> = { VIXSRC: 'VixSrc', RAIPLAY: 'RaiPlay', LINK: 'Link' };
 
 export function sourceLabel(src: Source): string {
   return SOURCE_LABEL[src] ?? src;

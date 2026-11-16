@@ -1,5 +1,6 @@
 import type {
-  CheckResult, ClearResult, DownloadRequest, Episode, LibraryEntry, MonitoredShow,
+  CheckResult, ClearResult, ContentType, DownloadRequest, Episode, LibraryEntry, LinkDownloadRequest,
+  LinkProvider, LinkResolution, MonitoredShow, TmdbMatch,
   MonitoredShowRequest, SearchResult, SearchType, Settings, Source, SourcesInfo,
   SystemInfo, Task, ToolCheck,
 } from './types';
@@ -64,6 +65,13 @@ export const api = {
   setMonitoring: (id: string, enabled: boolean) =>
     request<MonitoredShow>('POST', `/library/monitored/${enc(id)}/${enabled ? 'enable' : 'disable'}`),
   checkNow: (id: string) => request<CheckResult>('POST', `/library/monitored/${enc(id)}/check`),
+
+  linkProviders: () => request<LinkProvider[]>('GET', '/links/providers'),
+  resolveLink: (url: string, provider?: string) =>
+    request<LinkResolution>('POST', '/links/resolve', { url, provider: provider || undefined }),
+  linkTmdb: (query: string, type: ContentType, year?: number) =>
+    request<TmdbMatch[]>('GET', `/links/tmdb?query=${enc(query)}&type=${type}${year ? `&year=${year}` : ''}`),
+  createLinkDownload: (req: LinkDownloadRequest) => request<Task[]>('POST', '/links/downloads', req),
 
   system: () => request<SystemInfo>('GET', '/system'),
   settings: () => request<Settings>('GET', '/settings'),

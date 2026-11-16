@@ -27,6 +27,12 @@
 .speedOn { color: var(--brand); }
 .speedOff { color: var(--text-dim); }
 .titleCell { padding: 11px 12px; display: flex; align-items: center; gap: 9px; min-width: 0; }
+.nameCol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.waiting {
+  font-size: 11.5px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 4px;
+}
+.nameCol .waiting { margin-top: 0; }
 .name { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chevron {
   flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 5px;

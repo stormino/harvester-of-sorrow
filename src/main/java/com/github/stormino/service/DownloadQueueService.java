@@ -9,6 +9,14 @@ import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ProgressUpdate;
 import com.github.stormino.model.source.VixSrcMetadata;
 import com.github.stormino.persistence.TaskPersistenceService;
+import com.github.stormino.model.source.LinkMetadata;
+import com.github.stormino.service.link.LinkDownloadService;
+import com.github.stormino.service.link.LinkProvider;
+import com.github.stormino.service.link.LinkProviderReadyEvent;
+import com.github.stormino.service.link.LinkProviderRegistry;
+import com.github.stormino.service.link.LinkProviderStatusEvent;
+import com.github.stormino.service.link.LinkTaskSpec;
+import com.github.stormino.service.link.ProviderStatus;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
@@ -38,6 +46,8 @@ public class DownloadQueueService {
     private final ProgressBroadcastService progressBroadcast;
     private final AppProperties properties;
     private final TaskPersistenceService persistenceService;
+    private final LinkProviderRegistry linkProviders;
+    private final LinkDownloadService linkDownloadService;
 
     @Lazy
     @Autowired
@@ -52,7 +62,9 @@ public class DownloadQueueService {
                                 TrackDownloadOrchestrator trackOrchestrator,
                                 ProgressBroadcastService progressBroadcast,
                                 AppProperties properties,
-                                TaskPersistenceService persistenceService) {
+                                TaskPersistenceService persistenceService,
+                                LinkProviderRegistry linkProviders,
+                                LinkDownloadService linkDownloadService) {
         this.sourceRegistry = sourceRegistry;
         this.metadataService = metadataService;
         this.executorService = executorService;
@@ -60,6 +72,8 @@ public class DownloadQueueService {
         this.progressBroadcast = progressBroadcast;
         this.properties = properties;
         this.persistenceService = persistenceService;
+        this.linkProviders = linkProviders;
+        this.linkDownloadService = linkDownloadService;
     }
 
     /**
@@ -81,7 +95,12 @@ public class DownloadQueueService {
         List<DownloadTask> storedTasks = persistenceService.loadAll();
 
         for (DownloadTask task : storedTasks) {
-            if (inFlight.contains(task.getStatus())) {
+            if (inFlight.contains(task.getStatus()) && task.getSource() == MediaSource.LINK) {
+                // Link downloads resume from the partial data in their work directory.
+                task.setStatus(DownloadStatus.QUEUED);
+                task.setProgress(0.0);
+                persistenceService.updateTaskStatus(task);
+            } else if (inFlight.contains(task.getStatus())) {
                 task.setStatus(DownloadStatus.FAILED);
                 task.setErrorMessage("Application was restarted during download");
                 persistenceService.updateTaskStatus(task);
@@ -130,6 +149,59 @@ public class DownloadQueueService {
         log.info("Queued {} task(s) for '{}' ({})", created.size(), content.getTitle(), content.getSource());
         processQueue();
         return created;
+    }
+
+    /**
+     * Queue files of a resolved link, one task each. The library path follows the usual naming
+     * (title, year, season folders) but keeps the file's own extension.
+     */
+    public List<DownloadTask> enqueueLinks(List<LinkTaskSpec> specs) {
+        List<DownloadTask> created = new ArrayList<>();
+        for (LinkTaskSpec spec : specs) {
+            boolean tv = spec.contentType() == DownloadTask.ContentType.TV;
+            if (spec.title() == null || spec.title().isBlank()) {
+                throw new IllegalArgumentException("A title is required for " + spec.file().fileName());
+            }
+            if (tv && (spec.season() == null || spec.episode() == null)) {
+                throw new IllegalArgumentException("Season and episode are required for " + spec.file().fileName());
+            }
+            DownloadTask task = DownloadTask.builder()
+                    .source(MediaSource.LINK)
+                    .sourceMetadata(new LinkMetadata(spec.providerId(), spec.link(), spec.file().url(),
+                            spec.file().fileName(), spec.file().size()))
+                    .contentType(spec.contentType())
+                    .tmdbId(spec.tmdbId())
+                    .title(spec.title().strip())
+                    .year(spec.year())
+                    .season(tv ? spec.season() : null)
+                    .episode(tv ? spec.episode() : null)
+                    .episodeName(tv ? blankToNull(spec.episodeName()) : null)
+                    .languages(properties.getDownload().getDefaultLanguageList())
+                    .totalBytes(spec.file().size())
+                    .build();
+            String path = tv ? generateOutputPathFast(task)
+                    : generateOutputPath(task, ContentMetadata.builder().title(task.getTitle()).year(task.getYear()).build());
+            task.setOutputPath(withExtension(path, spec.file().fileName()));
+            register(task);
+            created.add(task);
+        }
+        log.info("Queued {} link task(s)", created.size());
+        processQueue();
+        return created;
+    }
+
+    /** Replaces the extension of {@code path} with the one of {@code fileName} (if it has one). */
+    static String withExtension(String path, String fileName) {
+        String ext = PathUtils.getExtension(fileName == null ? "" : fileName).toLowerCase(Locale.ROOT);
+        if (ext.length() < 2 || ext.length() > 6 || !ext.substring(1).chars().allMatch(Character::isLetterOrDigit)) {
+            return path;
+        }
+        String current = PathUtils.getExtension(path);
+        return path.substring(0, path.length() - current.length()) + ext;
+    }
+
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.strip();
     }
 
     /**
@@ -343,6 +415,7 @@ public class DownloadQueueService {
 
         // Kill the running process if it exists
         executorService.cancelDownload(taskId);
+        linkDownloadService.cancel(taskId);
 
         progressBroadcast.broadcastProgress(ProgressUpdate.builder()
                 .taskId(taskId)
@@ -401,6 +474,9 @@ public class DownloadQueueService {
                 .toList();
 
         toRemove.forEach(t -> tasks.remove(t.getId()));
+        toRemove.stream()
+                .filter(t -> t.getSource() == MediaSource.LINK)
+                .forEach(t -> linkDownloadService.deleteWorkDir(t.getId()));
         persistenceService.deleteCompleted();
         toRemove.forEach(progressBroadcast::taskRemoved);
         log.info("Cleared {} completed tasks", toRemove.size());
@@ -409,7 +485,9 @@ public class DownloadQueueService {
     }
 
     /**
-     * Process download queue - triggers async task processing
+     * Starts queued tasks while download slots are free. Link tasks additionally wait until their
+     * provider is ready (e.g. Mega's proxy pool is warmed up; the warm-up is started here) and
+     * respect the provider's own concurrency limit; tasks behind them are not blocked.
      */
     public synchronized void processQueue() {
         int maxParallel = properties.getDownload().getParallelDownloads();
@@ -417,15 +495,96 @@ public class DownloadQueueService {
                 .filter(t -> t.getStatus() == DownloadStatus.DOWNLOADING ||
                             t.getStatus() == DownloadStatus.EXTRACTING)
                 .count();
+        Map<String, Long> activeLinks = new HashMap<>();
+        tasks.values().stream()
+                .filter(t -> t.getSource() == MediaSource.LINK && t.isActive())
+                .forEach(t -> activeLinks.merge(linkProviderId(t), 1L, Long::sum));
 
-        // Start new tasks if slots available
-        int toStart = (int) (maxParallel - activeCount);
-        for (int i = 0; i < toStart; i++) {
-            DownloadTask task = queue.poll();
-            if (task == null) {
-                break;
+        Iterator<DownloadTask> it = queue.iterator();
+        while (activeCount < maxParallel && it.hasNext()) {
+            DownloadTask task = it.next();
+            if (task.getStatus() != DownloadStatus.QUEUED) {
+                it.remove();
+                continue;
             }
+            if (task.getSource() == MediaSource.LINK) {
+                String providerId = linkProviderId(task);
+                LinkProvider provider = linkProviders.find(providerId).orElse(null);
+                if (provider == null) {
+                    it.remove();
+                    updateTaskStatus(task, DownloadStatus.FAILED, 0.0,
+                            "Link provider '" + providerId + "' is not available");
+                    continue;
+                }
+                ProviderStatus status = provider.status();
+                if (!status.isReady()) {
+                    provider.prepare();
+                    setWaiting(task, provider, provider.status());
+                    continue;
+                }
+                if (activeLinks.getOrDefault(providerId, 0L) >= provider.maxConcurrent()) {
+                    setWaiting(task, provider, null);
+                    continue;
+                }
+                activeLinks.merge(providerId, 1L, Long::sum);
+                // Claim the slot now: the async worker sets DOWNLOADING only later.
+                task.setStatus(DownloadStatus.EXTRACTING);
+                task.setStatusMessage(null);
+            }
+            it.remove();
+            activeCount++;
             self.processTaskAsync(task);
+        }
+    }
+
+    private static String linkProviderId(DownloadTask task) {
+        return task.getSourceMetadata() instanceof LinkMetadata m ? m.providerId() : null;
+    }
+
+    /** Shows on a queued link task what it is waiting for; broadcasts only when the text changes. */
+    private void setWaiting(DownloadTask task, LinkProvider provider, ProviderStatus status) {
+        String message;
+        if (status == null) {
+            message = "Waiting for a free " + provider.displayName() + " slot";
+        } else if (status.state() == ProviderStatus.State.ERROR) {
+            message = provider.displayName() + ": " + status.message() + " (retrying)";
+        } else {
+            message = "Waiting for " + provider.displayName()
+                    + (status.message() != null ? ": " + status.message() : "");
+        }
+        if (!message.equals(task.getStatusMessage())) {
+            task.setStatusMessage(message);
+            progressBroadcast.broadcastProgress(ProgressUpdate.builder()
+                    .taskId(task.getId()).status(task.getStatus()).message(message).build());
+        }
+    }
+
+    @EventListener
+    public void onLinkProviderReady(LinkProviderReadyEvent event) {
+        log.info("Link provider '{}' is ready", event.providerId());
+        processQueue();
+    }
+
+    @EventListener
+    public void onLinkProviderStatus(LinkProviderStatusEvent event) {
+        LinkProvider provider = linkProviders.find(event.providerId()).orElse(null);
+        if (provider == null) {
+            return;
+        }
+        for (DownloadTask task : queue) {
+            if (task.getStatus() == DownloadStatus.QUEUED && event.providerId().equals(linkProviderId(task))) {
+                setWaiting(task, provider, event.status());
+            }
+        }
+    }
+
+    /** Retries a failed provider preparation (e.g. a warm-up) while link tasks are waiting for it. */
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelayString = "PT5M", initialDelayString = "PT5M")
+    public void retryWaitingLinkProviders() {
+        boolean waiting = queue.stream().anyMatch(t -> t.getSource() == MediaSource.LINK
+                && t.getStatus() == DownloadStatus.QUEUED);
+        if (waiting) {
+            processQueue();
         }
     }
 
@@ -434,6 +593,11 @@ public class DownloadQueueService {
         log.info("Processing task: {} [{}]", task.getDisplayName(), task.getId());
 
         try {
+            if (task.getSource() == MediaSource.LINK) {
+                runLinkTask(task);
+                return;
+            }
+
             // Update status
             updateTaskStatus(task, DownloadStatus.EXTRACTING, 0.0, "Extracting playlist URL");
 
@@ -466,6 +630,28 @@ public class DownloadQueueService {
         }
     }
     
+    private void runLinkTask(DownloadTask task) {
+        if (task.getStatus() == DownloadStatus.CANCELLED) {
+            return;
+        }
+        task.setStartedAt(LocalDateTime.now());
+        task.setStatusMessage(null);
+        updateTaskStatus(task, DownloadStatus.DOWNLOADING, task.getProgress(), "Starting download");
+
+        boolean success = linkDownloadService.run(task);
+
+        task.setDownloadSpeed(null);
+        task.setSpeedBps(null);
+        task.setEtaSeconds(null);
+        if (success) {
+            task.setCompletedAt(LocalDateTime.now());
+            updateTaskStatus(task, DownloadStatus.COMPLETED, 100.0, "Download completed");
+        } else {
+            updateTaskStatus(task, DownloadStatus.FAILED, task.getProgress(),
+                    task.getErrorMessage() != null ? task.getErrorMessage() : "Download failed");
+        }
+    }
+
     private void downloadWithTracks(DownloadTask task) {
         task.setStartedAt(LocalDateTime.now());
         updateTaskStatus(task, DownloadStatus.DOWNLOADING, 0.0, "Starting download");

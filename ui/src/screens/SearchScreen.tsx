@@ -9,6 +9,7 @@ import { DownloadIcon, SearchIcon, StarIcon } from '../components/Icons';
 import { SearchField } from '../components/Input';
 import { Segmented } from '../components/Segmented';
 import { DownloadDialog } from './DownloadDialog';
+import { LinkDialog, looksLikeLink } from './LinkDialog';
 import s from './SearchScreen.module.css';
 import base from './Screen.module.css';
 
@@ -28,6 +29,9 @@ export function SearchScreen() {
   const [input, setInput] = useState(q);
   const [inputType, setInputType] = useState<SearchType>(type);
   const [selected, setSelected] = useState<SearchResult | null>(null);
+  // undefined = closed; '' = open without a link; otherwise the link to inspect.
+  const [link, setLink] = useState<string | undefined>(undefined);
+  const isLink = looksLikeLink(input);
 
   useEffect(() => setInput(q), [q]);
   useEffect(() => setInputType(type), [type]);
@@ -43,6 +47,10 @@ export function SearchScreen() {
   const submit = (nextType = inputType) => {
     const query = input.trim();
     if (!query) return;
+    if (looksLikeLink(query)) {
+      setLink(query);
+      return;
+    }
     if (query === q && nextType === type) {
       void search.refetch();
     } else {
@@ -60,18 +68,22 @@ export function SearchScreen() {
     <div className={base.screen}>
       <div className={base.head}>
         <h2 className={base.title}>Search</h2>
+        <Button id="link-open" variant="outline" size="md" icon={<DownloadIcon size={15} />} onClick={() => setLink('')}>
+          Download from link
+        </Button>
       </div>
 
       <div className={s.toolbar}>
         <SearchField id="search-input" wrapClassName={s.query} prefix={<SearchIcon size={18} />}
           value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey}
-          placeholder="Search movies and TV shows..." aria-label="Search movies and TV shows" autoComplete="off"
+          placeholder="Search movies and TV shows, or paste a link..." aria-label="Search movies and TV shows, or paste a link" autoComplete="off"
           enterKeyHint="search" />
         <Segmented id="content-type-filter" ariaLabel="Type" value={inputType} options={TYPES}
           onChange={(t) => { setInputType(t); if (q && input.trim()) submit(t); }} />
-        <Button id="search-button" size="xl" className={s.searchBtn} icon={<SearchIcon size={17} />}
+        <Button id="search-button" size="xl" className={s.searchBtn}
+          icon={isLink ? <DownloadIcon size={17} /> : <SearchIcon size={17} />}
           onClick={() => submit()} disabled={busy || !input.trim()}>
-          {busy ? 'Searching...' : 'Search'}
+          {isLink ? 'Open link' : busy ? 'Searching...' : 'Search'}
         </Button>
       </div>
 
@@ -84,7 +96,11 @@ export function SearchScreen() {
         {!search.isError && search.data && search.data.length === 0 && !busy && (
           <div className={base.empty}>No results found for: <span className={s.strong}>{q}</span></div>
         )}
-        {!q && <div className={s.hint}>Search TMDB-backed VixSrc and RaiPlay titles by name.</div>}
+        {!q && (
+          <div className={s.hint}>
+            Search TMDB-backed VixSrc and RaiPlay titles by name, or paste a link (Mega, direct file) to download it.
+          </div>
+        )}
         {search.data && search.data.length > 0 && (
           <div className={s.grid}>
             {search.data.map((r) => (
@@ -95,6 +111,7 @@ export function SearchScreen() {
       </div>
 
       {selected && <DownloadDialog item={selected} onClose={() => setSelected(null)} />}
+      {link !== undefined && <LinkDialog initialUrl={link || undefined} onClose={() => setLink(undefined)} />}
     </div>
   );
 }

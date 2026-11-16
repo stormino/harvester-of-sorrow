@@ -19,6 +19,7 @@ public class AppProperties {
     private Tmdb tmdb = new Tmdb();
     private Extractor extractor = new Extractor();
     private Monitoring monitoring = new Monitoring();
+    private Link link = new Link();
 
     @Data
     public static class Download {
@@ -87,5 +88,40 @@ public class AppProperties {
 
         @Min(1)
         private int retryBackoffMultiplier = 2;
+    }
+
+    /** Link downloads ("download from link"): one section per provider. */
+    @Data
+    public static class Link {
+        private Mega mega = new Mega();
+        private Http http = new Http();
+
+        @Data
+        public static class Mega {
+            private boolean enabled = true;
+            /** Proxy pool cache: makes warm-ups after a restart take seconds instead of minutes. */
+            private String cacheFile = "data/mega-proxy-cache.json";
+            /** Range connections per file, each through a different proxy. */
+            @Min(1)
+            private int connections = 10;
+            /** Mega files downloaded at the same time (each already uses {@link #connections}). */
+            @Min(1)
+            private int maxConcurrent = 1;
+            /**
+             * Warm the pool up at startup when Mega was used within this many hours (judged by
+             * the cache file); 0 disables it. Otherwise it warms up on the first Mega link.
+             */
+            @Min(0)
+            private int warmOnStartupHours = 72;
+            /** Own proxies (scheme://[user:pass@]host:port). When set, public lists are not scraped. */
+            private List<String> proxies = new java.util.ArrayList<>();
+        }
+
+        @Data
+        public static class Http {
+            private boolean enabled = true;
+            @Min(1)
+            private int maxConcurrent = 3;
+        }
     }
 }

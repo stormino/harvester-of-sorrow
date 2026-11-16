@@ -35,6 +35,7 @@
   /* Sources — steel-blue / teal-blue (distinct) */
   --vixsrc:        #4A7EBC;
   --raiplay:       #3a90b8;
+  --link:          #7b62b8;
 
   /* Semantic — kept distinct from the blue palette */
   --success:       #3fb950;
@@ -70,6 +71,7 @@
   /* Sources — iron-grey / cool-steel derived (distinct) */
   --vixsrc:        #434A47;
   --raiplay:       #5a7a80;
+  --link:          #6b5a8a;
 
   /* Semantic — distinct from the teal/grey palette */
   --success:       #2d7a35;

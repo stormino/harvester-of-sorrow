@@ -339,6 +339,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/links/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inspect a link
+         * @description Lists the file(s) behind the link without downloading, guesses title/year/episode from the names and suggests TMDB matches. The provider is detected from the URL unless `provider` is given. Also starts the provider's preparation (e.g. Mega's proxy warm-up) in the background.
+         */
+        post: operations["resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/links/downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Queue files of a link
+         * @description One task per item. Items must come from POST /links/resolve of the same link; the library path is built from the confirmed title/year (and season/episode for TV).
+         */
+        post: operations["download"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/links/tmdb": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search TMDB for the title of a link
+         * @description For correcting a wrong guess.
+         */
+        get: operations["searchTmdb"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/links/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Link providers and their readiness */
+        get: operations["providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -352,7 +429,7 @@ export interface components {
             /** Format: int32 */
             tmdbId?: number;
             /** @enum {string} */
-            source: "VIXSRC" | "RAIPLAY";
+            source: "VIXSRC" | "RAIPLAY" | "LINK";
             /** @description sourceRef from a search result */
             sourceRef?: string;
             /**
@@ -370,7 +447,7 @@ export interface components {
             /** Format: int32 */
             tmdbId?: number;
             /** @enum {string} */
-            source: "VIXSRC" | "RAIPLAY";
+            source: "VIXSRC" | "RAIPLAY" | "LINK";
             sourceRef?: string;
             directoryName: string;
             enabled: boolean;
@@ -404,7 +481,7 @@ export interface components {
          */
         DownloadRequest: {
             /** @enum {string} */
-            source: "VIXSRC" | "RAIPLAY";
+            source: "VIXSRC" | "RAIPLAY" | "LINK";
             /** @enum {string} */
             contentType: "MOVIE" | "TV";
             /** @description sourceRef from a search result */
@@ -465,7 +542,7 @@ export interface components {
         TaskDto: {
             id: string;
             /** @enum {string} */
-            source: "VIXSRC" | "RAIPLAY";
+            source: "VIXSRC" | "RAIPLAY" | "LINK";
             /** @enum {string} */
             contentType: "MOVIE" | "TV";
             /** @example Breaking Bad S01E01 - Pilot */
@@ -513,11 +590,13 @@ export interface components {
             /** @description Whether POST /retry is allowed */
             canRetry: boolean;
             subTasks: components["schemas"]["SubTaskDto"][];
+            /** @description What a queued task is waiting for (e.g. a link provider warming up) */
+            statusMessage?: string;
         };
         /** @description Which show (and optionally which season) to list episodes for */
         EpisodesRequest: {
             /** @enum {string} */
-            source: "VIXSRC" | "RAIPLAY";
+            source: "VIXSRC" | "RAIPLAY" | "LINK";
             sourceRef: string;
             /** @description Show title (used for logging only) */
             title?: string;
@@ -559,7 +638,7 @@ export interface components {
         /** @description An enabled media source */
         SourceDto: {
             /** @enum {string} */
-            id: "VIXSRC" | "RAIPLAY";
+            id: "VIXSRC" | "RAIPLAY" | "LINK";
             /** @example VixSrc */
             displayName: string;
             /** @description Audio languages the source serves; empty = no restriction */
@@ -599,7 +678,7 @@ export interface components {
         /** @description One search hit */
         SearchResultDto: {
             /** @enum {string} */
-            source: "VIXSRC" | "RAIPLAY";
+            source: "VIXSRC" | "RAIPLAY" | "LINK";
             /** @enum {string} */
             contentType: "MOVIE" | "TV";
             /** @example Breaking Bad */
@@ -663,6 +742,121 @@ export interface components {
              * @description Number of tasks removed
              */
             removed: number;
+        };
+        /** @description A link to inspect */
+        ResolveLinkRequest: {
+            /** @example https://mega.nz/file/XXXX#YYYY */
+            url: string;
+            /**
+             * @description Provider id to use instead of detecting it from the URL
+             * @example mega
+             */
+            provider?: string;
+        };
+        /** @description One downloadable file of a link */
+        LinkFileDto: {
+            /** @description Pass back unchanged when queueing */
+            url: string;
+            fileName: string;
+            /** Format: int64 */
+            size?: number;
+            /** @description Folders above the file inside a shared folder */
+            folders: string[];
+            video: boolean;
+            guess: components["schemas"]["LinkGuessDto"];
+        };
+        /** @description What a file name looks like (a guess to confirm) */
+        LinkGuessDto: {
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            /** @description May be empty */
+            title: string;
+            /** Format: int32 */
+            year?: number;
+            /** Format: int32 */
+            season?: number;
+            /** Format: int32 */
+            episode?: number;
+            episodeName?: string;
+        };
+        /** @description What a link points to, with a guess of what it is and TMDB candidates */
+        LinkResolutionDto: {
+            /** @example mega */
+            provider: string;
+            /** @example Mega */
+            providerName: string;
+            url: string;
+            folder: boolean;
+            name: string;
+            /**
+             * Format: int32
+             * @description Files left out of a very large folder
+             */
+            truncated: number;
+            files: components["schemas"]["LinkFileDto"][];
+            guess: components["schemas"]["LinkGuessDto"];
+            /** @description TMDB candidates for the guess, best first; empty when TMDB is not configured */
+            matches: components["schemas"]["TmdbMatchDto"][];
+            tmdbAvailable: boolean;
+        };
+        /** @description A TMDB title a link may be */
+        TmdbMatchDto: {
+            /** Format: int32 */
+            tmdbId: number;
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            title: string;
+            originalTitle?: string;
+            /** Format: int32 */
+            year?: number;
+            overview?: string;
+            posterUrl?: string;
+        };
+        /** @description One file and what it is */
+        LinkDownloadItem: {
+            /** @description LinkFile.url */
+            fileUrl: string;
+            fileName: string;
+            /** Format: int64 */
+            size?: number;
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            /**
+             * Format: int32
+             * @description Confirmed TMDB match; omit for a manual title
+             */
+            tmdbId?: number;
+            title: string;
+            /** Format: int32 */
+            year?: number;
+            /** Format: int32 */
+            season?: number;
+            /** Format: int32 */
+            episode?: number;
+            /** @description Filled from TMDB when omitted and tmdbId is set */
+            episodeName?: string;
+        };
+        /** @description Queue files of a resolved link, each with the identity the user confirmed */
+        LinkDownloadRequest: {
+            /** @example mega */
+            provider: string;
+            url: string;
+            items: components["schemas"]["LinkDownloadItem"][];
+        };
+        /** @description A link download provider and whether it can start downloads now */
+        LinkProviderDto: {
+            /** @example mega */
+            id: string;
+            /** @example Mega */
+            name: string;
+            /** @enum {string} */
+            state: "READY" | "IDLE" | "WARMING_UP" | "ERROR";
+            /** @description Detail, e.g. warm-up progress */
+            message?: string;
+            /** Format: int32 */
+            done?: number;
+            /** Format: int32 */
+            total?: number;
         };
     };
     responses: never;
@@ -1118,7 +1312,7 @@ export interface operations {
                 query: string;
                 type?: "MOVIES" | "TV" | "BOTH";
                 /** @description Limit to one source */
-                source?: "VIXSRC" | "RAIPLAY";
+                source?: "VIXSRC" | "RAIPLAY" | "LINK";
             };
             header?: never;
             path?: never;
@@ -1195,6 +1389,107 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TaskDto"];
+                };
+            };
+        };
+    };
+    resolve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Unsupported, invalid or unreachable link */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LinkResolutionDto"];
+                };
+            };
+        };
+    };
+    download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkDownloadRequest"];
+            };
+        };
+        responses: {
+            /** @description Tasks created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskDto"][];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TaskDto"][];
+                };
+            };
+        };
+    };
+    searchTmdb: {
+        parameters: {
+            query: {
+                query: string;
+                type?: "MOVIE" | "TV";
+                year?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TmdbMatchDto"][];
+                };
+            };
+        };
+    };
+    providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LinkProviderDto"][];
                 };
             };
         };
