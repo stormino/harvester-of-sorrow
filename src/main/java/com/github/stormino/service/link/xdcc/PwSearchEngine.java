@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -54,12 +53,9 @@ public class PwSearchEngine {
     public record PackList(String network, String server, int port, String channel, String url) {
     }
 
-    /** One search hit. */
-    public record Pack(String network, String channel, String bot, int pack, String size, Long approxBytes,
-                       String fileName, XdccLink link) {
-    }
+    public static final String SOURCE = "PW Search Engine";
 
-    public record SearchResult(List<Pack> packs, int lists, int failedLists) {
+    public record SearchResult(List<XdccHit> packs, int lists, int failedLists) {
     }
 
     /** What the database looks like right now. */
@@ -110,20 +106,20 @@ public class PwSearchEngine {
             return new SearchResult(List.of(), all.size(), 0);
         }
         AtomicInteger failed = new AtomicInteger();
-        List<Pack> found = new ArrayList<>();
+        List<XdccHit> found = new ArrayList<>();
         try (ExecutorService pool = Executors.newFixedThreadPool(PARALLEL_LISTS, Thread.ofVirtual().factory())) {
-            List<Future<List<Pack>>> futures = all.stream()
+            List<Future<List<XdccHit>>> futures = all.stream()
                     .map(l -> pool.submit(() -> {
                         try {
                             return searchList(l, words.strip());
                         } catch (IOException | RuntimeException e) {
                             failed.incrementAndGet();
                             log.debug("PW list {} {} failed: {}", l.network(), l.channel(), e.getMessage());
-                            return List.<Pack>of();
+                            return List.<XdccHit>of();
                         }
                     }))
                     .toList();
-            for (Future<List<Pack>> f : futures) {
+            for (Future<List<XdccHit>> f : futures) {
                 try {
                     found.addAll(f.get(config.getSearchTimeoutSeconds() * 3L, TimeUnit.SECONDS));
                 } catch (Exception e) {
@@ -131,13 +127,11 @@ public class PwSearchEngine {
                 }
             }
         }
-        found.sort(Comparator.comparing(Pack::fileName, String.CASE_INSENSITIVE_ORDER)
-                .thenComparing(Pack::network).thenComparing(Pack::bot).thenComparingInt(Pack::pack));
         return new SearchResult(found.size() > MAX_RESULTS ? found.subList(0, MAX_RESULTS) : found, all.size(),
                 failed.get());
     }
 
-    List<Pack> searchList(PackList list, String words) throws IOException {
+    List<XdccHit> searchList(PackList list, String words) throws IOException {
         HttpUrl base = HttpUrl.parse(list.url());
         if (base == null) {
             throw new IOException("Bad list URL " + list.url());
@@ -151,8 +145,8 @@ public class PwSearchEngine {
         }
     }
 
-    static List<Pack> parsePacks(PackList list, String body) {
-        List<Pack> out = new ArrayList<>();
+    static List<XdccHit> parsePacks(PackList list, String body) {
+        List<XdccHit> out = new ArrayList<>();
         for (String line : body.split("\\R")) {
             Matcher m = PACK_LINE.matcher(line.replaceAll("<[^>]+>", "").strip());
             if (!m.matches()) {
@@ -164,13 +158,13 @@ public class PwSearchEngine {
             String name = m.group(4).strip();
             Long bytes = approxBytes(size);
             XdccLink link = new XdccLink(list.server(), list.port(), list.channel(), bot, pack, list.network(), name, bytes);
-            out.add(new Pack(list.network(), list.channel(), bot, pack, size, bytes, name, link));
+            out.add(new XdccHit(SOURCE, list.network(), list.channel(), bot, pack, size, bytes, name, link));
         }
         return out;
     }
 
     /** "1.4G" / "700M" / "[ 350M]" in bytes (approximate: lists round sizes). */
-    static Long approxBytes(String size) {
+    public static Long approxBytes(String size) {
         Matcher m = SIZE.matcher(size.strip());
         if (!m.matches()) {
             return null;

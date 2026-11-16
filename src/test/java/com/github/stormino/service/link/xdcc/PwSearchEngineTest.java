@@ -77,8 +77,8 @@ class PwSearchEngineTest {
         var result = e.search("some movie");
         assertEquals(1, result.failedLists(), "the dead list fails, the rest still answers");
         assertEquals(List.of("Other.Film.1999.avi", "Some.Movie.2020.mkv"),
-                result.packs().stream().map(PwSearchEngine.Pack::fileName).toList());
-        var pack = result.packs().get(1);
+                result.packs().stream().map(XdccHit::fileName).sorted().toList());
+        var pack = result.packs().stream().filter(p -> p.fileName().startsWith("Some")).findFirst().orElseThrow();
         assertEquals("irc.fake.it", pack.link().server());
         assertEquals("#films", pack.link().channel());
         assertEquals(3, pack.link().pack());

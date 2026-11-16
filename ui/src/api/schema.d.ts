@@ -443,7 +443,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Whether XDCC search is available */
+        /** Whether XDCC search is available, per source */
         get: operations["status"];
         put?: never;
         post?: never;
@@ -462,7 +462,7 @@ export interface paths {
         };
         /**
          * Search packs by file name
-         * @description Queries every pack list of the PW Search Engine database. Pass the chosen packs' `url`s to POST /links/resolve-batch, then queue them with POST /links/downloads.
+         * @description Queries every source at once and merges the hits. Pass the chosen packs' `url`s to POST /links/resolve-batch, then queue them with POST /links/downloads.
          */
         get: operations["search"];
         put?: never;
@@ -945,19 +945,13 @@ export interface components {
             /** @description Name shown for the group, e.g. the search words */
             name?: string;
         };
-        /** @description Whether XDCC search can run (the PW Search Engine pack database) */
+        /** @description Whether XDCC search can run, per source */
         XdccStatusDto: {
+            /** @description At least one source can search */
             available: boolean;
-            /** @description Why search is unavailable */
-            message?: string;
-            /** Format: int32 */
-            networks: number;
-            /** Format: int32 */
-            lists: number;
-            /** Format: date-time */
-            updatedAt?: string;
-            /** @description Sent to the PW Search Engine and list pages */
+            /** @description Sent to the search sources */
             userAgent: string;
+            sources: components["schemas"]["XdccSourceDto"][];
         };
         /** @description One XDCC pack found by a search */
         XdccPackDto: {
@@ -976,20 +970,21 @@ export interface components {
             fileName: string;
             /** @description xdcc:// link; pass to POST /links/resolve-batch */
             url: string;
+            /** @example xdcc.eu */
+            source: string;
         };
-        /** @description XDCC search results */
+        /** @description XDCC search results, merged from every source */
         XdccSearchDto: {
             packs: components["schemas"]["XdccPackDto"][];
-            /**
-             * Format: int32
-             * @description Pack lists searched
-             */
-            lists: number;
-            /**
-             * Format: int32
-             * @description Pack lists that did not answer
-             */
-            failedLists: number;
+            sources: components["schemas"]["XdccSourceDto"][];
+        };
+        /** @description One XDCC search source and how it did */
+        XdccSourceDto: {
+            /** @example xdcc.eu */
+            name: string;
+            available: boolean;
+            /** @description Detail: why it is unavailable, or what it found */
+            message?: string;
         };
     };
     responses: never;

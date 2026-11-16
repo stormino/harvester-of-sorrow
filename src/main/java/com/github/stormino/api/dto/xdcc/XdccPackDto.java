@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "One XDCC pack found by a search")
 public record XdccPackDto(
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "xdcc.eu") String source,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String network,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String channel,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String bot,

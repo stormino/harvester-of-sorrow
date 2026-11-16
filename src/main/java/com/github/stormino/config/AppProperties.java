@@ -129,6 +129,9 @@ public class AppProperties {
         @Data
         public static class Xdcc {
             private boolean enabled = true;
+            /** Also search xdcc.eu (public XDCC search engine). */
+            private boolean xdccEuEnabled = true;
+            private String xdccEuUrl = "https://www.xdcc.eu/search.php";
             /** PW Search Engine server (networks, channels, pack database). */
             private String pwBaseUrl = "http://www.pw-search-engine.wklm.it:8282";
             /**

@@ -10,7 +10,7 @@ import { LinkDialog } from './LinkDialog';
 import base from './Screen.module.css';
 import s from './XdccScreen.module.css';
 
-/** Search XDCC packs (PW Search Engine lists) and queue the chosen ones through the link dialog. */
+/** Search XDCC packs (xdcc.eu, PW Search Engine) and queue the chosen ones through the link dialog. */
 export function XdccScreen() {
   const { toast } = useToast();
   const status = useQuery({ queryKey: ['xdcc-status'], queryFn: api.xdccStatus, staleTime: 60_000 });
@@ -65,15 +65,15 @@ export function XdccScreen() {
         <div>
           <h2 className={base.title}>XDCC</h2>
           <div className={s.sub}>
-            Packs offered by bots on IRC, found through the PW Search Engine lists.
-            {status.data?.available && ` ${status.data.lists} lists on ${status.data.networks} networks.`}
+            Packs offered by bots on IRC, found through {status.data?.sources.map((x) => x.name).join(' and ') ?? 'xdcc.eu'}.
           </div>
         </div>
       </div>
 
       {unavailable && (
         <div className={s.banner} role="status" data-testid="xdcc-unavailable">
-          <strong>Search is not available:</strong> {status.data!.message ?? 'the pack database could not be loaded'}.
+          <strong>Search is not available:</strong>{' '}
+          {status.data!.sources.map((x) => `${x.name}: ${x.message ?? 'unavailable'}`).join('; ')}.
           You can still request a pack you know, below.
         </div>
       )}
@@ -92,9 +92,9 @@ export function XdccScreen() {
       {search.data && (
         <>
           <div className={s.resultHead}>
-            <span className={s.dim}>
-              {packs.length} pack{packs.length === 1 ? '' : 's'} from {search.data.lists - search.data.failedLists} lists
-              {search.data.failedLists > 0 && ` (${search.data.failedLists} did not answer)`}
+            <span className={s.dim} data-testid="xdcc-sources">
+              {packs.length} pack{packs.length === 1 ? '' : 's'}
+              {search.data.sources.map((x) => ` · ${x.name}: ${x.message ?? (x.available ? 'ok' : 'unavailable')}`).join('')}
             </span>
             <Button id="xdcc-download" size="md" icon={<DownloadIcon size={15} />} onClick={openDialog}
               disabled={selected.size === 0} loading={opening}>
@@ -123,7 +123,7 @@ function PackTable({ packs, selected, toggle }: { packs: XdccPack[]; selected: S
           <input type="checkbox" checked={selected.has(p.url)} onChange={() => toggle(p.url)} aria-label={`Select ${p.fileName}`} />
           <span className={s.name} title={p.fileName}>{p.fileName}</span>
           <span className={s.size}>{p.size}</span>
-          <span className={s.where} title={`${p.network} ${p.channel} — ${p.bot} #${p.pack}`}>
+          <span className={s.where} title={`${p.network} ${p.channel} — ${p.bot} #${p.pack} (via ${p.source})`}>
             {p.bot} <span className={s.dim}>#{p.pack} · {p.channel} · {p.network}</span>
           </span>
         </label>

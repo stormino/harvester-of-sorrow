@@ -32,6 +32,7 @@ hos:
     xdcc:
       enabled: ${XDCC_ENABLED:true}
       pw-base-url: ${XDCC_PW_BASE_URL:http://www.pw-search-engine.wklm.it:8282}
+      xdcc-eu-enabled: ${XDCC_EU_ENABLED:true}
       # Sent as "<browser User-Agent> HoS/<version>" (agreed with the PW Search Engine authors); empty = this version
       user-agent-version: ${XDCC_USER_AGENT_VERSION:}
       max-concurrent: ${XDCC_MAX_CONCURRENT:2}
