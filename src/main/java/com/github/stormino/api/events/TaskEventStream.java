@@ -1,7 +1,7 @@
 package com.github.stormino.api.events;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.github.stormino.api.TaskMapper;
 import com.github.stormino.api.dto.TaskDto;
 import com.github.stormino.model.DownloadTask;
@@ -211,7 +211,7 @@ public class TaskEventStream {
     private String toJson(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Cannot serialise SSE payload", e);
         }
     }

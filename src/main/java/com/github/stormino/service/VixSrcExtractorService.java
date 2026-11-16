@@ -8,8 +8,6 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -148,15 +146,6 @@ public class VixSrcExtractorService {
         }
     }
     
-    @Retryable(
-        retryFor = {IOException.class},
-        maxAttemptsExpression = "#{@vixSrcProperties.extractor.maxRetries}",
-        backoff = @Backoff(
-            delayExpression = "#{@vixSrcProperties.extractor.retryDelayMs}",
-            multiplierExpression = "#{@vixSrcProperties.extractor.retryBackoffMultiplier}",
-            maxDelayExpression = "#{@vixSrcProperties.extractor.maxRetryDelayMs}"
-        )
-    )
     private String fetchEmbedPage(String embedUrl, String pageUrl) throws IOException {
         Request.Builder builder = new Request.Builder().url(embedUrl);
         if (pageUrl != null) {

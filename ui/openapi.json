@@ -1,5 +1,5 @@
 {
-    "openapi": "3.0.1",
+    "openapi": "3.1.0",
     "info": {
         "title": "Harvester of Sorrow API",
         "description": "REST API for Harvester of Sorrow \u2014 a video downloader supporting VixSrc and RaiPlay sources and direct links (Mega, HTTP).\n\n**Key features:**\n- Search movies and TV shows across multiple sources\n- Download from a link: Mega files and folders, direct HTTP files\n- Queue, monitor, cancel and retry downloads\n- Real-time progress updates via Server-Sent Events\n- TV show library scanning and automatic episode monitoring\n\n**Notes:**\n- No authentication is required\n- VixSrc availability checks use the Italian (`it`) catalogue\n- Live updates: `GET /api/v1/events` (`text/event-stream`)\n- Errors are RFC 7807 `application/problem+json`\n",
@@ -925,7 +925,8 @@
                 "properties": {
                     "title": {
                         "type": "string",
-                        "example": "Breaking Bad"
+                        "example": "Breaking Bad",
+                        "minLength": 1
                     },
                     "year": {
                         "type": "integer",
@@ -1074,11 +1075,13 @@
                     },
                     "sourceRef": {
                         "type": "string",
-                        "description": "sourceRef from a search result"
+                        "description": "sourceRef from a search result",
+                        "minLength": 1
                     },
                     "title": {
                         "type": "string",
-                        "example": "Breaking Bad"
+                        "example": "Breaking Bad",
+                        "minLength": 1
                     },
                     "year": {
                         "type": "integer",
@@ -1105,9 +1108,7 @@
                             "en"
                         ],
                         "items": {
-                            "type": "string",
-                            "description": "Audio languages; empty = server default",
-                            "example": "[\"en\"]"
+                            "type": "string"
                         }
                     },
                     "quality": {
@@ -1359,7 +1360,8 @@
                         ]
                     },
                     "sourceRef": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     },
                     "title": {
                         "type": "string",
@@ -1480,8 +1482,7 @@
                         "type": "array",
                         "description": "Audio languages the source serves; empty = no restriction",
                         "items": {
-                            "type": "string",
-                            "description": "Audio languages the source serves; empty = no restriction"
+                            "type": "string"
                         }
                     }
                 },
@@ -1715,7 +1716,8 @@
                         "example": "Ended"
                     },
                     "monitored": {
-                        "$ref": "#/components/schemas/MonitoredShowDto"
+                        "$ref": "#/components/schemas/MonitoredShowDto",
+                        "description": "Null when the folder is not monitored"
                     }
                 },
                 "description": "A show folder on disk, with its monitoring config if any"
@@ -1741,7 +1743,8 @@
                 "properties": {
                     "url": {
                         "type": "string",
-                        "example": "https://mega.nz/file/XXXX#YYYY"
+                        "example": "https://mega.nz/file/XXXX#YYYY",
+                        "minLength": 1
                     },
                     "provider": {
                         "type": "string",
@@ -1776,8 +1779,7 @@
                         "type": "array",
                         "description": "Folders above the file inside a shared folder",
                         "items": {
-                            "type": "string",
-                            "description": "Folders above the file inside a shared folder"
+                            "type": "string"
                         }
                     },
                     "video": {
@@ -1869,7 +1871,8 @@
                         }
                     },
                     "guess": {
-                        "$ref": "#/components/schemas/LinkGuessDto"
+                        "$ref": "#/components/schemas/LinkGuessDto",
+                        "description": "Guess for the link as a whole (folder name, or the single file)"
                     },
                     "matches": {
                         "type": "array",
@@ -1933,10 +1936,12 @@
                 "properties": {
                     "fileUrl": {
                         "type": "string",
-                        "description": "LinkFile.url"
+                        "description": "LinkFile.url",
+                        "minLength": 1
                     },
                     "fileName": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     },
                     "size": {
                         "type": "integer",
@@ -1955,7 +1960,8 @@
                         "format": "int32"
                     },
                     "title": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     },
                     "year": {
                         "type": "integer",
@@ -1986,16 +1992,19 @@
                 "properties": {
                     "provider": {
                         "type": "string",
-                        "example": "mega"
+                        "example": "mega",
+                        "minLength": 1
                     },
                     "url": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     },
                     "items": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/LinkDownloadItem"
-                        }
+                        },
+                        "minItems": 1
                     }
                 },
                 "description": "Queue files of a resolved link, each with the identity the user confirmed"

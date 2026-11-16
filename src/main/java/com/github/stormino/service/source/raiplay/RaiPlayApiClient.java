@@ -1,6 +1,7 @@
 package com.github.stormino.service.source.raiplay;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.github.stormino.config.RaiPlayProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +49,7 @@ public class RaiPlayApiClient {
         String json;
         try {
             json = objectMapper.writeValueAsString(body);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             log.error("Failed to serialize RaiPlay search body: {}", e.getMessage());
             return Optional.empty();
         }
