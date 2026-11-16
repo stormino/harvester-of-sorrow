@@ -1,6 +1,7 @@
 package com.github.stormino.service.link.xdcc;
 
 import com.github.stormino.config.AppProperties;
+import com.github.stormino.service.link.LinkCancelledException;
 import com.github.stormino.service.link.LinkControl;
 import com.github.stormino.service.link.LinkException;
 import com.github.stormino.service.link.LinkFile;
@@ -26,6 +27,8 @@ import java.util.List;
 public class XdccLinkProvider implements LinkProvider {
 
     public static final String ID = "xdcc";
+    /** With other bots offering the same file, wait at most this long in one bot's queue. */
+    static final Duration MIRROR_QUEUE_PATIENCE = Duration.ofMinutes(15);
 
     private final IrcConnections connections;
     private final AppProperties.Link.Xdcc config;
@@ -79,20 +82,55 @@ public class XdccLinkProvider implements LinkProvider {
         } catch (IOException e) {
             throw new LinkException("Cannot prepare " + workDir + ": " + e.getMessage(), e);
         }
-        progress.status("Connecting to " + (link.network() != null ? link.network() : link.server()));
+        List<XdccLink> candidates = link.candidates();
+        LinkException last = null;
+        for (int i = 0; i < candidates.size(); i++) {
+            XdccLink bot = candidates.get(i);
+            boolean more = i < candidates.size() - 1;
+            if (i > 0) {
+                progress.status("Trying another bot (" + (i + 1) + " of " + candidates.size() + "): " + bot.bot());
+            }
+            try {
+                transfer(bot, part, more, progress, control);
+                Files.move(part, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                return target;
+            } catch (LinkCancelledException e) {
+                throw e;
+            } catch (LinkException e) {
+                last = e;
+                if (!more) {
+                    break;
+                }
+                org.slf4j.LoggerFactory.getLogger(XdccLinkProvider.class)
+                        .info("XDCC {} failed ({}), trying the next bot", bot.bot(), e.getMessage());
+            } catch (IOException e) {
+                throw new LinkException("Cannot finish " + targetName + ": " + e.getMessage(), e);
+            }
+        }
+        throw candidates.size() > 1 && last != null
+                ? new LinkException(last.getMessage() + " (all " + candidates.size() + " bots tried)", last)
+                : last;
+    }
+
+    /**
+     * One bot. With other bots still to try, a long queue is not worth waiting for: give up after
+     * {@link #MIRROR_QUEUE_PATIENCE} and move on.
+     */
+    private void transfer(XdccLink bot, Path part, boolean moreBots, LinkProgress progress, LinkControl control) {
+        progress.status("Connecting to " + (bot.network() != null ? bot.network() : bot.server()));
         IrcClient irc;
         try {
-            irc = connections.acquire(link.server(), link.port());
+            irc = connections.acquire(bot.server(), bot.port());
         } catch (IOException e) {
-            throw new LinkException("Cannot connect to " + link.server() + ": " + e.getMessage(), e);
+            throw new LinkException("Cannot connect to " + bot.server() + ": " + e.getMessage(), e);
         }
         try {
-            new XdccTransfer(irc, link, Duration.ofSeconds(config.getBotReplyTimeoutSeconds()),
-                    Duration.ofMinutes(config.getQueueTimeoutMinutes())).run(part, progress, control);
-            Files.move(part, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            return target;
-        } catch (IOException e) {
-            throw new LinkException("Cannot finish " + targetName + ": " + e.getMessage(), e);
+            Duration queue = Duration.ofMinutes(config.getQueueTimeoutMinutes());
+            if (moreBots && queue.compareTo(MIRROR_QUEUE_PATIENCE) > 0) {
+                queue = MIRROR_QUEUE_PATIENCE;
+            }
+            new XdccTransfer(irc, bot, Duration.ofSeconds(config.getBotReplyTimeoutSeconds()), queue)
+                    .run(part, progress, control);
         } finally {
             connections.release(irc);
         }

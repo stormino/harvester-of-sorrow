@@ -159,4 +159,27 @@ class XdccLinkProviderTest {
                 () -> impatient.download(pack(1), dir, "a.mkv", progress, new LinkControl()));
         assertEquals("Bot Bot did not answer", e.getMessage());
     }
+
+    @Test
+    void fallsBackToTheNextBot() throws Exception {
+        XdccLink ghost = new XdccLink("127.0.0.1", net.port(), "#chan", "Ghost", 1, "FakeNet", "Movie.2020.mkv", null);
+        XdccLink real = new XdccLink("127.0.0.1", net.port(), "#chan", "Bot", 7, "FakeNet", "Movie.2020.mkv", null);
+        String url = ghost.withMirrors(List.of(real)).toUrl();
+        assertEquals(1, XdccLink.parse(url).orElseThrow().mirrors().size());
+        LinkFile file = provider.resolve(url).files().get(0);
+        Path out = provider.download(file, dir, "a.mkv", progress, new LinkControl());
+        assertArrayEquals(net.file, Files.readAllBytes(out));
+        assertTrue(statuses.stream().anyMatch(s -> s.contains("Trying another bot (2 of 2): Bot")), statuses::toString);
+    }
+
+    @Test
+    void reportsWhenEveryBotFailed() {
+        net.onRequest = (n, nick, p) -> n.botNotice("** Invalid Pack Number");
+        XdccLink a = new XdccLink("127.0.0.1", net.port(), "#chan", "Ghost", 1, "FakeNet", "M.mkv", null);
+        XdccLink b = new XdccLink("127.0.0.1", net.port(), "#chan", "Bot", 2, "FakeNet", "M.mkv", null);
+        LinkFile file = provider.resolve(a.withMirrors(List.of(b)).toUrl()).files().get(0);
+        LinkException e = assertThrows(LinkException.class,
+                () -> provider.download(file, dir, "a.mkv", progress, new LinkControl()));
+        assertEquals("Bot: ** Invalid Pack Number (all 2 bots tried)", e.getMessage());
+    }
 }

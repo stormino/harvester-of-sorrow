@@ -976,7 +976,7 @@
                     "XDCC"
                 ],
                 "summary": "Search packs by file name",
-                "description": "Queries every source at once and merges the hits. Pass the chosen packs' `url`s to POST /links/resolve-batch, then queue them with POST /links/downloads.",
+                "description": "Queries every source at once, merges the bots offering the same file, folds multi-part archives, and groups releases by title (most relevant first, best quality first, TMDB poster for the top titles). Pass a release's `urls` to POST /links/resolve-batch, then queue with POST /links/downloads.",
                 "operationId": "search",
                 "parameters": [
                     {
@@ -2231,75 +2231,32 @@
                     "sources"
                 ]
             },
-            "XdccPackDto": {
-                "type": "object",
-                "description": "One XDCC pack found by a search",
-                "properties": {
-                    "network": {
-                        "type": "string"
-                    },
-                    "channel": {
-                        "type": "string"
-                    },
-                    "bot": {
-                        "type": "string"
-                    },
-                    "pack": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "size": {
-                        "type": "string",
-                        "description": "As listed (e.g. 1.4G)"
-                    },
-                    "sizeBytes": {
-                        "type": "integer",
-                        "format": "int64",
-                        "description": "Approximate bytes"
-                    },
-                    "fileName": {
-                        "type": "string"
-                    },
-                    "url": {
-                        "type": "string",
-                        "description": "xdcc:// link; pass to POST /links/resolve-batch"
-                    },
-                    "source": {
-                        "type": "string",
-                        "example": "xdcc.eu"
-                    }
-                },
-                "required": [
-                    "bot",
-                    "channel",
-                    "fileName",
-                    "network",
-                    "pack",
-                    "size",
-                    "url",
-                    "source"
-                ]
-            },
             "XdccSearchDto": {
                 "type": "object",
-                "description": "XDCC search results, merged from every source",
+                "description": "XDCC search results: titles, each with its releases (bots merged)",
                 "properties": {
                     "packs": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/XdccPackDto"
-                        }
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Raw hits before merging"
                     },
                     "sources": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/XdccSourceDto"
                         }
+                    },
+                    "titles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/XdccTitleDto"
+                        }
                     }
                 },
                 "required": [
                     "packs",
-                    "sources"
+                    "sources",
+                    "titles"
                 ]
             },
             "XdccSourceDto": {
@@ -2321,6 +2278,175 @@
                 "required": [
                     "available",
                     "name"
+                ]
+            },
+            "XdccQualityDto": {
+                "type": "object",
+                "description": "Quality tags read from a release name",
+                "properties": {
+                    "resolution": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Vertical resolution",
+                        "example": 1080
+                    },
+                    "source": {
+                        "type": "string",
+                        "example": "WEB-DL"
+                    },
+                    "codec": {
+                        "type": "string",
+                        "example": "x265"
+                    },
+                    "hdr": {
+                        "type": "boolean"
+                    },
+                    "audio": {
+                        "type": "string",
+                        "example": "AC3"
+                    },
+                    "languages": {
+                        "type": "array",
+                        "example": [
+                            "ITA"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "subtitles": {
+                        "type": "array",
+                        "example": [
+                            "ITA"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "lowQuality": {
+                        "type": "boolean",
+                        "description": "CAM/TS or line-dubbed"
+                    }
+                },
+                "required": [
+                    "hdr",
+                    "languages",
+                    "lowQuality",
+                    "subtitles"
+                ]
+            },
+            "XdccReleaseDto": {
+                "type": "object",
+                "description": "One file (or multi-part archive) and every bot offering it",
+                "properties": {
+                    "label": {
+                        "type": "string",
+                        "description": "File name, or archive set name"
+                    },
+                    "episode": {
+                        "type": "string",
+                        "example": "S01E02"
+                    },
+                    "size": {
+                        "type": "string"
+                    },
+                    "sizeBytes": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "quality": {
+                        "$ref": "#/components/schemas/XdccQualityDto"
+                    },
+                    "format": {
+                        "type": "string",
+                        "example": "mkv"
+                    },
+                    "bots": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Bots offering it (tried in turn)"
+                    },
+                    "networks": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "urls": {
+                        "type": "array",
+                        "description": "Links to pass to POST /links/resolve-batch: one, or one per archive volume",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "complete": {
+                        "type": "boolean",
+                        "description": "False when archive volumes are missing"
+                    },
+                    "missingParts": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                },
+                "required": [
+                    "bots",
+                    "complete",
+                    "format",
+                    "label",
+                    "missingParts",
+                    "networks",
+                    "quality",
+                    "urls"
+                ]
+            },
+            "XdccTitleDto": {
+                "type": "object",
+                "description": "Releases of one title, best first",
+                "properties": {
+                    "title": {
+                        "type": "string"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "relevance": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "3: starts with the search words, 2: contains them in order, 1: contains them all, 0: matched elsewhere"
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "tmdbTitle": {
+                        "type": "string"
+                    },
+                    "posterUrl": {
+                        "type": "string"
+                    },
+                    "releases": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/XdccReleaseDto"
+                        }
+                    }
+                },
+                "required": [
+                    "contentType",
+                    "releases",
+                    "relevance",
+                    "title"
                 ]
             }
         }

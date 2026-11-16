@@ -462,7 +462,7 @@ export interface paths {
         };
         /**
          * Search packs by file name
-         * @description Queries every source at once and merges the hits. Pass the chosen packs' `url`s to POST /links/resolve-batch, then queue them with POST /links/downloads.
+         * @description Queries every source at once, merges the bots offering the same file, folds multi-part archives, and groups releases by title (most relevant first, best quality first, TMDB poster for the top titles). Pass a release's `urls` to POST /links/resolve-batch, then queue with POST /links/downloads.
          */
         get: operations["search"];
         put?: never;
@@ -953,30 +953,15 @@ export interface components {
             userAgent: string;
             sources: components["schemas"]["XdccSourceDto"][];
         };
-        /** @description One XDCC pack found by a search */
-        XdccPackDto: {
-            network: string;
-            channel: string;
-            bot: string;
-            /** Format: int32 */
-            pack: number;
-            /** @description As listed (e.g. 1.4G) */
-            size: string;
-            /**
-             * Format: int64
-             * @description Approximate bytes
-             */
-            sizeBytes?: number;
-            fileName: string;
-            /** @description xdcc:// link; pass to POST /links/resolve-batch */
-            url: string;
-            /** @example xdcc.eu */
-            source: string;
-        };
-        /** @description XDCC search results, merged from every source */
+        /** @description XDCC search results: titles, each with its releases (bots merged) */
         XdccSearchDto: {
-            packs: components["schemas"]["XdccPackDto"][];
+            /**
+             * Format: int32
+             * @description Raw hits before merging
+             */
+            packs: number;
             sources: components["schemas"]["XdccSourceDto"][];
+            titles: components["schemas"]["XdccTitleDto"][];
         };
         /** @description One XDCC search source and how it did */
         XdccSourceDto: {
@@ -985,6 +970,78 @@ export interface components {
             available: boolean;
             /** @description Detail: why it is unavailable, or what it found */
             message?: string;
+        };
+        /** @description Quality tags read from a release name */
+        XdccQualityDto: {
+            /**
+             * Format: int32
+             * @description Vertical resolution
+             * @example 1080
+             */
+            resolution?: number;
+            /** @example WEB-DL */
+            source?: string;
+            /** @example x265 */
+            codec?: string;
+            hdr: boolean;
+            /** @example AC3 */
+            audio?: string;
+            /**
+             * @example [
+             *       "ITA"
+             *     ]
+             */
+            languages: string[];
+            /**
+             * @example [
+             *       "ITA"
+             *     ]
+             */
+            subtitles: string[];
+            /** @description CAM/TS or line-dubbed */
+            lowQuality: boolean;
+        };
+        /** @description One file (or multi-part archive) and every bot offering it */
+        XdccReleaseDto: {
+            /** @description File name, or archive set name */
+            label: string;
+            /** @example S01E02 */
+            episode?: string;
+            size?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            quality: components["schemas"]["XdccQualityDto"];
+            /** @example mkv */
+            format: string;
+            /**
+             * Format: int32
+             * @description Bots offering it (tried in turn)
+             */
+            bots: number;
+            networks: string[];
+            /** @description Links to pass to POST /links/resolve-batch: one, or one per archive volume */
+            urls: string[];
+            /** @description False when archive volumes are missing */
+            complete: boolean;
+            missingParts: number[];
+        };
+        /** @description Releases of one title, best first */
+        XdccTitleDto: {
+            title: string;
+            /** Format: int32 */
+            year?: number;
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            /**
+             * Format: int32
+             * @description 3: starts with the search words, 2: contains them in order, 1: contains them all, 0: matched elsewhere
+             */
+            relevance: number;
+            /** Format: int32 */
+            tmdbId?: number;
+            tmdbTitle?: string;
+            posterUrl?: string;
+            releases: components["schemas"]["XdccReleaseDto"][];
         };
     };
     responses: never;

@@ -3,7 +3,9 @@ package com.github.stormino.service.link.xdcc;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,11 +21,38 @@ import java.util.Optional;
  * @param network  network name, for display
  * @param fileName file name from the pack list
  * @param size     size in bytes, when known
+ * @param mirrors  other bots offering the same file, tried in order when this one fails
  */
 public record XdccLink(String server, int port, String channel, String bot, int pack, String network,
-                       String fileName, Long size) {
+                       String fileName, Long size, List<XdccLink> mirrors) {
 
     public static final String SCHEME = "xdcc://";
+
+    public XdccLink {
+        mirrors = mirrors == null ? List.of() : List.copyOf(mirrors);
+    }
+
+    public XdccLink(String server, int port, String channel, String bot, int pack, String network,
+                    String fileName, Long size) {
+        this(server, port, channel, bot, pack, network, fileName, size, List.of());
+    }
+
+    public XdccLink withMirrors(List<XdccLink> others) {
+        return new XdccLink(server, port, channel, bot, pack, network, fileName, size,
+                others.stream().map(XdccLink::withoutMirrors).toList());
+    }
+
+    public XdccLink withoutMirrors() {
+        return mirrors.isEmpty() ? this : new XdccLink(server, port, channel, bot, pack, network, fileName, size);
+    }
+
+    /** This bot first, then the mirrors. */
+    public List<XdccLink> candidates() {
+        List<XdccLink> all = new ArrayList<>();
+        all.add(withoutMirrors());
+        all.addAll(mirrors);
+        return all;
+    }
 
     public String toUrl() {
         StringBuilder b = new StringBuilder(SCHEME).append(server).append(':').append(port).append('/')
@@ -39,6 +68,11 @@ public record XdccLink(String server, int port, String channel, String bot, int 
         }
         if (size != null) {
             b.append(sep).append("size=").append(size);
+            sep = "&";
+        }
+        for (XdccLink m : mirrors) {
+            b.append(sep).append("mirror=").append(enc(m.withoutMirrors().toUrl()));
+            sep = "&";
         }
         return b.toString();
     }
@@ -71,17 +105,25 @@ public record XdccLink(String server, int port, String channel, String bot, int 
             String bot = dec(parts[2]);
             int pack = Integer.parseInt(parts[3].replace("#", ""));
             Map<String, String> params = new LinkedHashMap<>();
+            List<XdccLink> mirrors = new ArrayList<>();
             for (String kv : query.split("&")) {
                 int eq = kv.indexOf('=');
                 if (eq > 0) {
-                    params.put(kv.substring(0, eq), dec(kv.substring(eq + 1)));
+                    String key = kv.substring(0, eq);
+                    String value = dec(kv.substring(eq + 1));
+                    if (key.equals("mirror")) {
+                        parse(value).map(XdccLink::withoutMirrors).ifPresent(mirrors::add);
+                    } else {
+                        params.put(key, value);
+                    }
                 }
             }
             if (host.isBlank() || !channel.startsWith("#") || bot.isBlank() || pack <= 0) {
                 return Optional.empty();
             }
             Long size = params.containsKey("size") ? Long.valueOf(params.get("size")) : null;
-            return Optional.of(new XdccLink(host, port, channel, bot, pack, params.get("net"), params.get("name"), size));
+            return Optional.of(new XdccLink(host, port, channel, bot, pack, params.get("net"), params.get("name"), size,
+                    mirrors));
         } catch (RuntimeException e) {
             return Optional.empty();
         }
