@@ -734,6 +734,7 @@ export interface components {
              * @example Ended
              */
             showStatus?: string;
+            /** @description Null when the folder is not monitored */
             monitored?: components["schemas"]["MonitoredShowDto"];
         };
         ClearResultDto: {
@@ -794,6 +795,7 @@ export interface components {
              */
             truncated: number;
             files: components["schemas"]["LinkFileDto"][];
+            /** @description Guess for the link as a whole (folder name, or the single file) */
             guess: components["schemas"]["LinkGuessDto"];
             /** @description TMDB candidates for the guess, best first; empty when TMDB is not configured */
             matches: components["schemas"]["TmdbMatchDto"][];

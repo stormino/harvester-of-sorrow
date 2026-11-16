@@ -16,7 +16,7 @@ import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.source.VixSrcMetadata;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import retrofit2.Response;
 

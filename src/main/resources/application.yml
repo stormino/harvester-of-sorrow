@@ -71,6 +71,9 @@ spring:
   # API responses omit null fields (matches the optional fields in the OpenAPI schema)
   jackson:
     default-property-inclusion: non_null
+    deserialization:
+      # Jackson 3 rejects null/missing values for primitives; keep accepting them as before (false/0).
+      fail-on-null-for-primitives: false
 
   # Servlet configuration for large file handling
   servlet:

@@ -1,7 +1,7 @@
 package com.github.stormino.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.DownloadStatus;
@@ -362,7 +362,7 @@ public class MonitoringService {
         if (metadata == null) return null;
         try {
             return objectMapper.writeValueAsString(metadata);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to serialize SourceMetadata", e);
         }
     }
@@ -371,7 +371,7 @@ public class MonitoringService {
         if (json == null || json.isBlank()) return null;
         try {
             return objectMapper.readValue(json, SourceMetadata.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Failed to deserialize SourceMetadata: {}", e.getMessage());
             return null;
         }

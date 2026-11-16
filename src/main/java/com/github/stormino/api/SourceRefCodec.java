@@ -1,7 +1,7 @@
 package com.github.stormino.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.source.SourceMetadata;
 import org.springframework.stereotype.Component;
@@ -25,7 +25,7 @@ public class SourceRefCodec {
         }
         try {
             return objectMapper.writeValueAsString(metadata);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Cannot serialise source metadata", e);
         }
     }
@@ -40,7 +40,7 @@ public class SourceRefCodec {
         SourceMetadata metadata;
         try {
             metadata = objectMapper.readValue(sourceRef, SourceMetadata.class);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException("Malformed sourceRef");
         }
         if (expectedSource != null && metadata.source() != expectedSource) {

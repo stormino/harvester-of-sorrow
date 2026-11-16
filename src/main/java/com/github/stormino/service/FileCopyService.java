@@ -1,9 +1,7 @@
 package com.github.stormino.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Recover;
-import org.springframework.retry.annotation.Retryable;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -18,13 +16,10 @@ public class FileCopyService {
     /**
      * Copies a file to a destination using rsync with checksum verification.
      * Writes to a hidden .tmp file first, then atomically renames.
-     * Retries up to 3 times with exponential backoff (5s, 10s, 20s).
+     * Tries up to 3 times in total, waiting 5 s and then 10 s between attempts; the last
+     * failure is rethrown.
      */
-    @Retryable(
-            retryFor = IOException.class,
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 5000, multiplier = 2)
-    )
+    @Retryable(includes = IOException.class, maxRetries = 2, delay = 5000, multiplier = 2)
     public void copyWithVerification(Path source, Path destination) throws IOException {
         Files.createDirectories(destination.getParent());
         Path tempDestination = destination.resolveSibling("." + destination.getFileName() + ".tmp");
@@ -58,11 +53,5 @@ public class FileCopyService {
                 log.warn("Failed to clean up temp file {}: {}", tempDestination, cleanupEx.getMessage());
             }
         }
-    }
-
-    @Recover
-    public void copyRecover(IOException e, Path source, Path destination) throws IOException {
-        log.error("All copy attempts failed for {}: {}", destination, e.getMessage());
-        throw e;
     }
 }

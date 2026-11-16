@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.1</version>
+        <version>4.1.2</version>
         <relativePath/>
     </parent>
 
@@ -22,13 +22,10 @@
         <java.version>21</java.version>
         <okhttp.version>5.5.1</okhttp.version>
         <megatron.version>1.0.0</megatron.version>
-        <!-- OkHttp 5 needs Kotlin stdlib 2.x; Spring Boot's BOM would pin 1.9. -->
-        <kotlin.version>2.1.21</kotlin.version>
         <jsoup.version>1.17.2</jsoup.version>
         <tmdb-java.version>2.9.0</tmdb-java.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
-        <lombok.version>1.18.30</lombok.version>
-        <logbook.version>3.9.0</logbook.version>
+        <logbook.version>4.2.0</logbook.version>
         <!-- Exclude e2e tag by default; override with -Dgroups=e2e to run only e2e,
              or -Dexcluded.test.groups="" to run everything -->
         <excluded.test.groups>e2e</excluded.test.groups>
@@ -44,7 +41,7 @@
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
         <!-- HTTP Client -->
@@ -87,7 +84,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.3.0</version>
+            <version>3.2.0</version>
         </dependency>
 
         <!-- Utilities -->
@@ -120,17 +117,6 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Spring Retry -->
-        <dependency>
-            <groupId>org.springframework.retry</groupId>
-            <artifactId>spring-retry</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aspects</artifactId>
-        </dependency>
-
         <!-- Spring Data JDBC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -146,8 +132,8 @@
 
         <!-- Flyway database migrations -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
 
         <!-- Configuration Processor -->
@@ -178,17 +164,18 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Testcontainers BOM -->
+        <!-- TestRestTemplate for the API integration tests (its own module since Boot 4) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-testcontainers</artifactId>
+            <artifactId>spring-boot-resttestclient</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-restclient</artifactId>
             <scope>test</scope>
         </dependency>
+
 
         <dependency>
             <groupId>org.awaitility</groupId>
@@ -206,8 +193,8 @@
         <!-- Loads .env file as Spring properties -->
         <dependency>
             <groupId>me.paulschwarz</groupId>
-            <artifactId>spring-dotenv</artifactId>
-            <version>4.0.0</version>
+            <artifactId>springboot4-dotenv</artifactId>
+            <version>5.1.0</version>
         </dependency>
     </dependencies>
 

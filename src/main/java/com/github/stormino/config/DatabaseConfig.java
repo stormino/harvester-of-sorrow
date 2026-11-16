@@ -1,11 +1,10 @@
 package com.github.stormino.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.relational.core.dialect.AnsiDialect;
-import org.springframework.data.relational.core.dialect.Dialect;
+import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -64,12 +63,9 @@ public class DatabaseConfig {
                 ? LEGACY_DB : null;
     }
 
-    /**
-     * Registers AnsiDialect for SQLite, which lacks a dedicated Spring Data JDBC dialect.
-     * AnsiDialect covers all standard CRUD and @Modifying @Query operations used in this app.
-     */
+    /** ANSI dialect for SQLite, which lacks a dedicated Spring Data JDBC dialect. */
     @Bean
-    Dialect jdbcDialect() {
-        return AnsiDialect.INSTANCE;
+    JdbcDialect jdbcDialect() {
+        return SqliteJdbcDialect.INSTANCE;
     }
 }
