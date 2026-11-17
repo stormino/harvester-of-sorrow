@@ -4,19 +4,22 @@ import { api } from '../api/client';
 import { useSources } from '../api/queries';
 import type { SearchResult } from '../api/types';
 import { Button } from '../components/Button';
+import { DownloadIcon } from '../components/Icons';
 import { Chip, ChipList } from '../components/Chip';
-import { Dialog } from '../components/Dialog';
 import { useToast } from '../components/Toast';
 import { pad2 } from '../lib/format';
 import { useTaskStream } from '../live/TaskStream';
-import s from './DownloadDialog.module.css';
+import s from './Form.module.css';
+import p from './TitlePanel.module.css';
 
 interface Props {
   item: SearchResult;
-  onClose: () => void;
+  /** Called right after the request is sent (the panel closes). */
+  onQueued: () => void;
 }
 
-export function DownloadDialog({ item, onClose }: Props) {
+/** Language, quality, season and episode choice for a streaming source (VixSrc, RaiPlay). */
+export function StreamForm({ item, onQueued }: Props) {
   const isTV = item.contentType === 'TV';
   const { data: sources } = useSources();
   const { toast, dismiss } = useToast();
@@ -99,7 +102,7 @@ export function DownloadDialog({ item, onClose }: Props) {
 
   const confirm = () => {
     const pending = toast(addingMessage(), 'contrast', { durationMs: 60_000 });
-    onClose();
+    onQueued();
     createDownload().then(
       (tasks) => {
         dismiss(pending);
@@ -115,6 +118,13 @@ export function DownloadDialog({ item, onClose }: Props) {
     );
   };
 
+  const actionNote = () => {
+    const what = !isTV ? 'Film' : seasons.length === 0 ? 'All seasons'
+      : episodes.length > 0 ? `${episodes.length} episode${episodes.length > 1 ? 's' : ''}`
+        : `Season${seasons.length > 1 ? 's' : ''} ${seasons.join(', ')}`;
+    return `${what} · ${(langs ?? []).join('/') || '—'} · ${quality ?? ''}`;
+  };
+
   const canConfirm = langs !== null && (languages.length === 0 || langs.length > 0);
 
   let episodePlaceholder: string;
@@ -127,13 +137,7 @@ export function DownloadDialog({ item, onClose }: Props) {
   const episodesEnabled = oneSeason !== undefined && (seasonEpisodes.data ?? []).length > 0;
 
   return (
-    <Dialog open title={`Download: ${item.title}`} onClose={onClose} width={520} testId="download-dialog"
-      footer={
-        <>
-          <Button variant="outline" size="lg" onClick={onClose}>Cancel</Button>
-          <Button id="dialog-confirm-download" size="lg" onClick={confirm} disabled={!canConfirm}>Add to Queue</Button>
-        </>
-      }>
+    <>
       <div className={s.form}>
         <div>
           <div className={s.label}>Languages</div>
@@ -197,7 +201,14 @@ export function DownloadDialog({ item, onClose }: Props) {
           </>
         )}
       </div>
-    </Dialog>
+      <div className={p.spacer} />
+      <div className={p.actions}>
+        <span className={p.actionNote}>{actionNote()}</span>
+        <Button id="dialog-confirm-download" size="lg" icon={<DownloadIcon size={16} />} onClick={confirm} disabled={!canConfirm}>
+          Add to queue
+        </Button>
+      </div>
+    </>
   );
 }
 

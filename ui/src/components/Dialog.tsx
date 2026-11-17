@@ -12,10 +12,16 @@ interface DialogProps {
   footer?: ReactNode;
   children: ReactNode;
   testId?: string;
+  /** 'drawer' slides in from the right, full height; 'center' is the classic modal. */
+  variant?: 'center' | 'drawer';
+  /** Extra controls in the header, before the close button. */
+  actions?: ReactNode;
+  /** Replaces the plain title text (still labelled by `title`). */
+  header?: ReactNode;
 }
 
 /** Modal dialog: Escape and backdrop click close it; focus moves into it and back. */
-export function Dialog({ open, title, onClose, width = 520, footer, children, testId }: DialogProps) {
+export function Dialog({ open, title, onClose, width = 520, footer, children, testId, variant = 'center', actions, header }: DialogProps) {
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -42,11 +48,14 @@ export function Dialog({ open, title, onClose, width = 520, footer, children, te
 
   if (!open) return null;
   return createPortal(
-    <div className={s.overlay} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className={`${s.overlay} ${variant === 'drawer' ? s.drawer : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div ref={panel} className={s.panel} style={{ ['--w' as string]: `${width}px` }} role="dialog" aria-modal="true"
         aria-labelledby={titleId} tabIndex={-1} data-testid={testId}>
         <div className={s.header}>
-          <h3 className={s.title} id={titleId}>{title}</h3>
+          {header
+            ? <div className={s.headerBody} id={titleId} aria-label={title}>{header}</div>
+            : <h3 className={s.title} id={titleId}>{title}</h3>}
+          {actions}
           <Button variant="ghost" size="md" iconOnly icon={<CloseIcon size={16} />} onClick={onClose}
             aria-label="Close" data-dialog-close />
         </div>
