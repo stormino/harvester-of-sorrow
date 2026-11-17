@@ -7,31 +7,11 @@ import { StreamForm } from './StreamForm';
 import { XdccReleases } from './XdccReleases';
 import s from './TitlePanel.module.css';
 
-export type PanelMode = 'drawer' | 'center';
-const MODE_KEY = 'hos-panel';
-
-export function readPanelMode(): PanelMode {
-  try {
-    return localStorage.getItem(MODE_KEY) === 'center' ? 'center' : 'drawer';
-  } catch {
-    return 'drawer';
-  }
-}
-
-function savePanelMode(m: PanelMode) {
-  try {
-    localStorage.setItem(MODE_KEY, m);
-  } catch {
-    // ignore
-  }
-}
-
 /** Tab ids: a streaming source (VIXSRC, RAIPLAY) or XDCC. */
 type Tab = string;
 
 /** Everything about one title: details, and one tab per place it can be downloaded from. */
 export function TitlePanel({ group, onClose }: { group: TitleGroup; onClose: () => void }) {
-  const [mode, setMode] = useState<PanelMode>(readPanelMode);
   const tabs: { id: Tab; label: string; note: string }[] = [
     ...group.streams.map((r) => ({
       id: r.source as string,
@@ -45,21 +25,9 @@ export function TitlePanel({ group, onClose }: { group: TitleGroup; onClose: () 
   const stream = group.streams.find((r) => r.source === tab);
   const isTV = group.contentType === 'TV';
 
-  const switchMode = () => {
-    const next = mode === 'drawer' ? 'center' : 'drawer';
-    setMode(next);
-    savePanelMode(next);
-  };
-
   return (
-    <Dialog open title={group.title} onClose={onClose} width={mode === 'drawer' ? 620 : 680} variant={mode}
+    <Dialog open title={group.title} onClose={onClose} width={620} variant="drawer"
       testId="title-panel"
-      actions={
-        <button type="button" className={s.modeBtn} onClick={switchMode}
-          title="Switch between side panel and centred dialog">
-          {mode === 'drawer' ? '⇱ Dialog' : '⇥ Side panel'}
-        </button>
-      }
       header={
         <div className={`${s.head} ${isTV ? s.tv : ''}`}>
           <div className={s.poster}>
