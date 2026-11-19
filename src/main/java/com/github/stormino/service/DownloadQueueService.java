@@ -137,6 +137,14 @@ public class DownloadQueueService {
     public List<DownloadTask> enqueue(ContentMetadata content, DownloadTask.ContentType contentType,
                                       List<Integer> seasons, List<Integer> episodes,
                                       List<String> languages, String quality) {
+        return enqueue(content, contentType, seasons, episodes, languages, null, quality);
+    }
+
+    /** @param subtitleLanguages null = same as {@code languages}, empty = no subtitles */
+    public List<DownloadTask> enqueue(ContentMetadata content, DownloadTask.ContentType contentType,
+                                      List<Integer> seasons, List<Integer> episodes,
+                                      List<String> languages, List<String> subtitleLanguages, String quality) {
+        List<String> subs = subtitleLanguages == null ? null : List.copyOf(subtitleLanguages);
         List<String> langs = (languages == null || languages.isEmpty())
                 ? properties.getDownload().getDefaultLanguageList() : List.copyOf(languages);
         String q = (quality == null || quality.isBlank()) ? properties.getDownload().getDefaultQuality() : quality;
@@ -145,9 +153,9 @@ public class DownloadQueueService {
 
         List<DownloadTask> created;
         if (contentType == DownloadTask.ContentType.MOVIE) {
-            created = List.of(createMovieTask(content, langs, q));
+            created = List.of(createMovieTask(content, langs, subs, q));
         } else {
-            created = enqueueTv(content, seasonSel, episodeSel, langs, q);
+            created = enqueueTv(content, seasonSel, episodeSel, langs, subs, q);
         }
         log.info("Queued {} task(s) for '{}' ({})", created.size(), content.getTitle(), content.getSource());
         processQueue();
@@ -219,13 +227,13 @@ public class DownloadQueueService {
      */
     public DownloadTask enqueueEpisode(ContentMetadata episodeMeta, List<String> languages, String quality) {
         DownloadTask task = createEpisodeTask(episodeMeta, episodeMeta.getSeason(), episodeMeta.getEpisode(),
-                episodeMeta.getEpisodeName(), episodeMeta.getSourceMetadata(), languages, quality);
+                episodeMeta.getEpisodeName(), episodeMeta.getSourceMetadata(), languages, null, quality);
         processQueue();
         return task;
     }
 
     private List<DownloadTask> enqueueTv(ContentMetadata show, List<Integer> seasons, List<Integer> episodes,
-                                         List<String> languages, String quality) {
+                                         List<String> languages, List<String> subtitleLanguages, String quality) {
         if (!episodes.isEmpty() && seasons.size() != 1) {
             throw new IllegalArgumentException("Episodes can only be selected together with exactly one season");
         }
@@ -248,12 +256,12 @@ public class DownloadQueueService {
                         .filter(e -> e.season() == season && e.episode() == ep)
                         .findFirst().orElse(null);
                 if (ref != null) {
-                    created.add(createEpisodeTask(show, season, ep, ref.name(), ref.sourceMetadata(), languages, quality));
+                    created.add(createEpisodeTask(show, season, ep, ref.name(), ref.sourceMetadata(), languages, subtitleLanguages, quality));
                 } else {
                     // Not in the listing (or listing failed): queue directly with show-level metadata;
                     // providers resolve season/episode from it at download time.
                     created.add(createEpisodeTask(show, season, ep, null, fallbackEpisodeMetadata(show, season, ep),
-                            languages, quality));
+                            languages, subtitleLanguages, quality));
                 }
             }
             return created;
@@ -268,7 +276,7 @@ public class DownloadQueueService {
         }
         for (EpisodeRef ref : selected) {
             created.add(createEpisodeTask(show, ref.season(), ref.episode(), ref.name(), ref.sourceMetadata(),
-                    languages, quality));
+                    languages, subtitleLanguages, quality));
         }
         return created;
     }
@@ -281,7 +289,8 @@ public class DownloadQueueService {
         return show.getSourceMetadata();
     }
 
-    private DownloadTask createMovieTask(ContentMetadata content, List<String> languages, String quality) {
+    private DownloadTask createMovieTask(ContentMetadata content, List<String> languages,
+                                         List<String> subtitleLanguages, String quality) {
         ContentMetadata metadata = content;
         Integer tmdbId = content.getTmdbId();
         com.github.stormino.model.source.SourceMetadata sourceMetadata = content.getSourceMetadata();
@@ -299,6 +308,7 @@ public class DownloadQueueService {
                 .title(metadata.getTitle())
                 .year(metadata.getYear())
                 .languages(languages)
+                .subtitleLanguages(subtitleLanguages)
                 .quality(quality)
                 .build();
         task.setOutputPath(generateOutputPath(task, ContentMetadata.builder()
@@ -309,7 +319,7 @@ public class DownloadQueueService {
 
     private DownloadTask createEpisodeTask(ContentMetadata show, int season, int episode, String episodeName,
                                            com.github.stormino.model.source.SourceMetadata sourceMetadata,
-                                           List<String> languages, String quality) {
+                                           List<String> languages, List<String> subtitleLanguages, String quality) {
         DownloadTask task = DownloadTask.builder()
                 .source(show.getSource() != null ? show.getSource() : MediaSource.VIXSRC)
                 .sourceMetadata(sourceMetadata)
@@ -321,6 +331,7 @@ public class DownloadQueueService {
                 .episodeName(episodeName)
                 .year(show.getYear())
                 .languages(languages != null && !languages.isEmpty() ? languages : properties.getDownload().getDefaultLanguageList())
+                .subtitleLanguages(subtitleLanguages)
                 .quality(quality != null ? quality : properties.getDownload().getDefaultQuality())
                 .build();
         task.setOutputPath(generateOutputPathFast(task));
@@ -352,7 +363,7 @@ public class DownloadQueueService {
             return LibraryPaths.tvEpisode(basePath, task.getTitle(), task.getYear(), task.getSeason(),
                     task.getEpisode(), task.getEpisodeName(), DownloadConstants.VIDEO_EXTENSION);
         } else {
-            filename = String.format("tv_%d_s%02de%02d.mp4",
+            filename = String.format("tv_%d_s%02de%02d" + DownloadConstants.VIDEO_EXTENSION,
                 task.getTmdbId(), task.getSeason(), task.getEpisode());
             return java.nio.file.Paths.get(basePath, filename).toString();
         }
@@ -718,15 +729,15 @@ public class DownloadQueueService {
             }
             filename = metadata.generateFilename(
                     task.getLanguages().get(0),
-                    "mp4"
+                    DownloadConstants.VIDEO_EXTENSION.substring(1)
             );
         } else {
             // Fallback filename
             if (task.getContentType() == DownloadTask.ContentType.TV) {
-                filename = String.format("tv_%d_s%02de%02d.mp4",
+                filename = String.format("tv_%d_s%02de%02d" + DownloadConstants.VIDEO_EXTENSION,
                         task.getTmdbId(), task.getSeason(), task.getEpisode());
             } else {
-                filename = String.format("movie_%d.mp4", task.getTmdbId());
+                filename = String.format("movie_%d" + DownloadConstants.VIDEO_EXTENSION, task.getTmdbId());
             }
         }
         

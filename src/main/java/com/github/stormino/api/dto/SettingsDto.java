@@ -14,7 +14,10 @@ public record SettingsDto(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String extractorBaseUrl,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) int extractorTimeoutSeconds,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean monitoringEnabled,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) long monitoringIntervalMs,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "When the automatic check runs, in words",
+                example = "daily at 03:00 and 06:00") String monitoringSchedule,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Days a new episode waits for audio in the default language")
+        int monitoringLanguageWaitDays,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean tmdbApiKeySet,
         @Schema(description = "Masked TMDB key, e.g. `••••••••3f9a`; null when unset") String tmdbApiKeyMasked,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) boolean raiPlayEnabled

@@ -11,9 +11,9 @@ public interface DownloadTaskRepository extends CrudRepository<DownloadTaskRecor
 
     @Modifying
     @Query("INSERT INTO download_task (id, source, source_metadata, content_type, tmdb_id, season, episode, title, episode_name, " +
-           "year, languages, quality, output_path, playlist_url, status, error_message, created_at, started_at, completed_at) " +
+           "year, languages, subtitle_languages, quality, output_path, playlist_url, status, error_message, created_at, started_at, completed_at) " +
            "VALUES (:id, :source, :sourceMetadata, :contentType, :tmdbId, :season, :episode, :title, :episodeName, " +
-           ":year, :languages, :quality, :outputPath, :playlistUrl, :status, :errorMessage, :createdAt, :startedAt, :completedAt)")
+           ":year, :languages, :subtitleLanguages, :quality, :outputPath, :playlistUrl, :status, :errorMessage, :createdAt, :startedAt, :completedAt)")
     void insert(@Param("id") String id,
                 @Param("source") String source,
                 @Param("sourceMetadata") String sourceMetadata,
@@ -25,6 +25,7 @@ public interface DownloadTaskRepository extends CrudRepository<DownloadTaskRecor
                 @Param("episodeName") String episodeName,
                 @Param("year") Integer year,
                 @Param("languages") String languages,
+                @Param("subtitleLanguages") String subtitleLanguages,
                 @Param("quality") String quality,
                 @Param("outputPath") String outputPath,
                 @Param("playlistUrl") String playlistUrl,

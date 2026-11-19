@@ -67,7 +67,14 @@ public class DownloadsController {
                         + ": " + unsupported);
             }
         }
-        if (req.quality() != null && !req.quality().isBlank() && !ContentController.QUALITIES.contains(req.quality())) {
+        // Subtitles come in many more languages than audio: any two-letter code is accepted.
+        if (req.subtitleLanguages() != null) {
+            List<String> invalid = req.subtitleLanguages().stream().filter(l -> !l.matches("[a-z]{2}")).toList();
+            if (!invalid.isEmpty()) {
+                throw ApiException.badRequest("Subtitle languages must be two-letter codes: " + invalid);
+            }
+        }
+        if (req.quality() != null && !req.quality().isBlank() && !ContentController.isValidQuality(req.quality())) {
             throw ApiException.badRequest("Unknown quality '" + req.quality() + "'");
         }
         if (req.contentType() == DownloadTask.ContentType.MOVIE
@@ -90,7 +97,8 @@ public class DownloadsController {
             // Default language not served by this source (e.g. "en" on RaiPlay): use the source's own.
             languages = List.of(supported.iterator().next());
         }
-        return queue.enqueue(content, req.contentType(), req.seasons(), req.episodes(), languages, req.quality())
+        return queue.enqueue(content, req.contentType(), req.seasons(), req.episodes(), languages,
+                        req.subtitleLanguages(), req.quality())
                 .stream().map(TaskMapper::toDto).toList();
     }
 

@@ -4,6 +4,7 @@ import com.github.stormino.model.AvailabilityResult;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.ContentTypeFilter;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaInfo;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ResolvedMedia;
@@ -51,6 +52,23 @@ public interface MediaSourceProvider {
      * language-driven initialisation in that case.
      */
     default Optional<ResolvedMedia> resolveMaster(DownloadTask task, String primaryLanguage) {
+        return Optional.empty();
+    }
+
+    /**
+     * What a movie or one episode really offers (audio, subtitles, qualities), read from its
+     * playlist without downloading. For a show with {@code season}/{@code episode} null, the
+     * first episode the source has. Empty when the source can't tell.
+     */
+    default Optional<MediaInfo> mediaInfo(ContentMetadata content, Integer season, Integer episode) {
+        return Optional.empty();
+    }
+
+    /**
+     * Language of audio that comes built into the video stream (no separate audio
+     * renditions), which the playlist doesn't name. Empty when unknown.
+     */
+    default Optional<String> embeddedAudioLanguage(DownloadTask task) {
         return Optional.empty();
     }
 

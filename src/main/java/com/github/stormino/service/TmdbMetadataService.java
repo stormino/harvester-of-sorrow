@@ -342,6 +342,45 @@ public class TmdbMetadataService {
         }
     }
 
+    private final Map<String, Optional<String>> originalLanguageCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Original language of a movie or show as an ISO 639-1 code ("en"). Used to label audio
+     * that comes built into the video stream, which the source doesn't name. Cached.
+     */
+    public Optional<String> getOriginalLanguage(int tmdbId, boolean tv) {
+        if (!isAvailable()) {
+            return Optional.empty();
+        }
+        String key = (tv ? "tv:" : "movie:") + tmdbId;
+        Optional<String> cached = originalLanguageCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            String language;
+            int code;
+            if (tv) {
+                Response<TvShow> response = tmdb.tvService().tv(tmdbId, null, null).execute();
+                code = response.code();
+                language = response.isSuccessful() && response.body() != null ? response.body().original_language : null;
+            } else {
+                Response<Movie> response = tmdb.moviesService().summary(tmdbId, null, null).execute();
+                code = response.code();
+                language = response.isSuccessful() && response.body() != null ? response.body().original_language : null;
+            }
+            if (code >= 500) {
+                return Optional.empty(); // transient: don't cache
+            }
+            Optional<String> result = Optional.ofNullable(language).filter(l -> !l.isBlank());
+            originalLanguageCache.put(key, result);
+            return result;
+        } catch (IOException e) {
+            log.warn("Error fetching original language for {}: {}", key, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
     /**
      * TMDB show status: "Returning Series", "In Production", "Planned",
      * "Pilot", "Ended" or "Canceled". Empty when unavailable or on error.

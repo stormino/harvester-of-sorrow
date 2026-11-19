@@ -42,14 +42,14 @@ public class ContentMetadata {
         filename.append(cleanTitle.replace(" ", "."));
         
         if (season != null && episode != null) {
-            // TV format: Show.S01E01.EpisodeName.mp4
+            // TV format: Show.S01E01.EpisodeName.mkv
             filename.append(String.format(".S%02dE%02d", season, episode));
             if (episodeName != null && !episodeName.isBlank()) {
                 String cleanEpisode = sanitizeFilename(episodeName);
                 filename.append(".").append(cleanEpisode.replace(" ", "."));
             }
         } else if (year != null) {
-            // Movie format: Title.2023.mp4
+            // Movie format: Title.2023.mkv
             filename.append(".").append(year);
         }
         

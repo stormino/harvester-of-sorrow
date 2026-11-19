@@ -4,7 +4,9 @@ import com.github.stormino.model.AvailabilityResult;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.ContentTypeFilter;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaInfo;
 import com.github.stormino.model.MediaSource;
+import com.github.stormino.util.LanguageCodes;
 import com.github.stormino.model.PlaylistInfo;
 import com.github.stormino.model.ResolvedMedia;
 import com.github.stormino.service.HlsParserService;
@@ -134,6 +136,77 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
     }
 
     @Override
+    public Optional<MediaInfo> mediaInfo(ContentMetadata content, Integer season, Integer episode) {
+        if (content.getTmdbId() == null) {
+            return Optional.empty();
+        }
+        boolean tv = content.getContentType() == DownloadTask.ContentType.TV;
+        DownloadTask probe = DownloadTask.builder()
+                .source(MediaSource.VIXSRC)
+                .contentType(tv ? DownloadTask.ContentType.TV : DownloadTask.ContentType.MOVIE)
+                .tmdbId(content.getTmdbId())
+                .build();
+        if (tv) {
+            if (season == null || episode == null) {
+                // First regular episode VixSrc has (specials, season 0, last); S1E1 when the
+                // catalogue doesn't list the show
+                var first = availabilityService.fetchAvailableEpisodes(content.getTmdbId(),
+                                VixSrcAvailabilityService.EPISODE_LIST_LANG).stream()
+                        .min(java.util.Comparator.<VixSrcAvailabilityService.EpisodeKey>comparingInt(k -> k.season() == 0 ? 1 : 0)
+                                .thenComparingInt(VixSrcAvailabilityService.EpisodeKey::season)
+                                .thenComparingInt(VixSrcAvailabilityService.EpisodeKey::episode));
+                season = first.map(VixSrcAvailabilityService.EpisodeKey::season).orElse(1);
+                episode = first.map(VixSrcAvailabilityService.EpisodeKey::episode).orElse(1);
+            }
+            probe.setSeason(season);
+            probe.setEpisode(episode);
+        }
+        Optional<ResolvedMedia> resolved = resolveMaster(probe, VixSrcAvailabilityService.EPISODE_LIST_LANG);
+        if (resolved.isEmpty() || resolved.get().parsed().getType() != HlsParserService.PlaylistType.MASTER) {
+            log.debug("No master playlist for tmdbId={} S{}E{}", content.getTmdbId(), season, episode);
+            return Optional.empty();
+        }
+        var parsed = resolved.get().parsed();
+
+        List<MediaInfo.Track> audio = new ArrayList<>();
+        if (parsed.getAudioTracks() == null || parsed.getAudioTracks().isEmpty()) {
+            String lang = embeddedAudioLanguage(probe).orElse(null);
+            audio.add(new MediaInfo.Track(lang, lang != null ? LanguageCodes.displayName(lang) : "Original audio", false));
+        } else {
+            for (var t : parsed.getAudioTracks()) {
+                String lang = LanguageCodes.toIso1(t.getLanguage()).orElse(null);
+                if (audio.stream().noneMatch(a -> java.util.Objects.equals(a.language(), lang))) {
+                    audio.add(new MediaInfo.Track(lang, lang != null ? LanguageCodes.displayName(lang) : t.getName(), false));
+                }
+            }
+        }
+        List<MediaInfo.Track> subtitles = new ArrayList<>();
+        if (parsed.getSubtitleTracks() != null) {
+            for (var t : parsed.getSubtitleTracks()) {
+                String lang = LanguageCodes.toIso1(t.getLanguage()).orElse(null);
+                subtitles.add(new MediaInfo.Track(lang, t.getName(), t.isForced()));
+            }
+        }
+        List<Integer> heights = parsed.getVideoVariants() == null ? List.of() : parsed.getVideoVariants().stream()
+                .map(v -> v.getResolution() == null ? null : v.getResolution().replaceAll("^\\d+x", ""))
+                .filter(h -> h != null && h.matches("\\d+"))
+                .map(Integer::parseInt)
+                .distinct()
+                .sorted(java.util.Comparator.reverseOrder())
+                .toList();
+        return Optional.of(new MediaInfo(audio, subtitles, heights));
+    }
+
+    /** VixSrc doesn't say; the title's original language (TMDB) is what such streams carry. */
+    @Override
+    public Optional<String> embeddedAudioLanguage(DownloadTask task) {
+        if (task.getTmdbId() == null) {
+            return Optional.empty();
+        }
+        return tmdbService.getOriginalLanguage(task.getTmdbId(), task.getContentType() == DownloadTask.ContentType.TV);
+    }
+
+    @Override
     public Set<String> supportedLanguages() {
         return SUPPORTED_LANGUAGES;
     }
@@ -182,7 +255,9 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
                         season.season_number,
                         ep.episode_number,
                         ep.name,
-                        new VixSrcMetadata(show.getTmdbId(), season.season_number, ep.episode_number)
+                        new VixSrcMetadata(show.getTmdbId(), season.season_number, ep.episode_number),
+                        ep.air_date == null ? null
+                                : ep.air_date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate()
                 ));
             }
         }

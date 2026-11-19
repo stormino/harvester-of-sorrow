@@ -8,6 +8,7 @@ import com.github.stormino.model.DownloadStatus;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.MonitoredShow;
+import com.github.stormino.model.MediaInfo;
 import com.github.stormino.model.source.SourceMetadata;
 import com.github.stormino.persistence.MonitoredShowRecord;
 import com.github.stormino.persistence.MonitoredShowRepository;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -238,6 +240,8 @@ public class MonitoringService {
             defaultLanguages = List.of(provider.supportedLanguages().iterator().next());
         }
         String quality = properties.getDownload().getDefaultQuality();
+        String preferredLanguage = defaultLanguages.get(0);
+        LocalDate today = LocalDate.now();
 
         int enqueued = 0;
         for (EpisodeRef ep : episodes) {
@@ -252,6 +256,13 @@ public class MonitoringService {
             if (isAlreadyQueued(show, ep)) {
                 log.debug("Already queued: {} S{}E{}", show.getTitle(), ep.season(), ep.episode());
                 continue;
+            }
+
+            // Not out in the preferred language yet (VixSrc gets the Italian dub a few days after
+            // the original): wait, and stop here so later episodes don't overtake it — once a
+            // later episode is on disk, this one would never be picked up.
+            if (waitForLanguage(provider, content, ep, preferredLanguage, today)) {
+                break;
             }
 
             ContentMetadata episodeMeta = ContentMetadata.builder()
@@ -279,6 +290,38 @@ public class MonitoringService {
         updateCheckTimestamp(show, enqueued > 0 ? LocalDateTime.now() : null);
         log.info("Check complete for '{}': {} new episode(s) enqueued", show.getTitle(), enqueued);
         return enqueued;
+    }
+
+    /**
+     * True when {@code ep} has no audio in {@code language} yet and is younger than
+     * {@code languageWaitDays}. Episodes the source can't describe, or without an air
+     * date, are not held back.
+     */
+    private boolean waitForLanguage(MediaSourceProvider provider, ContentMetadata show, EpisodeRef ep,
+                                    String language, LocalDate today) {
+        if (!provider.supportedLanguages().isEmpty() && !provider.supportedLanguages().contains(language)) {
+            return false;
+        }
+        Optional<MediaInfo> info;
+        try {
+            info = provider.mediaInfo(show, ep.season(), ep.episode());
+        } catch (Exception e) {
+            log.warn("Could not read audio languages of {} S{}E{}: {}", show.getTitle(), ep.season(), ep.episode(),
+                    e.getMessage());
+            return false;
+        }
+        if (info.isEmpty() || info.get().hasAudio(language)) {
+            return false;
+        }
+        int waitDays = properties.getMonitoring().getLanguageWaitDays();
+        if (ep.airDate() == null || !ep.airDate().plusDays(waitDays).isAfter(today)) {
+            log.info("{} S{}E{} still has no '{}' audio {} days after airing: downloading it as it is",
+                    show.getTitle(), ep.season(), ep.episode(), language, waitDays);
+            return false;
+        }
+        log.info("Waiting for '{}' audio: {} S{}E{} (aired {}, downloaded anyway from {})",
+                language, show.getTitle(), ep.season(), ep.episode(), ep.airDate(), ep.airDate().plusDays(waitDays));
+        return true;
     }
 
     /** Returns true if {@code ep} comes strictly after {@code anchor} in watch order. */

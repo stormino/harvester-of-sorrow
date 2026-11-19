@@ -21,5 +21,7 @@ public record DownloadRequest(
         List<Integer> seasons,
         List<Integer> episodes,
         @Schema(description = "Audio languages; empty = server default", example = "[\"en\"]") List<String> languages,
-        @Schema(description = "best, 1080, 720 or worst; empty = server default", example = "best") String quality
+        @Schema(description = "best, worst or a height such as 1080, 720, 480; empty = server default", example = "best") String quality,
+        @Schema(description = "Subtitle languages; omitted = same as `languages`, empty = no subtitles", example = "[\"it\"]")
+        List<String> subtitleLanguages
 ) {}

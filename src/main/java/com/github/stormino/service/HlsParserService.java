@@ -60,6 +60,8 @@ public class HlsParserService {
         private String url;
         private String language;
         private String name;
+        /** Only translates foreign-language lines and on-screen text (FORCED=YES or "[Forced]" in the name). */
+        private boolean forced;
     }
 
     @Data
@@ -224,10 +226,13 @@ public class HlsParserService {
                     String language = langMatcher.group(1);
                     String name = nameMatcher.find() ? nameMatcher.group(1) : "Subtitle - " + language.toUpperCase();
 
+                    boolean forced = line.contains("FORCED=YES") || name.toLowerCase().contains("forced")
+                            || language.toLowerCase().contains("forced");
                     subtitleTracks.add(SubtitleTrack.builder()
                             .url(url)
                             .language(language)
                             .name(name)
+                            .forced(forced)
                             .build());
                 }
             }

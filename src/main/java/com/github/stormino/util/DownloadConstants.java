@@ -26,7 +26,7 @@ public final class DownloadConstants {
     /**
      * Video file extension for final output.
      */
-    public static final String VIDEO_EXTENSION = ".mp4";
+    public static final String VIDEO_EXTENSION = ".mkv";
 
     /**
      * Audio file extension for track downloads.
@@ -69,6 +69,7 @@ public final class DownloadConstants {
      * FFmpeg subtitle codec for MP4.
      */
     public static final String FFMPEG_SUBTITLE_CODEC = "mov_text";
+    public static final String FFMPEG_SUBTITLE_CODEC_MKV = "srt";
 
     // ========== Progress Tracking ==========
 
