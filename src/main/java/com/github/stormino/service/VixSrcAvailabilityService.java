@@ -17,8 +17,11 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +49,10 @@ public class VixSrcAvailabilityService {
 
     private final ConcurrentHashMap<CacheKey, CachedList> cache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<CacheKey, Object>     fetchLocks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<ProbeKey, CachedProbe> probeCache = new ConcurrentHashMap<>();
+
+    /** {@code "src":"/embed/610994?token=…&lang=en&…"} → {@code en}. */
+    private static final Pattern EMBED_LANG_PATTERN = Pattern.compile("\"src\"\\s*:\\s*\"[^\"]*[?&]lang=([a-z]{2,3})");
 
     public VixSrcAvailabilityService(OkHttpClient httpClient,
                                      AppProperties properties,
@@ -70,6 +77,11 @@ public class VixSrcAvailabilityService {
             if (ids.contains(tmdbId)) {
                 available.add(language);
             }
+        }
+        if (available.isEmpty()) {
+            // The catalogue list only covers titles with Italian audio; VixSrc also
+            // serves titles in their original language only (e.g. "Being Erica").
+            probe(type, tmdbId).ifPresent(available::add);
         }
         return AvailabilityResult.builder()
                 .available(!available.isEmpty())
@@ -119,6 +131,42 @@ public class VixSrcAvailabilityService {
         } catch (Exception e) {
             log.error("Failed to fetch VixSrc list type={} lang={}: {}", type, language, e.getMessage());
             return Set.of();
+        }
+    }
+
+    /**
+     * Asks VixSrc directly whether it serves a title: {@code /api/movie/{id}} or, for
+     * shows, {@code /api/tv/{id}/1/1}. The API answers 404 for titles it doesn't have
+     * (unlike the HTML pages, which always answer 200), and 200 with the embed
+     * {@code src} otherwise. Returns the embed's language, cached for {@link #CACHE_TTL}.
+     */
+    private Optional<String> probe(String type, int tmdbId) {
+        ProbeKey key = new ProbeKey(type, tmdbId);
+        CachedProbe cached = probeCache.get(key);
+        if (cached != null && !isExpired(cached.fetchedAt())) {
+            return cached.language();
+        }
+        String path = "tv".equals(type) ? "tv/" + tmdbId + "/1/1" : "movie/" + tmdbId;
+        String url = properties.getExtractor().getBaseUrl() + "/api/" + path;
+        Request request = new Request.Builder().url(url).build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            Optional<String> language = Optional.empty();
+            if (response.isSuccessful() && response.body() != null) {
+                Matcher m = EMBED_LANG_PATTERN.matcher(response.body().string());
+                if (m.find()) {
+                    language = Optional.of(m.group(1));
+                }
+            } else if (response.code() != 404) {
+                // Transient failure: don't cache, try again on the next search.
+                log.warn("VixSrc probe returned HTTP {} for {}", response.code(), url);
+                return Optional.empty();
+            }
+            log.debug("VixSrc probe {} {}: {}", type, tmdbId, language.orElse("not available"));
+            probeCache.put(key, new CachedProbe(language, Instant.now()));
+            return language;
+        } catch (Exception e) {
+            log.warn("VixSrc probe failed for {}: {}", url, e.getMessage());
+            return Optional.empty();
         }
     }
 
@@ -199,6 +247,10 @@ public class VixSrcAvailabilityService {
                                 @JsonProperty("e") Integer episode) {}
 
     private record CacheKey(String type, String language) {}
+
+    private record ProbeKey(String type, int tmdbId) {}
+
+    private record CachedProbe(Optional<String> language, Instant fetchedAt) {}
 
     private record CachedList(Set<Integer> tmdbIds, Instant fetchedAt) {}
 

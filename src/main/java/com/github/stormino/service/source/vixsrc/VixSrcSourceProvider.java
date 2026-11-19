@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * VixSrc-backed implementation of {@link MediaSourceProvider}. Delegates to
@@ -41,6 +44,13 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
     private final VixSrcAvailabilityService availabilityService;
     private final VixSrcExtractorService extractorService;
     private final HlsParserService hlsParser;
+
+    /** Availability checks may hit the network (one probe per title off the catalogue list). */
+    private final ExecutorService availabilityExecutor = Executors.newFixedThreadPool(8, r -> {
+        Thread t = new Thread(r, "vixsrc-availability");
+        t.setDaemon(true);
+        return t;
+    });
 
     @Override
     public MediaSource source() {
@@ -62,17 +72,26 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
             candidates.addAll(tmdbService.searchTvShows(query));
         }
 
+        // Titles missing from the catalogue list cost one HTTP probe each, so check
+        // the candidates concurrently; join() keeps TMDB's ranking order.
         Set<String> languages = Set.of(VixSrcAvailabilityService.EPISODE_LIST_LANG);
-        return candidates.stream()
-                .filter(c -> {
+        List<CompletableFuture<Boolean>> checks = candidates.stream()
+                .map(c -> CompletableFuture.supplyAsync(() -> {
                     AvailabilityResult avail = checkAvailability(c, languages);
                     if (!avail.isAvailable()) {
                         log.debug("Filtered out '{}' (tmdbId={}) — not available on VixSrc",
                                 c.getTitle(), c.getTmdbId());
                     }
                     return avail.isAvailable();
-                })
+                }, availabilityExecutor))
                 .toList();
+        List<ContentMetadata> available = new ArrayList<>();
+        for (int i = 0; i < candidates.size(); i++) {
+            if (checks.get(i).join()) {
+                available.add(candidates.get(i));
+            }
+        }
+        return available;
     }
 
     @Override
