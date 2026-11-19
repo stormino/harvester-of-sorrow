@@ -13,6 +13,7 @@ import com.github.stormino.service.command.FfmpegCommandBuilder;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
 import com.github.stormino.util.DownloadConstants;
+import com.github.stormino.util.LanguageCodes;
 import com.github.stormino.util.PathUtils;
 import com.github.stormino.util.TempFileManager;
 import lombok.RequiredArgsConstructor;
@@ -224,15 +225,21 @@ public class TrackDownloadOrchestrator {
         List<DownloadSubTask> subTasks = new ArrayList<>();
         HlsParserService.HlsPlaylist parsed = resolvedMedia.parsed();
 
-        // Always exactly one video sub-task
+        // Always exactly one video sub-task. Without separate audio renditions the audio is
+        // built into the video stream: record its language there so the merge can label it.
+        List<HlsParserService.AudioTrack> audioTracks = parsed.getAudioTracks();
+        String embeddedAudioLanguage = null;
+        if (audioTracks == null || audioTracks.isEmpty()) {
+            embeddedAudioLanguage = sourceRegistry.get(task.getSource()).embeddedAudioLanguage(task).orElse(null);
+        }
         subTasks.add(DownloadSubTask.builder()
                 .parentTaskId(task.getId())
                 .type(DownloadSubTask.SubTaskType.VIDEO)
+                .language(embeddedAudioLanguage)
                 .resolution(task.getQuality())
                 .build());
 
         // Audio sub-tasks from actual renditions, filtered by requested languages.
-        List<HlsParserService.AudioTrack> audioTracks = parsed.getAudioTracks();
         if (audioTracks != null) {
             for (HlsParserService.AudioTrack track : audioTracks) {
                 if (languages.isEmpty() || languageMatchesAny(track.getLanguage(), languages)) {
@@ -247,16 +254,17 @@ public class TrackDownloadOrchestrator {
             }
         }
 
-        // Subtitle sub-tasks from actual renditions, filtered by requested languages
+        // Subtitle sub-tasks from actual renditions, filtered by the requested subtitle languages
+        List<String> subtitleLanguages = subtitleLanguages(task, languages);
         List<HlsParserService.SubtitleTrack> subtitleTracks = parsed.getSubtitleTracks();
         if (subtitleTracks != null) {
             for (HlsParserService.SubtitleTrack track : subtitleTracks) {
-                if (languages.isEmpty() || languageMatchesAny(track.getLanguage(), languages)) {
+                if (languageMatchesAny(track.getLanguage(), subtitleLanguages)) {
                     subTasks.add(DownloadSubTask.builder()
                             .parentTaskId(task.getId())
                             .type(DownloadSubTask.SubTaskType.SUBTITLE)
                             .language(track.getLanguage() != null ? track.getLanguage() : "und")
-                            .title(track.getName())
+                            .title(subtitleTitle(track))
                             .renditionUrl(track.getUrl())
                             .build());
                 }
@@ -266,13 +274,36 @@ public class TrackDownloadOrchestrator {
         return subTasks;
     }
 
+    /** Subtitle languages of a task: its own choice, or the audio languages for older tasks. */
+    private static List<String> subtitleLanguages(DownloadTask task, List<String> languages) {
+        return task.getSubtitleLanguages() != null ? task.getSubtitleLanguages() : languages;
+    }
+
     /**
-     * Fuzzy language match — handles ISO 639-1 ("it") vs ISO 639-2 ("ita") prefix differences.
+     * Track name shown by players: "Italian", "Italian (Forced)". The forced marker in the
+     * title is also how the merge recognises forced tracks (sub-tasks carry no flag).
      */
-    private boolean languageMatchesAny(String trackLang, List<String> languages) {
+    static String subtitleTitle(HlsParserService.SubtitleTrack track) {
+        String name = track.getName() != null && !track.getName().isBlank()
+                ? track.getName().replaceAll("(?i)\\s*[\\[(]forced[\\])]", "").trim()
+                : LanguageCodes.displayName(track.getLanguage());
+        return track.isForced() ? name + " (Forced)" : name;
+    }
+
+    /**
+     * Language match across code forms ("it"/"ita", "es"/"spa", "de"/"ger"); prefix fallback for unknown codes.
+     */
+    static boolean languageMatchesAny(String trackLang, List<String> languages) {
         if (trackLang == null) return false;
         String tl = trackLang.toLowerCase();
         for (String lang : languages) {
+            // "es" vs "spa", "de" vs "ger", "it" vs "forced-ita": compare as languages
+            if (LanguageCodes.isKnown(trackLang) && LanguageCodes.isKnown(lang)) {
+                if (LanguageCodes.same(trackLang, lang)) {
+                    return true;
+                }
+                continue; // no prefix guessing between known codes: "est" is not "es"
+            }
             String rl = lang.toLowerCase();
             if (tl.equals(rl) || tl.startsWith(rl) || rl.startsWith(tl)) {
                 return true;
@@ -304,7 +335,7 @@ public class TrackDownloadOrchestrator {
         }
 
         // Create subtitle track sub-tasks (one per language)
-        for (String language : languages) {
+        for (String language : subtitleLanguages(task, languages)) {
             DownloadSubTask subtitleTask = DownloadSubTask.builder()
                     .parentTaskId(task.getId())
                     .type(DownloadSubTask.SubTaskType.SUBTITLE)
@@ -481,46 +512,46 @@ public class TrackDownloadOrchestrator {
 
         // Determine the local temp merged file path and the final destination
         Path finalDestination = Paths.get(task.getOutputPath());
-        Path tempMergedFile;
 
-        // If no audio tracks and no subtitles, the video file is the merged result
-        if (audioTasks.isEmpty() && subtitleTasks.isEmpty()) {
-            log.debug("No separate audio or subtitle tracks - video file is the final result");
-            tempMergedFile = Paths.get(videoTask.getTempFilePath());
-        } else {
-            // Merge into temp directory first (avoids writing directly to NFS)
-            tempMergedFile = tempDir.resolve("merged" + getFileExtension(finalDestination));
+        // Always remux, even a lone video file: the result has to be in the destination's
+        // container (MKV) with language, name and default/forced flags on every track.
+        // Merge into temp directory first (avoids writing directly to NFS)
+        Path tempMergedFile = tempDir.resolve("merged" + getFileExtension(finalDestination));
 
-            List<FfmpegCommandBuilder.AudioTrackInput> audioInputs = audioTasks.stream()
-                    .map(task1 -> new FfmpegCommandBuilder.AudioTrackInput(
-                            Paths.get(task1.getTempFilePath()), task1))
-                    .toList();
+        List<FfmpegCommandBuilder.AudioTrackInput> audioInputs = audioTasks.stream()
+                .map(task1 -> new FfmpegCommandBuilder.AudioTrackInput(
+                        Paths.get(task1.getTempFilePath()), task1))
+                .toList();
 
-            List<FfmpegCommandBuilder.SubtitleTrackInput> subtitleInputs = subtitleTasks.stream()
-                    .map(task1 -> new FfmpegCommandBuilder.SubtitleTrackInput(
-                            Paths.get(task1.getTempFilePath()), task1))
-                    .toList();
+        List<FfmpegCommandBuilder.SubtitleTrackInput> subtitleInputs = subtitleTasks.stream()
+                .map(task1 -> new FfmpegCommandBuilder.SubtitleTrackInput(
+                        Paths.get(task1.getTempFilePath()), task1))
+                .toList();
 
-            List<String> command = commandBuilder.buildMergeCommand(
-                    Paths.get(videoTask.getTempFilePath()),
-                    audioInputs,
-                    subtitleInputs,
-                    tempMergedFile
-            );
+        List<String> languages = task.getLanguages() != null && !task.getLanguages().isEmpty()
+                ? task.getLanguages()
+                : properties.getDownload().getDefaultLanguageList();
+        List<String> command = commandBuilder.buildMergeCommand(
+                Paths.get(videoTask.getTempFilePath()),
+                audioInputs,
+                subtitleInputs,
+                tempMergedFile,
+                videoTask.getLanguage(),
+                languages.get(0)
+        );
 
-            DownloadResult result = executorService.mergeTracks(
-                    command,
-                    task.getId(),
-                    update -> progressBroadcast.broadcastProgress(update)
-            );
+        DownloadResult result = executorService.mergeTracks(
+                command,
+                task.getId(),
+                update -> progressBroadcast.broadcastProgress(update)
+        );
 
-            if (!result.isSuccess()) {
-                task.setErrorMessage(result.getErrorMessage() != null ? result.getErrorMessage() : "Failed to merge tracks");
-                task.setStatus(DownloadStatus.FAILED);
-                persistenceService.updateTaskStatus(task);
-                broadcastParentUpdate(task);
-                return false;
-            }
+        if (!result.isSuccess()) {
+            task.setErrorMessage(result.getErrorMessage() != null ? result.getErrorMessage() : "Failed to merge tracks");
+            task.setStatus(DownloadStatus.FAILED);
+            persistenceService.updateTaskStatus(task);
+            broadcastParentUpdate(task);
+            return false;
         }
 
         // Copy the completed file from local temp to final destination (NFS-safe)
@@ -544,7 +575,7 @@ public class TrackDownloadOrchestrator {
 
     private String getFileExtension(Path path) {
         String ext = PathUtils.getExtension(path.getFileName().toString());
-        return ext.isEmpty() ? ".mp4" : ext;
+        return ext.isEmpty() ? DownloadConstants.VIDEO_EXTENSION : ext;
     }
 
     private Path createTempDirectory(DownloadTask task) throws IOException {

@@ -2,6 +2,7 @@ package com.github.stormino.service.command;
 
 import com.github.stormino.model.DownloadSubTask;
 import com.github.stormino.util.DownloadConstants;
+import com.github.stormino.util.LanguageCodes;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -72,19 +73,31 @@ public class FfmpegCommandBuilder {
     }
 
     /**
-     * Build ffmpeg command for merging video, audio, and subtitle tracks.
+     * Build the ffmpeg command that assembles the final file from the downloaded tracks.
      *
-     * @param videoFile Video track file
-     * @param audioTracks List of audio track files with metadata
-     * @param subtitleTracks List of subtitle track files with metadata
-     * @param outputFile Final output file
-     * @return ffmpeg command arguments
+     * <p>Every audio and subtitle track gets a three-letter language tag and a name
+     * ("Italian", "Italian (Forced)"). Only the preferred audio language is marked default;
+     * subtitles are off by default, except forced ones in the default audio language, which
+     * players show automatically. Names and the forced flag only survive in Matroska, so
+     * the library format is MKV; an MP4 destination (tasks queued before 7.2.0) still works.
+     *
+     * @param videoFile             video track (may carry built-in audio)
+     * @param audioTracks           separate audio tracks
+     * @param subtitleTracks        subtitle tracks; a "(Forced)" title marks a forced one
+     * @param outputFile            final file; its extension picks the container
+     * @param embeddedAudioLanguage language of the audio built into the video, when there are
+     *                              no separate audio tracks; null if unknown
+     * @param preferredLanguage     audio language to mark as default (e.g. "it")
      */
     public List<String> buildMergeCommand(
             @NonNull Path videoFile,
             @NonNull List<AudioTrackInput> audioTracks,
             @NonNull List<SubtitleTrackInput> subtitleTracks,
-            @NonNull Path outputFile) {
+            @NonNull Path outputFile,
+            String embeddedAudioLanguage,
+            String preferredLanguage) {
+
+        boolean mkv = outputFile.getFileName().toString().toLowerCase().endsWith(".mkv");
 
         List<String> command = new ArrayList<>();
         command.add("ffmpeg");
@@ -93,96 +106,94 @@ public class FfmpegCommandBuilder {
         command.add(DownloadConstants.FFMPEG_LOG_LEVEL_MERGE);
         command.add("-stats");
 
-        // Video input
         command.add("-i");
         command.add(videoFile.toString());
-
-        // Audio inputs
         for (AudioTrackInput audioTrack : audioTracks) {
             command.add("-i");
             command.add(audioTrack.getFile().toString());
         }
-
-        // Subtitle inputs
         for (SubtitleTrackInput subtitleTrack : subtitleTracks) {
             command.add("-i");
             command.add(subtitleTrack.getFile().toString());
         }
 
-        // Map video
         command.add("-map");
         command.add("0:v:0");
-
-        // Map audio tracks
         if (audioTracks.isEmpty()) {
-            // No separate audio tracks - copy audio from video
+            // No separate audio tracks: keep the audio built into the video ("?" = optional)
             command.add("-map");
-            command.add("0:a?");  // ? makes it optional
+            command.add("0:a?");
         } else {
-            // Map all separate audio tracks
             for (int i = 1; i <= audioTracks.size(); i++) {
                 command.add("-map");
                 command.add(i + ":a:0");
             }
         }
-
-        // Map subtitles
         int subtitleInputOffset = 1 + audioTracks.size();
         for (int i = 0; i < subtitleTracks.size(); i++) {
             command.add("-map");
             command.add((subtitleInputOffset + i) + ":s:0");
         }
 
-        // Copy video and audio codecs (no re-encoding)
         command.add("-c:v");
         command.add("copy");
         command.add("-c:a");
         command.add("copy");
-
-        // Subtitle codec
         if (!subtitleTracks.isEmpty()) {
             command.add("-c:s");
-            command.add(DownloadConstants.FFMPEG_SUBTITLE_CODEC);
+            command.add(mkv ? DownloadConstants.FFMPEG_SUBTITLE_CODEC_MKV : DownloadConstants.FFMPEG_SUBTITLE_CODEC);
         }
 
-        // Audio metadata (only if we have separate audio tracks)
-        if (!audioTracks.isEmpty()) {
-            for (int i = 0; i < audioTracks.size(); i++) {
-                AudioTrackInput audioTrack = audioTracks.get(i);
-                if (audioTrack.getLanguage() != null) {
-                    command.add(String.format("-metadata:s:a:%d", i));
-                    command.add(String.format("language=%s", audioTrack.getLanguage()));
-                }
-                if (audioTrack.getTitle() != null) {
-                    command.add(String.format("-metadata:s:a:%d", i));
-                    command.add(String.format("title=%s", audioTrack.getTitle()));
-                }
+        // Audio: language + name on every track; default = the preferred language
+        String defaultAudioLanguage;
+        if (audioTracks.isEmpty()) {
+            defaultAudioLanguage = embeddedAudioLanguage;
+            if (embeddedAudioLanguage != null) {
+                addStreamMetadata(command, "a", 0, LanguageCodes.toIso3(embeddedAudioLanguage),
+                        LanguageCodes.displayName(embeddedAudioLanguage));
             }
-        }
-
-        // Subtitle metadata
-        for (int i = 0; i < subtitleTracks.size(); i++) {
-            SubtitleTrackInput subtitleTrack = subtitleTracks.get(i);
-            if (subtitleTrack.getLanguage() != null) {
-                command.add(String.format("-metadata:s:s:%d", i));
-                command.add(String.format("language=%s", subtitleTrack.getLanguage()));
-            }
-            if (subtitleTrack.getTitle() != null) {
-                command.add(String.format("-metadata:s:s:%d", i));
-                command.add(String.format("title=%s", subtitleTrack.getTitle()));
-            }
-        }
-
-        // Mark first audio track as default (only if we have separate audio tracks)
-        if (!audioTracks.isEmpty()) {
             command.add("-disposition:a:0");
             command.add("default");
+        } else {
+            int defaultIndex = 0;
+            for (int i = 0; i < audioTracks.size(); i++) {
+                if (LanguageCodes.same(audioTracks.get(i).getLanguage(), preferredLanguage)) {
+                    defaultIndex = i;
+                    break;
+                }
+            }
+            defaultAudioLanguage = audioTracks.get(defaultIndex).getLanguage();
+            for (int i = 0; i < audioTracks.size(); i++) {
+                AudioTrackInput audioTrack = audioTracks.get(i);
+                String title = audioTrack.getTitle() != null && !audioTrack.getTitle().isBlank()
+                        ? audioTrack.getTitle() : LanguageCodes.displayName(audioTrack.getLanguage());
+                addStreamMetadata(command, "a", i, LanguageCodes.toIso3(audioTrack.getLanguage()), title);
+                command.add("-disposition:a:" + i);
+                command.add(i == defaultIndex ? "default" : "0");
+            }
         }
 
-        // Mark first subtitle track as default
-        if (!subtitleTracks.isEmpty()) {
-            command.add("-disposition:s:0");
-            command.add("default");
+        // Subtitles: off by default; forced ones flagged, and shown by default when they
+        // match the default audio language (they only translate foreign lines and signs).
+        for (int i = 0; i < subtitleTracks.size(); i++) {
+            SubtitleTrackInput subtitleTrack = subtitleTracks.get(i);
+            boolean forced = subtitleTrack.isForced();
+            String title = subtitleTrack.getTitle() != null && !subtitleTrack.getTitle().isBlank()
+                    ? subtitleTrack.getTitle() : LanguageCodes.displayName(subtitleTrack.getLanguage());
+            addStreamMetadata(command, "s", i, LanguageCodes.toIso3(subtitleTrack.getLanguage()), title);
+            String disposition = "0";
+            if (forced) {
+                disposition = LanguageCodes.same(subtitleTrack.getLanguage(), defaultAudioLanguage)
+                        ? "default+forced" : "forced";
+            }
+            command.add("-disposition:s:" + i);
+            command.add(disposition);
+        }
+
+        if (mkv) {
+            // Otherwise the Matroska muxer marks the first track of each type default on its own
+            command.add("-default_mode");
+            command.add("passthrough");
         }
 
         command.add("-y");
@@ -190,6 +201,15 @@ public class FfmpegCommandBuilder {
 
         log.debug("Built merge command: {}", String.join(" ", command));
         return command;
+    }
+
+    private static void addStreamMetadata(List<String> command, String type, int index, String language, String title) {
+        command.add("-metadata:s:" + type + ":" + index);
+        command.add("language=" + language);
+        if (title != null) {
+            command.add("-metadata:s:" + type + ":" + index);
+            command.add("title=" + title);
+        }
     }
 
     /**
@@ -231,6 +251,11 @@ public class FfmpegCommandBuilder {
             this.file = file;
             this.language = subTask.getLanguage();
             this.title = subTask.getTitle();
+        }
+
+        /** Forced tracks are named "... (Forced)" by the orchestrator. */
+        public boolean isForced() {
+            return title != null && title.toLowerCase().contains("forced");
         }
 
         public Path getFile() {

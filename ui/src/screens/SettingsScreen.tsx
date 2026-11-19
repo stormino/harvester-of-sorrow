@@ -8,7 +8,7 @@ import { Dialog } from '../components/Dialog';
 import { AlertIcon, CheckIcon, WarningIcon, WrenchIcon } from '../components/Icons';
 import { ReadonlyField } from '../components/Input';
 import { useToast } from '../components/Toast';
-import { formatBytes, formatInterval } from '../lib/format';
+import { formatBytes } from '../lib/format';
 import base from './Screen.module.css';
 import s from './SettingsScreen.module.css';
 
@@ -62,7 +62,9 @@ export function SettingsScreen() {
               <ReadonlyField label="Default Quality" value={cfg.defaultQuality} />
               <ReadonlyField label="Default Language" value={cfg.defaultLanguage} />
               <ReadonlyField label="Library Monitoring"
-                value={cfg.monitoringEnabled ? `every ${formatInterval(cfg.monitoringIntervalMs)}` : 'disabled'} />
+                value={cfg.monitoringEnabled ? cfg.monitoringSchedule : 'disabled'} />
+              <ReadonlyField label="Wait for Default Language"
+                value={`${cfg.monitoringLanguageWaitDays} days, then download as it is`} />
               <ReadonlyField label="RaiPlay" value={cfg.raiPlayEnabled ? 'enabled' : 'disabled (no credentials)'} />
             </div>
             <div className={s.note}><WarningIcon size={15} />{RESTART_NOTE}</div>

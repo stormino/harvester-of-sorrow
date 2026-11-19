@@ -31,6 +31,8 @@ public class DownloadTask {
     private Integer year;
     
     private List<String> languages;
+    /** Subtitle languages; null = same as {@link #languages}, empty = no subtitles. */
+    private List<String> subtitleLanguages;
     private String quality;
 
     private String outputPath;

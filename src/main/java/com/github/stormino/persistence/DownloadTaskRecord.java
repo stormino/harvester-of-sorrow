@@ -26,6 +26,7 @@ public class DownloadTaskRecord {
     private String episodeName;
     private Integer year;
     private String languages;    // comma-separated: "en,it"
+    private String subtitleLanguages; // comma-separated; null = same as languages, "" = none
     private String quality;
     private String outputPath;
     private String playlistUrl;

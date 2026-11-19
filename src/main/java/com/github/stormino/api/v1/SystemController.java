@@ -70,10 +70,26 @@ public class SystemController {
                 properties.getExtractor().getBaseUrl(),
                 properties.getExtractor().getTimeoutSeconds(),
                 properties.getMonitoring().isEnabled(),
-                properties.getMonitoring().getIntervalMs(),
+                describeCron(properties.getMonitoring().getCron()),
+                properties.getMonitoring().getLanguageWaitDays(),
                 keySet,
                 keySet ? mask(key) : null,
                 sourceRegistry.all().stream().anyMatch(p -> p.source() == MediaSource.RAIPLAY));
+    }
+
+    /** "0 0 3,6 * * *" → "daily at 03:00 and 06:00"; anything fancier is shown as the cron itself. */
+    static String describeCron(String cron) {
+        String[] f = cron.trim().split("\\s+");
+        if (f.length == 6 && f[0].equals("0") && f[1].matches("\\d{1,2}") && f[2].matches("\\d{1,2}(,\\d{1,2})*")
+                && f[3].equals("*") && f[4].equals("*") && f[5].equals("*")) {
+            List<String> times = java.util.Arrays.stream(f[2].split(","))
+                    .map(h -> String.format("%02d:%02d", Integer.parseInt(h), Integer.parseInt(f[1])))
+                    .toList();
+            String joined = times.size() == 1 ? times.get(0)
+                    : String.join(", ", times.subList(0, times.size() - 1)) + " and " + times.get(times.size() - 1);
+            return "daily at " + joined;
+        }
+        return "cron " + cron;
     }
 
     @Operation(summary = "Check that the external tools are installed",

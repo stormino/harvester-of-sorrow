@@ -473,6 +473,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content/media-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Audio, subtitles and qualities a title really has
+         * @description Reads the title's playlist on the source without downloading. For a show, the first episode the source has is checked; later episodes may differ. `known=false` when the source can't tell.
+         */
+        post: operations["mediaInfo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -557,10 +577,17 @@ export interface components {
              */
             languages?: string[];
             /**
-             * @description best, 1080, 720 or worst; empty = server default
+             * @description best, worst or a height such as 1080, 720, 480; empty = server default
              * @example best
              */
             quality?: string;
+            /**
+             * @description Subtitle languages; omitted = same as `languages`, empty = no subtitles
+             * @example [
+             *       "it"
+             *     ]
+             */
+            subtitleLanguages?: string[];
         };
         /** @description One track (video, audio or subtitle) of a download task */
         SubTaskDto: {
@@ -725,12 +752,20 @@ export interface components {
             /** Format: int32 */
             extractorTimeoutSeconds: number;
             monitoringEnabled: boolean;
-            /** Format: int64 */
-            monitoringIntervalMs: number;
             tmdbApiKeySet: boolean;
             /** @description Masked TMDB key, e.g. `••••••••3f9a`; null when unset */
             tmdbApiKeyMasked?: string;
             raiPlayEnabled: boolean;
+            /**
+             * @description When the automatic check runs, in words
+             * @example daily at 03:00 and 06:00
+             */
+            monitoringSchedule: string;
+            /**
+             * Format: int32
+             * @description Days a new episode waits for audio in the default language
+             */
+            monitoringLanguageWaitDays: number;
         };
         /** @description One search hit */
         SearchResultDto: {
@@ -1042,6 +1077,42 @@ export interface components {
             tmdbTitle?: string;
             posterUrl?: string;
             releases: components["schemas"]["XdccReleaseDto"][];
+        };
+        /** @description Which title to describe; for a show, the first episode the source has is checked */
+        MediaInfoRequest: {
+            /** @enum {string} */
+            source: "VIXSRC" | "RAIPLAY" | "LINK";
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            /** @description sourceRef from a search result */
+            sourceRef: string;
+        };
+        /** @description Audio, subtitles and qualities a title really has (for a show: its first episode) */
+        MediaInfoDto: {
+            /** @description Whether the source could describe the title; false = unknown, offer the source's full language list */
+            known: boolean;
+            audio: components["schemas"]["TrackDto"][];
+            subtitles: components["schemas"]["TrackDto"][];
+            /**
+             * @description best, available heights (highest first), worst
+             * @example [
+             *       "best",
+             *       "720",
+             *       "480",
+             *       "worst"
+             *     ]
+             */
+            qualities: string[];
+        };
+        TrackDto: {
+            /**
+             * @description Two-letter code; null when unknown
+             * @example it
+             */
+            language?: string;
+            /** @example Italian */
+            name: string;
+            forced: boolean;
         };
     };
     responses: never;
@@ -1741,6 +1812,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["XdccSearchDto"];
+                };
+            };
+        };
+    };
+    mediaInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MediaInfoRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MediaInfoDto"];
                 };
             };
         };

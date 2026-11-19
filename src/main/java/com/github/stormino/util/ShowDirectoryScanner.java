@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 /**
  * Reads which episodes of a show are on disk, whatever produced them.
  *
- * <p>The app itself writes {@code Show/Season NN/<title>.SxxEyy.mp4}, but a
+ * <p>The app itself writes {@code Show/Season NN/<title>.SxxEyy.mkv} (.mp4 before 7.2.0), but a
  * library also holds files from other tools: other containers ({@code .mkv},
  * {@code .avi}...), and episodes loose in the show folder instead of a season
  * folder. Video files are therefore taken from the show folder and from each

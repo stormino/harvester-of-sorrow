@@ -33,7 +33,7 @@ public class TaskPersistenceService {
         DownloadTaskRecord r = toTaskRecord(task);
         taskRepository.insert(r.getId(), r.getSource(), r.getSourceMetadata(),
                 r.getContentType(), r.getTmdbId(), r.getSeason(), r.getEpisode(),
-                r.getTitle(), r.getEpisodeName(), r.getYear(), r.getLanguages(), r.getQuality(),
+                r.getTitle(), r.getEpisodeName(), r.getYear(), r.getLanguages(), r.getSubtitleLanguages(), r.getQuality(),
                 r.getOutputPath(), r.getPlaylistUrl(), r.getStatus(), r.getErrorMessage(),
                 r.getCreatedAt(), r.getStartedAt(), r.getCompletedAt());
         log.debug("Persisted task {}", task.getId());
@@ -132,6 +132,7 @@ public class TaskPersistenceService {
                 task.getEpisodeName(),
                 task.getYear(),
                 task.getLanguages() != null ? String.join(",", task.getLanguages()) : null,
+                task.getSubtitleLanguages() != null ? String.join(",", task.getSubtitleLanguages()) : null,
                 task.getQuality(),
                 task.getOutputPath(),
                 task.getPlaylistUrl(),
@@ -212,6 +213,9 @@ public class TaskPersistenceService {
                 .languages(r.getLanguages() != null
                         ? Arrays.asList(r.getLanguages().split(","))
                         : List.of())
+                .subtitleLanguages(r.getSubtitleLanguages() == null ? null
+                        : r.getSubtitleLanguages().isEmpty() ? List.of()
+                        : Arrays.asList(r.getSubtitleLanguages().split(",")))
                 .quality(r.getQuality())
                 .outputPath(r.getOutputPath())
                 .playlistUrl(r.getPlaylistUrl())

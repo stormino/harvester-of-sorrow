@@ -2,7 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "Harvester of Sorrow API",
-        "description": "REST API for Harvester of Sorrow \u2014 a video downloader supporting VixSrc and RaiPlay sources and direct links (Mega, HTTP).\n\n**Key features:**\n- Search movies and TV shows across multiple sources\n- Download from a link: Mega files and folders, direct HTTP files\n- Queue, monitor, cancel and retry downloads\n- Real-time progress updates via Server-Sent Events\n- TV show library scanning and automatic episode monitoring\n\n**Notes:**\n- No authentication is required\n- VixSrc availability checks use the Italian (`it`) catalogue\n- Live updates: `GET /api/v1/events` (`text/event-stream`)\n- Errors are RFC 7807 `application/problem+json`\n",
+        "description": "REST API for Harvester of Sorrow \u2014 a video downloader supporting VixSrc and RaiPlay sources and direct links (Mega, HTTP).\n\n**Key features:**\n- Search movies and TV shows across multiple sources\n- Download from a link: Mega files and folders, direct HTTP files\n- Queue, monitor, cancel and retry downloads\n- Real-time progress updates via Server-Sent Events\n- TV show library scanning and automatic episode monitoring\n\n**Notes:**\n- No authentication is required\n- VixSrc availability checks use the Italian (`it`) catalogue, then ask VixSrc directly for titles not in it\n- Live updates: `GET /api/v1/events` (`text/event-stream`)\n- Errors are RFC 7807 `application/problem+json`\n",
         "contact": {
             "name": "stormino",
             "url": "https://github.com/stormino/harvester-of-sorrow"
@@ -1001,6 +1001,38 @@
                     }
                 }
             }
+        },
+        "/api/v1/content/media-info": {
+            "post": {
+                "tags": [
+                    "Content"
+                ],
+                "summary": "Audio, subtitles and qualities a title really has",
+                "description": "Reads the title's playlist on the source without downloading. For a show, the first episode the source has is checked; later episodes may differ. `known=false` when the source can't tell.",
+                "operationId": "mediaInfo",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MediaInfoRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MediaInfoDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1202,8 +1234,18 @@
                     },
                     "quality": {
                         "type": "string",
-                        "description": "best, 1080, 720 or worst; empty = server default",
+                        "description": "best, worst or a height such as 1080, 720, 480; empty = server default",
                         "example": "best"
+                    },
+                    "subtitleLanguages": {
+                        "type": "array",
+                        "description": "Subtitle languages; omitted = same as `languages`, empty = no subtitles",
+                        "example": [
+                            "it"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 },
                 "description": "Queue a movie, a whole show, whole seasons or specific episodes.\nTV: empty `seasons` = whole show; one or more `seasons` with empty `episodes` = those seasons in full;\nexactly one season plus `episodes` = those episodes."
@@ -1618,7 +1660,8 @@
                     "extractorBaseUrl",
                     "extractorTimeoutSeconds",
                     "monitoringEnabled",
-                    "monitoringIntervalMs",
+                    "monitoringLanguageWaitDays",
+                    "monitoringSchedule",
                     "moviesPath",
                     "parallelDownloads",
                     "raiPlayEnabled",
@@ -1662,10 +1705,6 @@
                     "monitoringEnabled": {
                         "type": "boolean"
                     },
-                    "monitoringIntervalMs": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
                     "tmdbApiKeySet": {
                         "type": "boolean"
                     },
@@ -1675,6 +1714,16 @@
                     },
                     "raiPlayEnabled": {
                         "type": "boolean"
+                    },
+                    "monitoringSchedule": {
+                        "type": "string",
+                        "description": "When the automatic check runs, in words",
+                        "example": "daily at 03:00 and 06:00"
+                    },
+                    "monitoringLanguageWaitDays": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Days a new episode waits for audio in the default language"
                     }
                 },
                 "description": "Read-only configuration (change via environment variables and restart)"
@@ -2447,6 +2496,99 @@
                     "releases",
                     "relevance",
                     "title"
+                ]
+            },
+            "MediaInfoRequest": {
+                "type": "object",
+                "description": "Which title to describe; for a show, the first episode the source has is checked",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "VIXSRC",
+                            "RAIPLAY",
+                            "LINK"
+                        ]
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "sourceRef": {
+                        "type": "string",
+                        "description": "sourceRef from a search result",
+                        "minLength": 1
+                    }
+                },
+                "required": [
+                    "contentType",
+                    "source",
+                    "sourceRef"
+                ]
+            },
+            "MediaInfoDto": {
+                "type": "object",
+                "description": "Audio, subtitles and qualities a title really has (for a show: its first episode)",
+                "properties": {
+                    "known": {
+                        "type": "boolean",
+                        "description": "Whether the source could describe the title; false = unknown, offer the source's full language list"
+                    },
+                    "audio": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TrackDto"
+                        }
+                    },
+                    "subtitles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TrackDto"
+                        }
+                    },
+                    "qualities": {
+                        "type": "array",
+                        "description": "best, available heights (highest first), worst",
+                        "example": [
+                            "best",
+                            "720",
+                            "480",
+                            "worst"
+                        ],
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "audio",
+                    "known",
+                    "qualities",
+                    "subtitles"
+                ]
+            },
+            "TrackDto": {
+                "type": "object",
+                "properties": {
+                    "language": {
+                        "type": "string",
+                        "description": "Two-letter code; null when unknown",
+                        "example": "it"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Italian"
+                    },
+                    "forced": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "forced",
+                    "name"
                 ]
             }
         }

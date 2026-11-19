@@ -261,6 +261,12 @@ public class VideoTrackDownloadStrategy implements TrackDownloadStrategy {
             }
         }
 
+        if ("worst".equalsIgnoreCase(quality)) {
+            return variants.stream()
+                    .min(Comparator.comparingInt(HlsParserService.VideoVariant::getBandwidth))
+                    .orElse(variants.get(0));
+        }
+
         // Otherwise, select highest bandwidth (best quality)
         return variants.stream()
                 .max(Comparator.comparingInt(HlsParserService.VideoVariant::getBandwidth))

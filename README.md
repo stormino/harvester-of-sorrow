@@ -45,7 +45,8 @@ All settings are environment variables; the Settings screen shows them read-only
 | `DEFAULT_QUALITY` | `best` | `best`, `1080`, `720`, `worst` |
 | `DEFAULT_LANGUAGE` | `en` | Preselected audio language |
 | `MONITORING_ENABLED` | `true` | Periodic check of monitored shows |
-| `MONITORING_INTERVAL_MS` | `3600000` | Check interval |
+| `MONITORING_CRON` | `0 0 3,6 * * *` | When monitored shows are checked (Spring cron, server time zone): 03:00 and 06:00 |
+| `MONITORING_LANGUAGE_WAIT_DAYS` | `7` | Days a new episode waits for audio in `DEFAULT_LANGUAGE` before it is downloaded anyway |
 | `RAIPLAY_USERNAME`, `RAIPLAY_PASSWORD` | (none) | Enable RaiPlay (both required) |
 | `SQLITE_DB_PATH` | `data/hos.db` | Database file (falls back to `data/vixsrc.db` if only that exists) |
 | `SERVER_PORT` | `8080` | HTTP port |
@@ -109,11 +110,18 @@ e2e/                         Playwright suite for the pre-5.0 Vaadin UI (see e2e
 ## Files on disk
 
 ```
-movies/   Title.Year.mp4
-tvshows/  Show.Year/Season 01/Show - S01E01 - Episode.mp4
+movies/   Title.Year.mkv
+tvshows/  Show.Year/Season 01/Show - S01E01 - Episode.mkv
 ```
 
-Monitoring only queues episodes newer than the latest `SxxEyy` already in the show folder.
+Files are Matroska (`.mkv`; `.mp4` before 7.2.0) so players see every track properly: audio and
+subtitles carry their language and name ("Italian", "Italian (Forced)"), the default-language audio is
+the default track, subtitles start off, and forced subtitles in the audio language switch on by themselves.
+
+Monitoring only queues episodes newer than the latest `SxxEyy` already in the show folder. It runs
+overnight (`MONITORING_CRON`); "Check now" in the library runs it at any time. A new episode that does not
+have audio in `DEFAULT_LANGUAGE` yet waits (VixSrc often gets the Italian dub a few days after the original),
+up to `MONITORING_LANGUAGE_WAIT_DAYS` after it aired; later episodes of the show wait with it.
 
 ## Troubleshooting
 

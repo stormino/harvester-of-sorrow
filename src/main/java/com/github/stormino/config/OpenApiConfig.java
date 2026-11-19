@@ -34,7 +34,7 @@ public class OpenApiConfig {
 
                                 **Notes:**
                                 - No authentication is required
-                                - VixSrc availability checks use the Italian (`it`) catalogue
+                                - VixSrc availability checks use the Italian (`it`) catalogue, then ask VixSrc directly for titles not in it
                                 - Live updates: `GET /api/v1/events` (`text/event-stream`)
                                 - Errors are RFC 7807 `application/problem+json`
                                 """)

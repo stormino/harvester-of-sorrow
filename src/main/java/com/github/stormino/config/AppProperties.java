@@ -61,9 +61,19 @@ public class AppProperties {
     @Data
     public static class Monitoring {
         private boolean enabled = true;
-        /** Interval between monitoring checks in milliseconds (default 60 minutes). */
-        @Min(60000)
-        private long intervalMs = 3_600_000L;
+        /**
+         * When the automatic check runs (Spring cron: second minute hour day month weekday),
+         * in the server's time zone. Default: 03:00 and 06:00, overnight.
+         */
+        @NotBlank
+        private String cron = "0 0 3,6 * * *";
+        /**
+         * New episodes without audio in the default language are not downloaded until it
+         * shows up (VixSrc often gets the Italian dub a few days after the original).
+         * After this many days from the air date, the episode is downloaded anyway.
+         */
+        @Min(0)
+        private int languageWaitDays = 7;
     }
 
     @Data

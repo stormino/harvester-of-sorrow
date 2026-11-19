@@ -19,7 +19,7 @@ public class MonitoringScheduler {
     private final MonitoringService monitoringService;
     private final ShowStatusService showStatusService;
 
-    @Scheduled(fixedDelayString = "${hos.monitoring.interval-ms:3600000}")
+    @Scheduled(cron = "${hos.monitoring.cron:0 0 3,6 * * *}")
     public void checkAllMonitoredShows() {
         List<MonitoredShow> enabled = monitoringService.listAll().stream()
                 .filter(MonitoredShow::isEnabled)

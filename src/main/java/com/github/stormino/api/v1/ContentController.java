@@ -4,6 +4,8 @@ import com.github.stormino.api.ApiException;
 import com.github.stormino.api.SourceRefCodec;
 import com.github.stormino.api.dto.EpisodeDto;
 import com.github.stormino.api.dto.EpisodesRequest;
+import com.github.stormino.api.dto.MediaInfoDto;
+import com.github.stormino.api.dto.MediaInfoRequest;
 import com.github.stormino.api.dto.SearchResultDto;
 import com.github.stormino.api.dto.SeasonDto;
 import com.github.stormino.api.dto.SourceDto;
@@ -12,6 +14,7 @@ import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.ContentTypeFilter;
 import com.github.stormino.model.DownloadTask;
+import com.github.stormino.model.MediaInfo;
 import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.source.RaiPlayMetadata;
 import com.github.stormino.model.source.SourceMetadata;
@@ -37,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -49,6 +53,11 @@ import java.util.stream.IntStream;
 public class ContentController {
 
     static final List<String> QUALITIES = List.of("best", "1080", "720", "worst");
+
+    /** best, worst, or a video height such as 1080, 720, 480 (what a title's media info offers). */
+    static boolean isValidQuality(String quality) {
+        return QUALITIES.contains(quality) || quality.matches("[1-9][0-9]{2,3}");
+    }
 
     private final MediaSourceRegistry sourceRegistry;
     private final SourceRefCodec sourceRefCodec;
@@ -127,6 +136,45 @@ public class ContentController {
                 .sorted(Comparator.comparingInt(EpisodeRef::season).thenComparingInt(EpisodeRef::episode))
                 .map(r -> new EpisodeDto(r.season(), r.episode(), r.name(), sourceRefCodec.encode(r.sourceMetadata())))
                 .toList();
+    }
+
+    @Operation(summary = "Audio, subtitles and qualities a title really has",
+            description = "Reads the title's playlist on the source without downloading. For a show, the first episode "
+                    + "the source has is checked; later episodes may differ. `known=false` when the source can't tell.")
+    @PostMapping("/content/media-info")
+    public MediaInfoDto mediaInfo(@Valid @RequestBody MediaInfoRequest req) {
+        MediaSourceProvider provider = provider(req.source());
+        SourceMetadata meta = sourceRefCodec.decode(req.sourceRef(), req.source());
+        ContentMetadata content = ContentMetadata.builder()
+                .source(req.source())
+                .sourceMetadata(meta)
+                .contentType(req.contentType())
+                .tmdbId(meta instanceof VixSrcMetadata v ? v.tmdbId() : null)
+                .build();
+        Optional<MediaInfo> info;
+        try {
+            info = provider.mediaInfo(content, null, null);
+        } catch (Exception e) {
+            log.warn("Media info failed for {} {}: {}", req.source(), req.sourceRef(), e.getMessage());
+            info = Optional.empty();
+        }
+        if (info.isEmpty()) {
+            return new MediaInfoDto(false, List.of(), List.of(), QUALITIES);
+        }
+        List<String> qualities = new ArrayList<>();
+        qualities.add("best");
+        info.get().heights().forEach(h -> qualities.add(String.valueOf(h)));
+        if (info.get().heights().size() > 1) {
+            qualities.add("worst");
+        }
+        return new MediaInfoDto(true,
+                info.get().audio().stream().map(ContentController::toTrackDto).toList(),
+                info.get().subtitles().stream().map(ContentController::toTrackDto).toList(),
+                qualities);
+    }
+
+    private static MediaInfoDto.TrackDto toTrackDto(MediaInfo.Track t) {
+        return new MediaInfoDto.TrackDto(t.language(), t.name(), t.forced());
     }
 
     // ------------------------------------------------------------------ helpers

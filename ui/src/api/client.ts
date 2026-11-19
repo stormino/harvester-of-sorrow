@@ -1,5 +1,5 @@
 import type {
-  CheckResult, ClearResult, ContentType, DownloadRequest, Episode, LibraryEntry, LinkDownloadRequest,
+  CheckResult, ClearResult, ContentType, DownloadRequest, Episode, LibraryEntry, LinkDownloadRequest, MediaInfo,
   LinkProvider, LinkResolution, MonitoredShow, TmdbMatch, XdccSearch, XdccStatus,
   MonitoredShowRequest, SearchResult, SearchType, Settings, Source, SourcesInfo,
   SystemInfo, Task, ToolCheck,
@@ -50,6 +50,8 @@ export const api = {
   sources: () => request<SourcesInfo>('GET', '/sources'),
   episodes: (source: Source, sourceRef: string, season?: number, title?: string) =>
     request<Episode[]>('POST', '/content/episodes', { source, sourceRef, season, title }),
+  mediaInfo: (source: Source, contentType: ContentType, sourceRef: string) =>
+    request<MediaInfo>('POST', '/content/media-info', { source, contentType, sourceRef }),
 
   downloads: () => request<Task[]>('GET', '/downloads'),
   createDownload: (req: DownloadRequest) => request<Task[]>('POST', '/downloads', req),
