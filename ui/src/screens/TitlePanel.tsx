@@ -3,6 +3,8 @@ import { sourceLabel } from '../components/Badge';
 import { Dialog } from '../components/Dialog';
 import { StarIcon } from '../components/Icons';
 import { bestRelease, type TitleGroup } from '../lib/titles';
+import { useWatchlist } from '../lib/useWatchlist';
+import { SaveButton, TrailerLink } from './TitleActions';
 import { StreamForm } from './StreamForm';
 import { XdccReleases } from './XdccReleases';
 import s from './TitlePanel.module.css';
@@ -11,7 +13,12 @@ import s from './TitlePanel.module.css';
 type Tab = string;
 
 /** Everything about one title: details, and one tab per place it can be downloaded from. */
-export function TitlePanel({ group, onClose }: { group: TitleGroup; onClose: () => void }) {
+export function TitlePanel({ group, onClose, xdccLoading }: {
+  group: TitleGroup; onClose: () => void;
+  /** XDCC releases are still being looked up (title opened from the watchlist). */
+  xdccLoading?: boolean;
+}) {
+  const watchlist = useWatchlist();
   const tabs: { id: Tab; label: string; note: string }[] = [
     ...group.streams.map((r) => ({
       id: r.source as string,
@@ -19,7 +26,8 @@ export function TitlePanel({ group, onClose }: { group: TitleGroup; onClose: () 
       note: r.contentType === 'TV' && r.seasons.length
         ? `${r.seasons.length} season${r.seasons.length > 1 ? 's' : ''}` : 'direct download',
     })),
-    ...(group.xdcc.length ? [{ id: 'XDCC', label: 'XDCC', note: [`${group.xdcc.length} release${group.xdcc.length > 1 ? 's' : ''}`, bestRelease(group.xdcc)].filter(Boolean).join(' · ') }] : []),
+    ...(group.xdcc.length ? [{ id: 'XDCC', label: 'XDCC', note: [`${group.xdcc.length} release${group.xdcc.length > 1 ? 's' : ''}`, bestRelease(group.xdcc)].filter(Boolean).join(' · ') }]
+      : xdccLoading ? [{ id: 'XDCC', label: 'XDCC', note: 'searching…' }] : []),
   ];
   const [tab, setTab] = useState<Tab>(tabs[0]?.id ?? 'XDCC');
   const stream = group.streams.find((r) => r.source === tab);
@@ -51,6 +59,11 @@ export function TitlePanel({ group, onClose }: { group: TitleGroup; onClose: () 
               )}
             </div>
             {group.overview && <p className={s.overview}>{group.overview}</p>}
+            <div className={s.headActions}>
+              <TrailerLink contentType={group.contentType} tmdbId={group.tmdbId} />
+              <SaveButton labelled saved={!!watchlist.saved(group.key)} title={group.title}
+                onToggle={() => void watchlist.toggle(group)} />
+            </div>
           </div>
         </div>
       }>
@@ -69,7 +82,9 @@ export function TitlePanel({ group, onClose }: { group: TitleGroup; onClose: () 
 
       {stream
         ? <StreamForm key={stream.source} item={stream} onQueued={onClose} />
-        : <XdccReleases group={group} onQueued={onClose} />}
+        : group.xdcc.length === 0 && xdccLoading
+          ? <div className={s.single}>Searching XDCC for {group.title}…</div>
+          : <XdccReleases group={group} onQueued={onClose} />}
     </Dialog>
   );
 }

@@ -6,7 +6,9 @@ import { Button } from '../components/Button';
 import { AlertIcon, DownloadIcon, RetryIcon, SearchIcon, StarIcon } from '../components/Icons';
 import { SearchField } from '../components/Input';
 import { band, bestRelease, mergeTitles, type TitleGroup } from '../lib/titles';
+import { useWatchlist } from '../lib/useWatchlist';
 import { LinkDialog, looksLikeLink } from './LinkDialog';
+import { SaveButton } from './TitleActions';
 import { TitlePanel } from './TitlePanel';
 import s from './SearchScreen.module.css';
 import base from './Screen.module.css';
@@ -45,6 +47,7 @@ export function SearchScreen() {
   // undefined = closed; '' = open without a link; otherwise the link to inspect.
   const [link, setLink] = useState<string | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
+  const watchlist = useWatchlist();
   const isLink = looksLikeLink(input);
 
   useEffect(() => setInput(q), [q]);
@@ -180,7 +183,8 @@ export function SearchScreen() {
                 {band(g) === 1 && i > 0 && band(shown[i - 1]) === 0 && (
                   <div className={s.divider}><span>Other matches</span></div>
                 )}
-                <ResultCard g={g} xdccPending={xdcc.isFetching} onOpen={() => update({ open: g.key })} />
+                <ResultCard g={g} xdccPending={xdcc.isFetching} onOpen={() => update({ open: g.key })}
+                  saved={!!watchlist.saved(g.key)} onToggleSave={() => void watchlist.toggle(g)} />
               </Fragment>
             ))}
             {streams.isFetching && groups.length === 0 && Array.from({ length: 6 }, (_, i) => <div key={i} className={s.skeleton} />)}
@@ -232,10 +236,14 @@ function SourceStatus({ name, loading, error, count, note, onRetry }: {
   );
 }
 
-function ResultCard({ g, xdccPending, onOpen }: { g: TitleGroup; xdccPending: boolean; onOpen: () => void }) {
+function ResultCard({ g, xdccPending, onOpen, saved, onToggleSave }: {
+  g: TitleGroup; xdccPending: boolean; onOpen: () => void; saved: boolean; onToggleSave: () => void;
+}) {
   const isTV = g.contentType === 'TV';
   const tv = g.streams.find((r) => r.contentType === 'TV' && r.seasons.length > 0);
+  // The bookmark sits beside the card button, not inside it (no buttons in buttons).
   return (
+    <div className={s.cardWrap}>
     <button type="button" className={`${s.card} ${isTV ? s.tv : ''}`} onClick={onOpen}
       data-testid="result-card" data-type={g.contentType} data-title={g.title}
       data-source={g.streams[0]?.source.toLowerCase() ?? 'xdcc'}>
@@ -272,5 +280,7 @@ function ResultCard({ g, xdccPending, onOpen }: { g: TitleGroup; xdccPending: bo
         </ul>
       </div>
     </button>
+    <SaveButton saved={saved} title={g.title} onToggle={onToggleSave} className={s.cardSave} />
+    </div>
   );
 }

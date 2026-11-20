@@ -381,6 +381,53 @@ public class TmdbMetadataService {
         }
     }
 
+    private final Map<String, Optional<String[]>> trailerCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * YouTube trailer of a movie or show: [url, language]. Prefers an official trailer in
+     * {@code preferredLanguage}, then any trailer in English or another language, then a teaser.
+     * Cached.
+     */
+    public Optional<String[]> getTrailer(int tmdbId, boolean tv, String preferredLanguage) {
+        if (!isAvailable()) {
+            return Optional.empty();
+        }
+        String key = (tv ? "tv:" : "movie:") + tmdbId + ":" + preferredLanguage;
+        Optional<String[]> cached = trailerCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            List<com.uwetrottmann.tmdb2.entities.Videos.Video> videos = new ArrayList<>();
+            for (String lang : new String[]{preferredLanguage, null}) {
+                Response<com.uwetrottmann.tmdb2.entities.Videos> r = tv
+                        ? tmdb.tvService().videos(tmdbId, lang).execute()
+                        : tmdb.moviesService().videos(tmdbId, lang).execute();
+                if (r.code() >= 500) {
+                    return Optional.empty(); // transient: don't cache
+                }
+                if (r.isSuccessful() && r.body() != null && r.body().results != null) {
+                    videos.addAll(r.body().results);
+                }
+            }
+            Optional<String[]> best = videos.stream()
+                    .filter(v -> "YouTube".equalsIgnoreCase(v.site) && v.key != null)
+                    .min(java.util.Comparator
+                            .comparingInt((com.uwetrottmann.tmdb2.entities.Videos.Video v) ->
+                                    v.type == com.uwetrottmann.tmdb2.enumerations.VideoType.TRAILER ? 0
+                                            : v.type == com.uwetrottmann.tmdb2.enumerations.VideoType.TEASER ? 1 : 2)
+                            .thenComparingInt(v -> preferredLanguage != null && preferredLanguage.equals(v.iso_639_1) ? 0
+                                    : "en".equals(v.iso_639_1) ? 1 : 2)
+                            .thenComparingInt(v -> v.name != null && v.name.toLowerCase().contains("official") ? 0 : 1))
+                    .map(v -> new String[]{"https://www.youtube.com/watch?v=" + v.key, v.iso_639_1});
+            trailerCache.put(key, best);
+            return best;
+        } catch (IOException e) {
+            log.warn("Error fetching trailer for {}: {}", key, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
     /**
      * TMDB show status: "Returning Series", "In Production", "Planned",
      * "Pilot", "Ended" or "Canceled". Empty when unavailable or on error.

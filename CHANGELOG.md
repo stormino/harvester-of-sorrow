@@ -4,6 +4,22 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.3.0 — 2026-11-20
+
+### New
+- **Watchlist**: save titles for later and decide calmly whether to watch them.
+  - A bookmark on every search result saves the title (tap it again to remove it); a toast offers Undo.
+  - The new **Watchlist** page (in the menu, with a count) shows each saved title with its poster,
+    plot, rating and when you saved it, filterable by films and shows.
+  - Clicking a title, or "Download…", opens the usual title panel. It looks the title up again, so it
+    shows where you can download it *now* (VixSrc, RaiPlay, XDCC), even if that changed since you saved it.
+  - Each person has their own watchlist (from the Authelia login).
+- **Watch trailer**: the title panel and the watchlist link to the title's trailer on YouTube (from
+  TMDB), in Italian when there is one.
+
+### Fixed
+- On narrow screens the header shows "HoS" instead of hiding or squeezing the full name.
+
 ## 7.2.0 — 2026-11-20
 
 ### New

@@ -6,6 +6,7 @@ import { DownloadsScreen } from './screens/DownloadsScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { WatchlistScreen } from './screens/WatchlistScreen';
 import { RouteError } from './shell/RouteError';
 import { Shell } from './shell/Shell';
 
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { index: true, element: <SearchScreen /> },
       { path: 'xdcc', element: <Navigate to="/" replace /> },
       { path: 'downloads', element: <DownloadsScreen /> },
+      { path: 'watchlist', element: <WatchlistScreen /> },
       { path: 'library', element: <LibraryScreen /> },
       { path: 'settings', element: <SettingsScreen /> },
       { path: '*', element: <Navigate to="/" replace /> },

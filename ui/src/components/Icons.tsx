@@ -59,6 +59,13 @@ export const RetryIcon = ({ size, ...p }: P) => (
 export const StarIcon = ({ size, ...p }: P) => (
   <svg {...base(size, { fill: 'currentColor', stroke: 'none' })} {...p}><path d="m12 2 3 6.5 7 .7-5 4.8 1.4 7L12 17.8 5.6 21l1.4-7-5-4.8 7-.7z" /></svg>
 );
+/** Bookmark: outlined, or filled when {@code filled}. */
+export const BookmarkIcon = ({ size, filled, ...p }: P & { filled?: boolean }) => (
+  <svg {...base(size, filled ? { fill: 'currentColor' } : undefined)} {...p}><path d="M6 3h12v18l-6-4-6 4z" /></svg>
+);
+export const PlayIcon = ({ size, ...p }: P) => (
+  <svg {...base(size, { fill: 'currentColor', stroke: 'none' })} {...p}><path d="M7 4v16l13-8z" /></svg>
+);
 export const FolderIcon = ({ size, ...p }: P) => (
   <svg {...base(size)} {...p}><path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
 );

@@ -54,3 +54,5 @@
 @media (max-width: 767px) {
   .overview { -webkit-line-clamp: 2; }
 }
+
+.headActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }

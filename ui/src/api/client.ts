@@ -2,7 +2,7 @@ import type {
   CheckResult, ClearResult, ContentType, DownloadRequest, Episode, LibraryEntry, LinkDownloadRequest, MediaInfo,
   LinkProvider, LinkResolution, MonitoredShow, TmdbMatch, XdccSearch, XdccStatus,
   MonitoredShowRequest, SearchResult, SearchType, Settings, Source, SourcesInfo,
-  SystemInfo, Task, ToolCheck,
+  SystemInfo, Task, ToolCheck, Trailer, WatchlistItem, WatchlistRequest,
 } from './types';
 
 const BASE = '/api/v1';
@@ -50,6 +50,11 @@ export const api = {
   sources: () => request<SourcesInfo>('GET', '/sources'),
   episodes: (source: Source, sourceRef: string, season?: number, title?: string) =>
     request<Episode[]>('POST', '/content/episodes', { source, sourceRef, season, title }),
+  trailer: (contentType: ContentType, tmdbId: number) =>
+    request<Trailer>('GET', `/content/trailer?contentType=${contentType}&tmdbId=${tmdbId}`),
+  watchlist: () => request<WatchlistItem[]>('GET', '/watchlist'),
+  addToWatchlist: (req: WatchlistRequest) => request<WatchlistItem>('POST', '/watchlist', req),
+  removeFromWatchlist: (id: string) => request<void>('DELETE', `/watchlist/${enc(id)}`),
   mediaInfo: (source: Source, contentType: ContentType, sourceRef: string) =>
     request<MediaInfo>('POST', '/content/media-info', { source, contentType, sourceRef }),
 

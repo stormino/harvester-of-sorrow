@@ -34,3 +34,9 @@
   .end { left: 14px; right: 14px; bottom: calc(var(--tabbar-height) + 12px + env(safe-area-inset-bottom)); align-items: stretch; }
   .end .toast { max-width: none; min-width: 0; }
 }
+
+.action {
+  flex: none; border: 0; background: transparent; color: var(--brand); font-weight: 600; font-size: 13px;
+  padding: 4px 8px; margin: -4px 0; border-radius: 6px;
+}
+.action:hover { background: var(--surface-2); }

@@ -126,7 +126,7 @@ export interface paths {
             cookie?: never;
         };
         /** List all tasks */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         /**
          * Queue a download
@@ -488,6 +488,61 @@ export interface paths {
          */
         post: operations["mediaInfo"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The current user's watchlist, most recently saved first */
+        get: operations["list"];
+        put?: never;
+        /** Save a title for later */
+        post: operations["add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content/trailer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A title's trailer on YouTube
+         * @description From TMDB: an official trailer in the default language when there is one, else in English or another language, else a teaser. `url` is null when TMDB has none.
+         */
+        get: operations["trailer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/watchlist/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a title from the watchlist */
+        delete: operations["remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1114,6 +1169,65 @@ export interface components {
             name: string;
             forced: boolean;
         };
+        /** @description Save a title for later. Saving one that is already there returns the existing entry. */
+        WatchlistRequest: {
+            /** @example MOVIE:976893 */
+            titleKey: string;
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            /** Format: int32 */
+            tmdbId?: number;
+            /** @example Perfect Days */
+            title: string;
+            /** Format: int32 */
+            year?: number;
+            overview?: string;
+            /** Format: double */
+            rating?: number;
+            posterUrl?: string;
+            externalUrl?: string;
+            /** @description Streaming search results of the title (may be empty for XDCC-only titles) */
+            streams?: components["schemas"]["SearchResultDto"][];
+        };
+        /** @description A title saved for later */
+        WatchlistItemDto: {
+            id: string;
+            /**
+             * @description Title key as the search page builds it
+             * @example MOVIE:976893
+             */
+            titleKey: string;
+            /** @enum {string} */
+            contentType: "MOVIE" | "TV";
+            /** Format: int32 */
+            tmdbId?: number;
+            /** @example Perfect Days */
+            title: string;
+            /** Format: int32 */
+            year?: number;
+            overview?: string;
+            /** Format: double */
+            rating?: number;
+            posterUrl?: string;
+            externalUrl?: string;
+            /** @description Streaming search results of the title, as saved; pass each to the download form */
+            streams: components["schemas"]["SearchResultDto"][];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description A title's trailer */
+        TrailerDto: {
+            /**
+             * @description YouTube link; null when TMDB has no trailer
+             * @example https://www.youtube.com/watch?v=dQw4w9WgXcQ
+             */
+            url?: string;
+            /**
+             * @description Language of the trailer, two-letter code
+             * @example it
+             */
+            language?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1337,7 +1451,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1837,6 +1951,94 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["MediaInfoDto"];
                 };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WatchlistItemDto"][];
+                };
+            };
+        };
+    };
+    add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WatchlistItemDto"];
+                };
+            };
+        };
+    };
+    trailer: {
+        parameters: {
+            query: {
+                contentType: "MOVIE" | "TV";
+                /** @example 976893 */
+                tmdbId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TrailerDto"];
+                };
+            };
+        };
+    };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
