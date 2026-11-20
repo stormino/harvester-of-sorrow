@@ -7,6 +7,7 @@
 .brand { display: flex; align-items: center; gap: 9px; min-width: 0; text-decoration: none; color: inherit; }
 .logo { width: 34px; height: 40px; display: grid; place-items: center; color: var(--brand); flex: none; }
 .wordmark { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; }
+.wordmarkShort { display: none; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; }
 .version { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
 .spacer { flex: 1; }
 .themeBtn {
@@ -69,6 +70,7 @@
   .themeLabel { display: none; }
   .themeBtn { padding: 0 9px; }
 }
-@media (max-width: 420px) {
+@media (max-width: 600px) {
   .wordmark { display: none; }
+  .wordmarkShort { display: inline; }
 }

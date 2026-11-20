@@ -32,6 +32,10 @@
             "description": "TV library folders and monitoring"
         },
         {
+            "name": "Watchlist",
+            "description": "Titles saved for later, per user"
+        },
+        {
             "name": "Downloads",
             "description": "Download queue"
         },
@@ -333,7 +337,7 @@
                     "Downloads"
                 ],
                 "summary": "List all tasks",
-                "operationId": "list",
+                "operationId": "list_1",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1030,6 +1034,129 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/api/v1/watchlist": {
+            "get": {
+                "tags": [
+                    "Watchlist"
+                ],
+                "summary": "The current user's watchlist, most recently saved first",
+                "operationId": "list",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/WatchlistItemDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Watchlist"
+                ],
+                "summary": "Save a title for later",
+                "operationId": "add",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WatchlistRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WatchlistItemDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/content/trailer": {
+            "get": {
+                "tags": [
+                    "Content"
+                ],
+                "summary": "A title's trailer on YouTube",
+                "description": "From TMDB: an official trailer in the default language when there is one, else in English or another language, else a teaser. `url` is null when TMDB has none.",
+                "operationId": "trailer",
+                "parameters": [
+                    {
+                        "name": "contentType",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "MOVIE",
+                                "TV"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "tmdbId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        },
+                        "example": 976893
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TrailerDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/watchlist/{id}": {
+            "delete": {
+                "tags": [
+                    "Watchlist"
+                ],
+                "summary": "Remove a title from the watchlist",
+                "operationId": "remove",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             }
@@ -2590,6 +2717,143 @@
                     "forced",
                     "name"
                 ]
+            },
+            "WatchlistRequest": {
+                "type": "object",
+                "description": "Save a title for later. Saving one that is already there returns the existing entry.",
+                "properties": {
+                    "titleKey": {
+                        "type": "string",
+                        "example": "MOVIE:976893",
+                        "minLength": 1
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Perfect Days",
+                        "minLength": 1
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "overview": {
+                        "type": "string"
+                    },
+                    "rating": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "posterUrl": {
+                        "type": "string"
+                    },
+                    "externalUrl": {
+                        "type": "string"
+                    },
+                    "streams": {
+                        "type": "array",
+                        "description": "Streaming search results of the title (may be empty for XDCC-only titles)",
+                        "items": {
+                            "$ref": "#/components/schemas/SearchResultDto"
+                        }
+                    }
+                },
+                "required": [
+                    "contentType",
+                    "title",
+                    "titleKey"
+                ]
+            },
+            "WatchlistItemDto": {
+                "type": "object",
+                "description": "A title saved for later",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "titleKey": {
+                        "type": "string",
+                        "description": "Title key as the search page builds it",
+                        "example": "MOVIE:976893"
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "enum": [
+                            "MOVIE",
+                            "TV"
+                        ]
+                    },
+                    "tmdbId": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Perfect Days"
+                    },
+                    "year": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "overview": {
+                        "type": "string"
+                    },
+                    "rating": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "posterUrl": {
+                        "type": "string"
+                    },
+                    "externalUrl": {
+                        "type": "string"
+                    },
+                    "streams": {
+                        "type": "array",
+                        "description": "Streaming search results of the title, as saved; pass each to the download form",
+                        "items": {
+                            "$ref": "#/components/schemas/SearchResultDto"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "contentType",
+                    "createdAt",
+                    "id",
+                    "streams",
+                    "title",
+                    "titleKey"
+                ]
+            },
+            "TrailerDto": {
+                "type": "object",
+                "description": "A title's trailer",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "YouTube link; null when TMDB has no trailer",
+                        "example": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Language of the trailer, two-letter code",
+                        "example": "it"
+                    }
+                }
             }
         }
     }

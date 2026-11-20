@@ -1,0 +1,25 @@
+.trailer {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  text-decoration: none; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+}
+.trailer:hover { border-color: var(--border-strong); }
+.pending { color: var(--text-dim); }
+
+.save {
+  width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted);
+}
+.save:hover { color: var(--text); border-color: var(--border-strong); }
+.saved { color: var(--brand); border-color: var(--brand); background: color-mix(in srgb, var(--brand) 14%, var(--surface)); }
+.saved:hover { color: var(--brand); }
+.labelled {
+  width: auto; height: 32px; padding: 0 12px; display: inline-flex; gap: 6px; border-radius: 8px;
+  font-size: 12.5px; font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .trailer { height: 44px; }
+  .save { width: 44px; height: 44px; }
+  .labelled { width: auto; }
+}

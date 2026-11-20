@@ -5,11 +5,15 @@ import s from './Toast.module.css';
 export type ToastVariant = 'success' | 'error' | 'warning' | 'contrast';
 export type ToastPlacement = 'end' | 'mid';
 
-interface ToastItem { id: number; msg: string; variant: ToastVariant; placement: ToastPlacement }
+/** A button in the toast, e.g. Undo. Clicking it also closes the toast. */
+export interface ToastAction { label: string; onClick: () => void }
+
+interface ToastItem { id: number; msg: string; variant: ToastVariant; placement: ToastPlacement; action?: ToastAction }
 
 interface ToastApi {
   /** Shows a toast; returns its id so it can be dismissed early. */
-  toast: (msg: string, variant?: ToastVariant, opts?: { placement?: ToastPlacement; durationMs?: number }) => number;
+  toast: (msg: string, variant?: ToastVariant,
+    opts?: { placement?: ToastPlacement; durationMs?: number; action?: ToastAction }) => number;
   dismiss: (id: number) => void;
 }
 
@@ -24,8 +28,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback<ToastApi['toast']>((msg, variant = 'contrast', opts = {}) => {
     const id = ++nextId.current;
     const placement = opts.placement ?? (variant === 'error' ? 'mid' : 'end');
-    setItems((xs) => [...xs, { id, msg, variant, placement }]);
-    setTimeout(() => dismiss(id), opts.durationMs ?? (variant === 'error' ? 5000 : 3500));
+    setItems((xs) => [...xs, { id, msg, variant, placement, action: opts.action }]);
+    setTimeout(() => dismiss(id), opts.durationMs ?? (variant === 'error' ? 5000 : opts.action ? 6000 : 3500));
     return id;
   }, [dismiss]);
 
@@ -38,6 +42,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           data-testid="toast" data-variant={t.variant}>
           {placement === 'mid' ? <span className={s.icon}><AlertIcon size={17} /></span> : <span className={s.dot} />}
           <span className={s.msg}>{t.msg}</span>
+          {t.action && (
+            <button type="button" className={s.action} onClick={() => { dismiss(t.id); t.action!.onClick(); }}>
+              {t.action.label}
+            </button>
+          )}
           <button type="button" className={s.close} onClick={() => dismiss(t.id)} aria-label="Dismiss">
             <CloseIcon size={13} />
           </button>

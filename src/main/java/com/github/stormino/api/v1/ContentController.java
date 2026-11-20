@@ -6,6 +6,7 @@ import com.github.stormino.api.dto.EpisodeDto;
 import com.github.stormino.api.dto.EpisodesRequest;
 import com.github.stormino.api.dto.MediaInfoDto;
 import com.github.stormino.api.dto.MediaInfoRequest;
+import com.github.stormino.api.dto.TrailerDto;
 import com.github.stormino.api.dto.SearchResultDto;
 import com.github.stormino.api.dto.SeasonDto;
 import com.github.stormino.api.dto.SourceDto;
@@ -19,6 +20,7 @@ import com.github.stormino.model.MediaSource;
 import com.github.stormino.model.source.RaiPlayMetadata;
 import com.github.stormino.model.source.SourceMetadata;
 import com.github.stormino.model.source.VixSrcMetadata;
+import com.github.stormino.service.TmdbMetadataService;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
 import com.github.stormino.service.source.MediaSourceRegistry;
@@ -62,6 +64,7 @@ public class ContentController {
     private final MediaSourceRegistry sourceRegistry;
     private final SourceRefCodec sourceRefCodec;
     private final AppProperties properties;
+    private final TmdbMetadataService tmdbService;
 
     @Operation(summary = "Search movies and TV shows",
             description = "Searches every enabled source in parallel. VixSrc results are filtered by real availability.")
@@ -171,6 +174,19 @@ public class ContentController {
                 info.get().audio().stream().map(ContentController::toTrackDto).toList(),
                 info.get().subtitles().stream().map(ContentController::toTrackDto).toList(),
                 qualities);
+    }
+
+    @Operation(summary = "A title's trailer on YouTube",
+            description = "From TMDB: an official trailer in the default language when there is one, else in English "
+                    + "or another language, else a teaser. `url` is null when TMDB has none.")
+    @GetMapping("/content/trailer")
+    public TrailerDto trailer(
+            @Parameter(required = true) @RequestParam DownloadTask.ContentType contentType,
+            @Parameter(required = true, example = "976893") @RequestParam int tmdbId) {
+        return tmdbService.getTrailer(tmdbId, contentType == DownloadTask.ContentType.TV,
+                        properties.getDownload().getDefaultLanguage())
+                .map(t -> new TrailerDto(t[0], t[1]))
+                .orElse(new TrailerDto(null, null));
     }
 
     private static MediaInfoDto.TrackDto toTrackDto(MediaInfo.Track t) {

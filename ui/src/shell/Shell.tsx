@@ -3,8 +3,8 @@ import { NavLink, Outlet, useLocation } from 'react-router';
 import { tightestDisk, useSystem } from '../api/queries';
 import { Button } from '../components/Button';
 import {
-  CloseIcon, DiskIcon, DownloadIcon, LibraryIcon, MenuIcon, MoonIcon, ScytheLogo, SearchIcon, SettingsIcon,
-  SunIcon,
+  BookmarkIcon, CloseIcon, DiskIcon, DownloadIcon, LibraryIcon, MenuIcon, MoonIcon, ScytheLogo, SearchIcon,
+  SettingsIcon, SunIcon,
 } from '../components/Icons';
 import { NavItem, NavSection } from '../components/NavItem';
 import { ConnectionPill } from '../components/StatusBadge';
@@ -12,12 +12,14 @@ import { formatBytes } from '../lib/format';
 import { isActive } from '../lib/tasks';
 import { useIsMobile } from '../lib/useMediaQuery';
 import { useTheme } from '../lib/useTheme';
+import { useWatchlist } from '../lib/useWatchlist';
 import { useTaskStream } from '../live/TaskStream';
 import s from './Shell.module.css';
 
 const NAV: { to: string; label: string; icon: (size: number) => ReactNode; testId: string }[] = [
   { to: '/', label: 'Search', icon: (n) => <SearchIcon size={n} />, testId: 'nav-search' },
   { to: '/downloads', label: 'Downloads', icon: (n) => <DownloadIcon size={n} />, testId: 'nav-downloads' },
+  { to: '/watchlist', label: 'Watchlist', icon: (n) => <BookmarkIcon size={n} />, testId: 'nav-watchlist' },
   { to: '/library', label: 'Library', icon: (n) => <LibraryIcon size={n} />, testId: 'nav-library' },
   { to: '/settings', label: 'Settings', icon: (n) => <SettingsIcon size={n} />, testId: 'nav-settings' },
 ];
@@ -42,6 +44,7 @@ export function Shell() {
   const location = useLocation();
 
   const activeCount = tasks.filter((t) => isActive(t.status)).length;
+  const watchlistCount = useWatchlist().items.length;
 
   useEffect(() => setDrawerOpen(false), [location.pathname, isMobile]);
   useEffect(() => {
@@ -56,7 +59,8 @@ export function Shell() {
 
   const navList = (onNavigate?: () => void) => NAV.map((n) => (
     <NavItem key={n.to} to={n.to} label={n.label} icon={n.icon(17)} testId={n.testId}
-      badge={n.to === '/downloads' ? activeCount : undefined} onNavigate={onNavigate} />
+      badge={n.to === '/downloads' ? activeCount : n.to === '/watchlist' ? watchlistCount : undefined}
+      badgeLabel={n.to === '/watchlist' ? 'saved' : 'active'} onNavigate={onNavigate} />
   ));
 
   return (
@@ -66,7 +70,9 @@ export function Shell() {
           aria-label="Toggle navigation" aria-expanded={isMobile ? drawerOpen : sidebarOpen} />
         <NavLink to="/" className={s.brand} aria-label="Harvester of Sorrow — Search">
           <span className={s.logo}><ScytheLogo /></span>
+          {/* The full name doesn't fit narrow screens: "HoS" there */}
           <span className={s.wordmark}>Harvester of Sorrow</span>
+          <span className={s.wordmarkShort} aria-hidden="true">HoS</span>
           <span className={s.version} data-testid="app-version">{system ? `v${system.appVersion}` : ''}</span>
         </NavLink>
         <div className={s.spacer} />
