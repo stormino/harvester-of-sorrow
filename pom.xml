@@ -14,7 +14,7 @@
 
     <groupId>com.github.stormino</groupId>
     <artifactId>harvester-of-sorrow</artifactId>
-    <version>7.3.2</version><!-- project-version -->
+    <version>7.4.0</version><!-- project-version -->
     <name>Harvester of Sorrow</name>
     <description>Multi-source video downloader (VixSrc, RaiPlay) with a React UI</description>
 
