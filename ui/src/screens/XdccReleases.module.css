@@ -27,3 +27,8 @@
 .warn { border-color: var(--warning); color: var(--warning); }
 .fileName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); font-size: 11px; }
 .meta { white-space: nowrap; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); text-align: right; line-height: 1.5; }
+
+.note {
+  margin: 0; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; color: var(--text-muted);
+  background: var(--surface-2); border: 1px solid var(--border);
+}

@@ -7,7 +7,6 @@ import com.github.stormino.service.link.LinkMatchService;
 import com.github.stormino.service.link.ReleaseNameParser;
 import com.github.stormino.service.link.ReleaseQuality;
 import com.github.stormino.service.link.archive.ArchiveFormats;
-import com.github.stormino.util.PathUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,6 +23,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -88,8 +89,8 @@ public class XdccResults {
     }
 
     static List<TitleGroup> groupWithoutPosters(List<XdccHit> hits, String query, String preferredLanguage) {
-        // 1. one entry per file name, bots as mirrors
-        Map<String, List<XdccHit>> byFile = hits.stream().collect(Collectors.groupingBy(
+        // 1. one entry per file name, bots as mirrors; games, software, music and books dropped
+        Map<String, List<XdccHit>> byFile = hits.stream().filter(h -> !notVideo(h.fileName())).collect(Collectors.groupingBy(
                 h -> h.fileName().toLowerCase(Locale.ROOT), LinkedHashMap::new, Collectors.toList()));
 
         // 2. multi-part archives: one release per set
@@ -107,15 +108,18 @@ public class XdccResults {
         }
         sets.values().forEach(volumes -> releases.add(set(volumes)));
 
-        // 3. group by title
+        // 3. group by title, films apart from episodes: "Curious George (2006)" is both a film and a show,
+        //    and one loose episode must not turn the film's releases into the show's
         Map<String, List<Release>> byTitle = new LinkedHashMap<>();
         Map<String, ReleaseNameParser.Guess> guesses = new LinkedHashMap<>();
         for (Release r : releases) {
             ReleaseNameParser.Guess g = ReleaseNameParser.parse(r.label(), List.of());
+            g = withoutSeasonPack(g);
             String key = normalize(g.title());
             if (key.isEmpty()) {
                 key = normalize(r.label());
             }
+            key += episodic(r) ? "|tv" : "|film";
             byTitle.computeIfAbsent(key, k -> new ArrayList<>()).add(r);
             guesses.putIfAbsent(key, g);
         }
@@ -137,7 +141,7 @@ public class XdccResults {
                     .filter(y -> y != null)
                     .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                     .entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
-            boolean tv = rs.stream().anyMatch(r -> r.episode() != null);
+            boolean tv = e.getKey().endsWith("|tv");
             String title = g.title().isEmpty() ? e.getValue().get(0).label() : prettyTitle(g.title());
             groups.add(new TitleGroup(title, year, tv ? DownloadTask.ContentType.TV : DownloadTask.ContentType.MOVIE,
                     relevance(query, g.title()), rs, null, null, null));
@@ -178,11 +182,11 @@ public class XdccResults {
 
     private static Release single(List<XdccHit> mirrors) {
         XdccHit first = mirrors.get(0);
-        String name = first.fileName();
+        String name = cleanLabel(first.fileName());
         ReleaseNameParser.Guess g = ReleaseNameParser.parse(name, List.of());
-        String ext = PathUtils.getExtension(name).replace(".", "").toLowerCase(Locale.ROOT);
+        Matcher ext = FILE_EXTENSION.matcher(name);
         return new Release(name, episode(g), first.size(), first.approxBytes(), ReleaseQuality.parse(name),
-                ext.isEmpty() ? "?" : ext, mirrors.size(), networks(mirrors), withMirrors(mirrors), List.of(), true,
+                ext.find() ? ext.group(1).toLowerCase(Locale.ROOT) : "?", mirrors.size(), networks(mirrors), withMirrors(mirrors), List.of(), true,
                 List.of());
     }
 
@@ -208,7 +212,7 @@ public class XdccResults {
                 missing.add(n);
             }
         }
-        String base = ArchiveFormats.baseName(firstName);
+        String base = cleanLabel(ArchiveFormats.baseName(firstName));
         boolean anySize = parts.stream().allMatch(p -> p.sizeBytes() != null);
         Long bytes = anySize ? parts.stream().mapToLong(Part::sizeBytes).sum() : null;
         int bots = parts.stream().mapToInt(Part::bots).min().orElse(0);
@@ -217,6 +221,45 @@ public class XdccResults {
         ReleaseNameParser.Guess g = ReleaseNameParser.parse(base, List.of());
         return new Release(base, episode(g), bytes == null ? null : humanSize(bytes), bytes, ReleaseQuality.parse(base),
                 kind + " ×" + parts.size(), bots, nets, parts.get(0).link(), parts, missing.isEmpty(), missing);
+    }
+
+    /** Pack names some bots prefix with their network: "[ irc.coreirc.net ] Title 2006 1080p WEB-DL-GRP". */
+    private static final Pattern NETWORK_PREFIX = Pattern.compile("^\\s*\\[\\s*irc\\.[^\\]]*\\]\\s*", Pattern.CASE_INSENSITIVE);
+    /** A real file extension: short and alphanumeric, so "Title 2006 H 264-GRP" has none. */
+    private static final Pattern FILE_EXTENSION = Pattern.compile("\\.([A-Za-z0-9]{2,4})$");
+    private static final Pattern NOT_VIDEO_EXTENSION = Pattern.compile(
+            "(?i)\\.(?:exe|msi|apk|dmg|pkg|bin|cue|nsp|xci|epub|mobi|azw3|pdf|cbr|cbz|mp3|flac|m4a|m4b|ogg|wav|aac)$");
+    /** Scene and repack groups that release games, not films: "Title.REPACK-RELOADED.tar". */
+    private static final Pattern GAME_GROUP = Pattern.compile(
+            "(?i)(?:-(?:reloaded|codex|skidrow|plaza|flt|cpy|hoodlum|razor1911|prophet|tenoke|rune|empress|doge|darksiders|tinyiso|goldberg|elamigos|dodi)"
+                    + "(?:\\.[a-z0-9]{2,6})*$|\\b(?:fitgirl|elamigos|dodi)[ ._-]?repack)");
+    /** A season pack or a whole series without an episode number: "Show.S02.1080p", "Show Complete Series". */
+    private static final Pattern SEASON_PACK = Pattern.compile(
+            "(?i)(?:^|[ ._\\-\\[(])(?:s\\d{1,2}(?:-?s?\\d{1,2})?|season[ ._]?\\d{1,2}|stagione[ ._]?\\d{1,2}|complete[ ._]series|serie[ ._]completa)(?=$|[ ._\\-\\])])");
+
+    static String cleanLabel(String name) {
+        String clean = NETWORK_PREFIX.matcher(name).replaceFirst("");
+        return clean.isBlank() ? name : clean;
+    }
+
+    /** Games, software, music and books share titles with films ("Curious George" the 2006 game). */
+    static boolean notVideo(String fileName) {
+        String name = fileName == null ? "" : fileName.strip();
+        return NOT_VIDEO_EXTENSION.matcher(name).find() || GAME_GROUP.matcher(name).find();
+    }
+
+    /** "Show S03" (a season pack's name, no episode number to cut at) → "Show". */
+    private static ReleaseNameParser.Guess withoutSeasonPack(ReleaseNameParser.Guess g) {
+        Matcher m = SEASON_PACK.matcher(g.title());
+        if (g.episode() != null || !m.find() || m.start() == 0) {
+            return g;
+        }
+        return new ReleaseNameParser.Guess(DownloadTask.ContentType.TV, g.title().substring(0, m.start()).strip(), g.year(),
+                g.season(), g.episode(), g.episodeTitle());
+    }
+
+    private static boolean episodic(Release r) {
+        return r.episode() != null || SEASON_PACK.matcher(r.label()).find();
     }
 
     /** A volume that belongs to a set (x.part1.rar, x.r00, x.7z.001, x.z01), not a lone archive. */
