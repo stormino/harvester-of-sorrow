@@ -56,3 +56,5 @@
 }
 
 .headActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.localTitle { margin-top: 2px; font-size: 13px; color: var(--text-muted); overflow-wrap: anywhere; }

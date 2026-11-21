@@ -4,6 +4,15 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.4.1 — 2026-11-21
+
+### Changed
+- **A title's Italian name is shown under its title**, on the result card and in the title panel
+  (e.g. *Curious George* / Curioso come George), instead of as an extra entry in the status row.
+  The xdcc.eu count includes the packs found by the other names.
+- **The PW Search Engine is off and no longer listed.** Its server still refuses HoS; set
+  `XDCC_PW_ENABLED=true` to turn it back on once access is enabled.
+
 ## 7.4.0 — 2026-11-21
 
 ### New

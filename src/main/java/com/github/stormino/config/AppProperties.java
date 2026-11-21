@@ -142,6 +142,8 @@ public class AppProperties {
             /** Also search xdcc.eu (public XDCC search engine). */
             private boolean xdccEuEnabled = true;
             private String xdccEuUrl = "https://www.xdcc.eu/search.php";
+            /** Also search the PW Search Engine (off until its authors enable access for HoS). */
+            private boolean pwEnabled = false;
             /** PW Search Engine server (networks, channels, pack database). */
             private String pwBaseUrl = "http://www.pw-search-engine.wklm.it:8282";
             /**

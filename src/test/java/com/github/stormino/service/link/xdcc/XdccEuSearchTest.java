@@ -69,8 +69,13 @@ class XdccEuSearchTest {
     }
 
     private XdccSearch search() {
+        return search(true);
+    }
+
+    private XdccSearch search(boolean pwEnabled) {
         AppProperties props = new AppProperties();
         var x = props.getLink().getXdcc();
+        x.setPwEnabled(pwEnabled);
         x.setXdccEuUrl(server.url("/search.php").toString());
         x.setPwBaseUrl(server.url("/").toString());
         x.setDatabaseCacheFile(dir.resolve("pw.db").toString());
@@ -108,5 +113,15 @@ class XdccEuSearchTest {
         RecordedRequest req = requests.stream().filter(x -> x.getPath().startsWith("/search.php")).findFirst().orElseThrow();
         assertEquals("/search.php?searchkey=dune", req.getPath());
         assertEquals(PwSearchEngine.BROWSER_USER_AGENT + " HoS/5.4.0", req.getHeader("User-Agent"));
+    }
+
+    @Test
+    void pwIsLeftOutWhenDisabled() {
+        XdccSearch s = search(false);
+        XdccSearch.Result r = s.search("dune");
+        assertEquals(2, r.hits().size());
+        assertEquals(List.of("xdcc.eu"), r.sources().stream().map(XdccSearch.SourceStatus::name).toList());
+        assertEquals(List.of("xdcc.eu"), s.status().stream().map(XdccSearch.SourceStatus::name).toList());
+        assertTrue(requests.stream().allMatch(x -> x.getPath().startsWith("/search.php")), "PW never contacted");
     }
 }
