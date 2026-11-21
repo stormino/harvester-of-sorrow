@@ -4,6 +4,18 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.3.2 — 2026-11-21
+
+### Fixed
+- **XDCC no longer mixes a film with a show of the same name.** *Curious George* (2006) is both a film
+  and a TV show: the film's releases were listed under the show because two loose episodes were on
+  XDCC too. Now the film's releases go to the film and only the episodes (and season packs) to the show.
+- **When XDCC has only a few episodes of a show, the panel says so**, e.g. "XDCC has only 2 single
+  episodes of this show (S15E11, S15E13). The whole show is on VixSrc."
+- **Games, software, music and books are left out of XDCC results** (e.g. the *Curious George* game,
+  `REPACK-RELOADED.tar`).
+- XDCC release names no longer start with the bot's network (`[ irc.coreirc.net ] …`).
+
 ## 7.3.1 — 2026-11-21
 
 ### Fixed

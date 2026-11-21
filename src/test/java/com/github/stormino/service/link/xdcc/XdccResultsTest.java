@@ -82,4 +82,57 @@ class XdccResultsTest {
         assertEquals(1, XdccResults.relevance("altra una", "Una Battaglia Dopo L Altra"));
         assertEquals(0, XdccResults.relevance("una battaglia", "Clan Scegli Il Tuo Destino"));
     }
+
+    static List<XdccHit> hits(Object[][] rows) {
+        List<XdccHit> out = new ArrayList<>();
+        for (Object[] r : rows) {
+            for (int b = 1; b <= (int) r[2]; b++) {
+                String name = (String) r[0];
+                XdccLink link = new XdccLink("irc.net.it", 6667, "#chan", "Bot" + b, b, "Net", name,
+                        PwSearchEngine.approxBytes((String) r[1]));
+                out.add(new XdccHit("xdcc.eu", "Net", "#chan", "Bot" + b, b, (String) r[1], link.size(), name, link));
+            }
+        }
+        return out;
+    }
+
+    /** "Curious George" (2006) is a film, a TV show and a game: real xdcc.eu packs. */
+    @Test
+    void filmsAndEpisodesOfTheSameTitleStayApart() {
+        Object[][] rows = {
+                {"Curious George (2006) Bluray-1080p.mkv", "4.4G", 1},
+                {"[ irc.coreirc.net ] Curious George 2006 NORDiC 1080p WEB-DL DDP2 0 H 264-ADDICTION", "2.5G", 2},
+                {"Curious.George.REPACK-RELOADED.tar", "2.0G", 3},
+                {"Curious.George.S15E11.720p.HEVC.x265-MeGusta.mkv", "184M", 1},
+                {"Curious.George.S15E13.1080p.HEVC.x265-MeGusta.mkv", "248M", 1},
+                {"Curious.George.S03.1080p.WEB-DL.x264-GRP.mkv", "9.0G", 1},
+        };
+        var groups = XdccResults.groupWithoutPosters(hits(rows), "curious george", "ITA");
+        assertEquals(2, groups.size(), "film and show apart, game dropped");
+
+        var film = groups.stream().filter(g -> g.type() == DownloadTask.ContentType.MOVIE).findFirst().orElseThrow();
+        assertEquals("Curious George", film.title());
+        assertEquals(2006, film.year());
+        assertEquals(2, film.releases().size());
+        assertTrue(film.releases().stream().allMatch(r -> r.episode() == null));
+        var web = film.releases().stream().filter(r -> r.label().contains("NORDiC")).findFirst().orElseThrow();
+        assertEquals("Curious George 2006 NORDiC 1080p WEB-DL DDP2 0 H 264-ADDICTION", web.label(), "network prefix dropped");
+        assertEquals("?", web.format(), "no extension, not \"net ] curious…\"");
+
+        var show = groups.stream().filter(g -> g.type() == DownloadTask.ContentType.TV).findFirst().orElseThrow();
+        assertEquals(3, show.releases().size(), "two episodes and a season pack");
+        assertTrue(show.releases().stream().noneMatch(r -> r.label().contains("Bluray")));
+    }
+
+    @Test
+    void notVideo() {
+        assertTrue(XdccResults.notVideo("Curious.George.REPACK-RELOADED.tar"));
+        assertTrue(XdccResults.notVideo("Some.Game-CODEX.part01.rar"));
+        assertTrue(XdccResults.notVideo("Some Game [FitGirl Repack].zip"));
+        assertTrue(XdccResults.notVideo("Album - Artist.flac"));
+        assertTrue(XdccResults.notVideo("setup.exe"));
+        assertFalse(XdccResults.notVideo("Reloaded.2003.1080p.BluRay.x264-GRP.mkv"));
+        assertFalse(XdccResults.notVideo("The.Matrix.Reloaded.2003.ITA.mkv"));
+        assertFalse(XdccResults.notVideo("Una.Battaglia.Dopo.L.Altra.2025.DVD5.ITA.S-K.part1.rar"));
+    }
 }

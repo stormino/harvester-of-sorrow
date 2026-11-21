@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { api } from '../api/client';
 import type { LinkResolution, XdccRelease } from '../api/types';
 import { Button } from '../components/Button';
+import { sourceLabel } from '../components/Badge';
 import { Chip, ChipList } from '../components/Chip';
 import { DownloadIcon } from '../components/Icons';
 import { useToast } from '../components/Toast';
@@ -36,6 +37,7 @@ export function XdccReleases({ group, onQueued }: { group: TitleGroup; onQueued:
     .sort((a, b) => a - b), [group.xdcc]);
   const visible = group.xdcc.filter((r) => passes(r, filters) && (season == null || seasonOf(r.episode) === season));
   const hidden = group.xdcc.length - visible.length;
+  const partial = partialShow(group);
 
   const toggle = (r: XdccRelease) => setSelected((cur) => {
     const next = new Map(cur);
@@ -58,6 +60,7 @@ export function XdccReleases({ group, onQueued }: { group: TitleGroup; onQueued:
   return (
     <>
       <div className={f.form}>
+        {partial && <p className={s.note} data-testid="xdcc-partial">{partial}</p>}
         <div className={s.filters} role="group" aria-label="Filters">
           <label>Resolution
             <select value={filters.resolution} onChange={(e) => setFilters({ ...filters, resolution: e.target.value as Resolution })}>
@@ -110,6 +113,15 @@ export function XdccReleases({ group, onQueued }: { group: TitleGroup; onQueued:
       }} />}
     </>
   );
+}
+
+/** A show with only loose episodes on XDCC (no season pack): say so, and where the whole show is. */
+export function partialShow(group: TitleGroup): string | null {
+  if (group.contentType !== 'TV' || group.xdcc.length === 0 || group.xdcc.some((r) => !r.episode)) return null;
+  const eps = [...new Set(group.xdcc.map((r) => r.episode!))].sort();
+  const list = eps.length <= 6 ? eps.join(', ') : `${eps.slice(0, 5).join(', ')} and ${eps.length - 5} more`;
+  const where = group.streams.length ? ` The whole show is on ${sourceLabel(group.streams[0].source)}.` : '';
+  return `XDCC has only ${eps.length === 1 ? 'one episode' : `${eps.length} single episodes`} of this show (${list}).${where}`;
 }
 
 function ReleaseRow({ r, checked, onToggle }: { r: XdccRelease; checked: boolean; onToggle: () => void }) {
