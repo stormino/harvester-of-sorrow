@@ -17,7 +17,7 @@ export function NavItem({ to, icon, label, badge, badgeLabel = 'active', onNavig
   return (
     <NavLink
       to={to}
-      end={to === '/'}
+      end={to === '/' || to.startsWith('/?')}
       onClick={onNavigate}
       data-testid={testId}
       className={({ isActive }) => `${s.item} ${isActive ? s.active : ''}`}

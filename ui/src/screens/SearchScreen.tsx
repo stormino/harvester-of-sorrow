@@ -70,7 +70,8 @@ export function SearchScreen() {
     queryKey: ['search', q, 'BOTH'],
     queryFn: () => api.search(q, 'BOTH'),
     enabled: q.trim().length > 0,
-    staleTime: 5 * 60_000,
+    staleTime: 30 * 60_000,
+    gcTime: 30 * 60_000,
     retry: false,
   });
   const xdccStatus = useQuery({ queryKey: ['xdcc-status'], queryFn: api.xdccStatus, staleTime: 60_000 });
@@ -79,7 +80,8 @@ export function SearchScreen() {
     queryKey: ['xdcc-search', q],
     queryFn: () => api.xdccSearch(q),
     enabled: xdccEnabled,
-    staleTime: 5 * 60_000,
+    staleTime: 30 * 60_000,
+    gcTime: 30 * 60_000,
     retry: false,
   });
 

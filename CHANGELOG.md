@@ -4,6 +4,14 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.3.1 — 2026-11-21
+
+### Fixed
+- **Search results stay when you switch pages.** Going to Downloads, Watchlist, Library or Settings and
+  back to Search shows your last search again (with its Films/Shows filter) instead of an empty page.
+  Results are kept for 30 minutes, so they appear instantly; press Search to look them up again.
+  The HoS logo still opens an empty search.
+
 ## 7.3.0 — 2026-11-20
 
 ### New

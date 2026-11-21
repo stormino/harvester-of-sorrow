@@ -42,11 +42,21 @@ export function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(readSidebar);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
+  // The Search tab returns to the last search (query + filter), not an empty page.
+  const [searchTo, setSearchTo] = useState('/');
 
   const activeCount = tasks.filter((t) => isActive(t.status)).length;
   const watchlistCount = useWatchlist().items.length;
 
   useEffect(() => setDrawerOpen(false), [location.pathname, isMobile]);
+  useEffect(() => {
+    if (location.pathname !== '/') return;
+    const params = new URLSearchParams(location.search);
+    params.delete('open');
+    const qs = params.toString();
+    setSearchTo(qs ? `/?${qs}` : '/');
+  }, [location.pathname, location.search]);
+  const href = (to: string) => (to === '/' ? searchTo : to);
   useEffect(() => {
     try {
       localStorage.setItem(SIDEBAR_KEY, sidebarOpen ? 'open' : 'collapsed');
@@ -58,7 +68,7 @@ export function Shell() {
   const toggleNav = () => (isMobile ? setDrawerOpen((o) => !o) : setSidebarOpen((o) => !o));
 
   const navList = (onNavigate?: () => void) => NAV.map((n) => (
-    <NavItem key={n.to} to={n.to} label={n.label} icon={n.icon(17)} testId={n.testId}
+    <NavItem key={n.to} to={href(n.to)} label={n.label} icon={n.icon(17)} testId={n.testId}
       badge={n.to === '/downloads' ? activeCount : n.to === '/watchlist' ? watchlistCount : undefined}
       badgeLabel={n.to === '/watchlist' ? 'saved' : 'active'} onNavigate={onNavigate} />
   ));
@@ -118,7 +128,7 @@ export function Shell() {
       {isMobile && (
         <nav className={s.tabbar} aria-label="Tabs">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'} title={n.label} aria-label={n.label}
+            <NavLink key={n.to} to={href(n.to)} end={n.to === '/'} title={n.label} aria-label={n.label}
               className={({ isActive: on }) => `${s.tab} ${on ? s.tabActive : ''}`}>
               {n.icon(24)}
               {n.to === '/downloads' && activeCount > 0 && <span className={s.tabBadge}>{activeCount}</span>}
