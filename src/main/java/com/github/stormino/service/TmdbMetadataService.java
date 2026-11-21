@@ -214,6 +214,38 @@ public class TmdbMetadataService {
     }
     
     /**
+     * Titles of the same search in another language (ISO 639-1, e.g. "it"), by TMDB id: one extra
+     * search call. Release names on XDCC use the language of the release ("Curioso come George" for
+     * the Italian dub of "Curious George"), so the search looks them up by both names.
+     */
+    public Map<Integer, String> localTitles(String query, boolean tv, String language) {
+        if (!isAvailable() || language == null || language.isBlank()) {
+            return Map.of();
+        }
+        try {
+            Map<Integer, String> titles = new LinkedHashMap<>();
+            if (tv) {
+                Response<TvShowResultsPage> response = tmdb.searchService().tv(query, null, language, null, null).execute();
+                if (response.isSuccessful() && response.body() != null && response.body().results != null) {
+                    response.body().results.stream().filter(s -> s != null && s.id != null && s.name != null)
+                            .forEach(s -> titles.putIfAbsent(s.id, s.name));
+                }
+            } else {
+                Response<MovieResultsPage> response = tmdb.searchService()
+                        .movie(query, null, language, null, null, null, null).execute();
+                if (response.isSuccessful() && response.body() != null && response.body().results != null) {
+                    response.body().results.stream().filter(m -> m != null && m.id != null && m.title != null)
+                            .forEach(m -> titles.putIfAbsent(m.id, m.title));
+                }
+            }
+            return titles;
+        } catch (IOException | RuntimeException e) {
+            log.debug("Localized {} search for '{}' failed: {}", tv ? "TV" : "movie", query, e.getMessage());
+            return Map.of();
+        }
+    }
+
+    /**
      * Search for TV shows
      */
     public List<ContentMetadata> searchTvShows(String query) {

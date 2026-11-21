@@ -831,6 +831,11 @@ export interface components {
             /** @example Breaking Bad */
             title: string;
             originalTitle?: string;
+            /**
+             * @description Title in the configured download language, when it differs (TMDB)
+             * @example Curioso come George
+             */
+            localTitle?: string;
             /** Format: int32 */
             year?: number;
             overview?: string;

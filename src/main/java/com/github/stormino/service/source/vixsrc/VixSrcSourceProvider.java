@@ -3,6 +3,7 @@ package com.github.stormino.service.source.vixsrc;
 import com.github.stormino.model.AvailabilityResult;
 import com.github.stormino.model.ContentMetadata;
 import com.github.stormino.model.ContentTypeFilter;
+import com.github.stormino.config.AppProperties;
 import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaInfo;
 import com.github.stormino.model.MediaSource;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +45,7 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
     );
 
     private final TmdbMetadataService tmdbService;
+    private final AppProperties properties;
     private final VixSrcAvailabilityService availabilityService;
     private final VixSrcExtractorService extractorService;
     private final HlsParserService hlsParser;
@@ -66,12 +69,29 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
             return List.of();
         }
 
+        // Titles in the download language ("Curioso come George"), looked up while the English search runs
+        String language = properties.getDownload().getDefaultLanguage();
+        boolean localize = language != null && !language.isBlank() && !language.equalsIgnoreCase("en");
+        CompletableFuture<Map<Integer, String>> localMovies = localize && filter.includesMovies()
+                ? CompletableFuture.supplyAsync(() -> tmdbService.localTitles(query, false, language), availabilityExecutor)
+                : CompletableFuture.completedFuture(Map.of());
+        CompletableFuture<Map<Integer, String>> localShows = localize && filter.includesTv()
+                ? CompletableFuture.supplyAsync(() -> tmdbService.localTitles(query, true, language), availabilityExecutor)
+                : CompletableFuture.completedFuture(Map.of());
+
         List<ContentMetadata> candidates = new ArrayList<>();
         if (filter.includesMovies()) {
             candidates.addAll(tmdbService.searchMovies(query));
         }
         if (filter.includesTv()) {
             candidates.addAll(tmdbService.searchTvShows(query));
+        }
+        for (ContentMetadata c : candidates) {
+            Map<Integer, String> local = (c.getContentType() == DownloadTask.ContentType.TV ? localShows : localMovies).join();
+            String t = c.getTmdbId() == null ? null : local.get(c.getTmdbId());
+            if (t != null && !t.isBlank() && !t.equalsIgnoreCase(c.getTitle())) {
+                c.setLocalTitle(t);
+            }
         }
 
         // Titles missing from the catalogue list cost one HTTP probe each, so check

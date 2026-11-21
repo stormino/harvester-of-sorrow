@@ -38,9 +38,9 @@ const yearsMatch = (a?: number, b?: number) => a == null || b == null || Math.ab
 export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = ''): TitleGroup[] {
   const groups: TitleGroup[] = [];
 
-  const find = (type: ContentType, tmdbId: number | undefined, title: string, year: number | undefined, alt?: string,
-    source?: Source) => {
-    const names = [normalize(title), alt ? normalize(alt) : ''].filter(Boolean);
+  const find = (type: ContentType, tmdbId: number | undefined, title: string, year: number | undefined,
+    alt?: string | (string | undefined)[], source?: Source) => {
+    const names = [title, ...(Array.isArray(alt) ? alt : [alt])].filter((n): n is string => !!n).map(normalize);
     return groups.find((g) => g.contentType === type && !g.streams.some((x) => x.source === source) && (
       tmdbId != null && g.tmdbId != null
         ? g.tmdbId === tmdbId
@@ -48,7 +48,7 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
   };
 
   for (const r of streams) {
-    const g = find(r.contentType, r.tmdbId, r.title, r.year, r.originalTitle, r.source);
+    const g = find(r.contentType, r.tmdbId, r.title, r.year, [r.originalTitle, r.localTitle], r.source);
     if (g) {
       g.streams.push(r);
       g.tmdbId ??= r.tmdbId;
@@ -56,14 +56,14 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
       g.overview ??= r.overview;
       g.rating ??= r.rating;
       g.year ??= r.year;
-      g.names.push(r.title, r.originalTitle ?? '');
+      g.names.push(r.title, r.originalTitle ?? '', r.localTitle ?? '');
       if (r.source === 'VIXSRC' || !g.externalUrl) g.externalUrl = r.externalUrl ?? g.externalUrl;
     } else {
       groups.push({
         key: r.tmdbId != null ? `${r.contentType}:${r.tmdbId}` : `${r.contentType}:${normalize(r.title)}:${r.year ?? ''}`,
         title: r.title, year: r.year, contentType: r.contentType, tmdbId: r.tmdbId, posterUrl: r.posterUrl,
         overview: r.overview, rating: r.rating, externalUrl: r.externalUrl, streams: [r], xdcc: [], xdccRelevance: -1,
-        names: [r.title, r.originalTitle ?? ''], relevance: 0,
+        names: [r.title, r.originalTitle ?? '', r.localTitle ?? ''], relevance: 0,
       });
     }
   }
@@ -104,6 +104,9 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
 
   for (const g of groups) {
     g.streams.sort((a, b) => SOURCE_RANK[a.source] - SOURCE_RANK[b.source]);
+    // The same pack can come from the search by each of a title's names
+    const packKey = (r: XdccRelease) => r.urls?.[0] ?? r.label;
+    g.xdcc = g.xdcc.filter((r, i) => g.xdcc.findIndex((x) => packKey(x) === packKey(r)) === i);
     g.xdcc.sort(compareReleases);
   }
 
@@ -119,6 +122,27 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
       || b.g.xdccRelevance - a.g.xdccRelevance
       || a.i - b.i)
     .map((x) => x.g);
+}
+
+/**
+ * Other names to search XDCC by: release names use the language of the release, so "Curioso come George"
+ * finds the Italian files and "Curious George" the English ones. Takes the Italian and English names of
+ * the first VixSrc results, skipping names whose search the query (or a name already taken) covers.
+ */
+export function xdccAltNames(streams: SearchResult[], query: string, max = 2): string[] {
+  const taken = [normalize(query)];
+  const out: string[] = [];
+  const covered = (n: string) => taken.some((t) => (` ${n} `).includes(` ${t} `));
+  for (const r of streams.filter((x) => x.source === 'VIXSRC').slice(0, 4)) {
+    for (const name of [r.localTitle, r.title]) {
+      if (!name || out.length >= max) continue;
+      const n = normalize(name);
+      if (n.length < 3 || covered(n)) continue;
+      taken.push(n);
+      out.push(name);
+    }
+  }
+  return out;
 }
 
 /** 0: matches the query and is a known work; 1: everything else (shown after a divider). */

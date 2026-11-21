@@ -1,11 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { api } from '../api/client';
 import { Button } from '../components/Button';
 import { AlertIcon, DownloadIcon, RetryIcon, SearchIcon, StarIcon } from '../components/Icons';
 import { SearchField } from '../components/Input';
-import { band, bestRelease, mergeTitles, type TitleGroup } from '../lib/titles';
+import { band, bestRelease, mergeTitles, xdccAltNames, type TitleGroup } from '../lib/titles';
 import { useWatchlist } from '../lib/useWatchlist';
 import { LinkDialog, looksLikeLink } from './LinkDialog';
 import { SaveButton } from './TitleActions';
@@ -85,7 +85,22 @@ export function SearchScreen() {
     retry: false,
   });
 
-  const groups = useMemo(() => mergeTitles(streams.data ?? [], xdcc.data?.titles ?? [], q), [streams.data, xdcc.data, q]);
+  // The same search on XDCC by the titles' other names (Italian / English), once the streaming results name them
+  const altNames = useMemo(() => (streams.data ? xdccAltNames(streams.data, q) : []), [streams.data, q]);
+  const alts = useQueries({
+    queries: altNames.map((name) => ({
+      queryKey: ['xdcc-search', name],
+      queryFn: () => api.xdccSearch(name),
+      enabled: !!xdccStatus.data?.available,
+      staleTime: 30 * 60_000,
+      gcTime: 30 * 60_000,
+      retry: false,
+    })),
+  });
+  const altTitles = alts.flatMap((a) => a.data?.titles ?? []);
+  const altKey = alts.map((a) => a.dataUpdatedAt).join(',');
+  const altFetching = alts.some((a) => a.isFetching);
+  const groups = useMemo(() => mergeTitles(streams.data ?? [], [...(xdcc.data?.titles ?? []), ...altTitles], q), [streams.data, xdcc.data, altKey, q]);
   const movies = groups.filter((g) => g.contentType === 'MOVIE').length;
   const shows = groups.length - movies;
   const shown = type === 'ALL' ? groups : groups.filter((g) => g.contentType === type);
@@ -111,6 +126,7 @@ export function SearchScreen() {
     if (query === q) {
       void streams.refetch();
       if (xdccEnabled) void xdcc.refetch();
+      alts.forEach((a) => void a.refetch());
     } else {
       setParams({ q: query });
     }
@@ -121,7 +137,7 @@ export function SearchScreen() {
     run(input);
   };
 
-  const loading = streams.isFetching || xdcc.isFetching;
+  const loading = streams.isFetching || xdcc.isFetching || altFetching;
   const nothing = q && !loading && groups.length === 0 && !streams.isError;
 
   return (
@@ -147,6 +163,12 @@ export function SearchScreen() {
             <SourceStatus name="RaiPlay" loading={streams.isFetching} error={streams.error as Error | null}
               count={streams.data?.filter((r) => r.source === 'RAIPLAY').length} onRetry={() => void streams.refetch()} />
             {xdccItems()}
+            {altNames.map((name, i) => (
+              <SourceStatus key={name} name={`“${name}”`} loading={alts[i]?.isFetching}
+                error={alts[i]?.error as Error | null}
+                count={alts[i]?.data?.titles.reduce((n, t) => n + t.releases.length, 0)}
+                note={`XDCC also searched by this name`} />
+            ))}
           </div>
           {movies > 0 && shows > 0 && (
             <div className={s.filter} role="radiogroup" aria-label="Show">
@@ -185,7 +207,7 @@ export function SearchScreen() {
                 {band(g) === 1 && i > 0 && band(shown[i - 1]) === 0 && (
                   <div className={s.divider}><span>Other matches</span></div>
                 )}
-                <ResultCard g={g} xdccPending={xdcc.isFetching} onOpen={() => update({ open: g.key })}
+                <ResultCard g={g} xdccPending={xdcc.isFetching || altFetching} onOpen={() => update({ open: g.key })}
                   saved={!!watchlist.saved(g.key)} onToggleSave={() => void watchlist.toggle(g)} />
               </Fragment>
             ))}
