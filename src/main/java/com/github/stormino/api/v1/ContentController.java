@@ -203,6 +203,7 @@ public class ContentController {
                 type,
                 c.getTitle(),
                 c.getOriginalTitle(),
+                c.getLocalTitle(),
                 c.getYear(),
                 c.getOverview(),
                 c.getVoteAverage() != null && c.getVoteAverage() > 0 ? c.getVoteAverage() : null,

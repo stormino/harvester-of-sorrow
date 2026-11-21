@@ -12,6 +12,8 @@ public record SearchResultDto(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) DownloadTask.ContentType contentType,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, example = "Breaking Bad") String title,
         String originalTitle,
+        @Schema(description = "Title in the configured download language, when it differs (TMDB)", example = "Curioso come George")
+        String localTitle,
         Integer year,
         String overview,
         @Schema(description = "Rating 0-10", example = "8.9") Double rating,

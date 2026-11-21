@@ -20,6 +20,8 @@ public class ContentMetadata {
     private Integer tmdbId;
     private String title;
     private String originalTitle;
+    /** Title in the configured download language (e.g. Italian), when it differs from {@link #title}. */
+    private String localTitle;
     private Integer year;
     private String overview;
     private Double voteAverage;

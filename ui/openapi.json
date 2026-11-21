@@ -1887,6 +1887,11 @@
                     "originalTitle": {
                         "type": "string"
                     },
+                    "localTitle": {
+                        "type": "string",
+                        "description": "Title in the configured download language, when it differs (TMDB)",
+                        "example": "Curioso come George"
+                    },
                     "year": {
                         "type": "integer",
                         "format": "int32"

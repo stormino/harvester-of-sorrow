@@ -4,6 +4,16 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.4.0 — 2026-11-21
+
+### New
+- **XDCC is searched by a title's Italian and English names.** XDCC files are named in the language
+  of the release, so "Curioso come George" only found the Italian files and "Curious George" only the
+  English ones. Now the search also looks XDCC up by the other name of the first results (up to two
+  extra names) and merges what it finds: either name finds both. The extra names appear in the status
+  row under the search box, e.g. ✓ "Curious George" 15.
+- Search results match a title's Italian name too, so an Italian search ranks the right titles first.
+
 ## 7.3.2 — 2026-11-21
 
 ### Fixed
