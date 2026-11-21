@@ -11,6 +11,8 @@ export interface TitleGroup {
   overview?: string;
   rating?: number;
   externalUrl?: string;
+  /** Title in the download language (e.g. Italian) when it differs, shown under the title. */
+  localTitle?: string;
   /** Streaming sources, VixSrc first. */
   streams: SearchResult[];
   /** XDCC releases merged from every XDCC title matched to this work, best first. */
@@ -57,12 +59,13 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
       g.rating ??= r.rating;
       g.year ??= r.year;
       g.names.push(r.title, r.originalTitle ?? '', r.localTitle ?? '');
+      g.localTitle ??= r.localTitle;
       if (r.source === 'VIXSRC' || !g.externalUrl) g.externalUrl = r.externalUrl ?? g.externalUrl;
     } else {
       groups.push({
         key: r.tmdbId != null ? `${r.contentType}:${r.tmdbId}` : `${r.contentType}:${normalize(r.title)}:${r.year ?? ''}`,
         title: r.title, year: r.year, contentType: r.contentType, tmdbId: r.tmdbId, posterUrl: r.posterUrl,
-        overview: r.overview, rating: r.rating, externalUrl: r.externalUrl, streams: [r], xdcc: [], xdccRelevance: -1,
+        overview: r.overview, rating: r.rating, externalUrl: r.externalUrl, localTitle: r.localTitle, streams: [r], xdcc: [], xdccRelevance: -1,
         names: [r.title, r.originalTitle ?? '', r.localTitle ?? ''], relevance: 0,
       });
     }

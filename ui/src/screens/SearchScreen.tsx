@@ -163,12 +163,6 @@ export function SearchScreen() {
             <SourceStatus name="RaiPlay" loading={streams.isFetching} error={streams.error as Error | null}
               count={streams.data?.filter((r) => r.source === 'RAIPLAY').length} onRetry={() => void streams.refetch()} />
             {xdccItems()}
-            {altNames.map((name, i) => (
-              <SourceStatus key={name} name={`“${name}”`} loading={alts[i]?.isFetching}
-                error={alts[i]?.error as Error | null}
-                count={alts[i]?.data?.titles.reduce((n, t) => n + t.releases.length, 0)}
-                note={`XDCC also searched by this name`} />
-            ))}
           </div>
           {movies > 0 && shows > 0 && (
             <div className={s.filter} role="radiogroup" aria-label="Show">
@@ -221,18 +215,29 @@ export function SearchScreen() {
     </div>
   );
 
+  /** "3 packs" for the query plus the packs the searches by the titles' other names found. */
+  function withAltPacks(source: string, message?: string) {
+    const own = /^(\d+) packs?$/.exec(message ?? '');
+    if (!own) return message;
+    const more = alts.reduce((n, a) => {
+      const m = /^(\d+) packs?$/.exec(a.data?.sources.find((x) => x.name === source)?.message ?? '');
+      return n + (m ? Number(m[1]) : 0);
+    }, 0);
+    return `${Number(own[1]) + more} packs`;
+  }
+
   function xdccItems() {
     if (xdccStatus.data && !xdccStatus.data.available) {
       return <SourceStatus name="XDCC" error={new Error(xdccStatus.data.sources.map((x) => x.message ?? 'unavailable').join('; '))} />;
     }
     if (q.trim().length < 3) return <SourceStatus name="XDCC" note="needs 3+ letters" />;
     if (xdcc.isError) return <SourceStatus name="XDCC" error={xdcc.error as Error} onRetry={() => void xdcc.refetch()} />;
-    if (!xdcc.data || xdcc.isFetching) return <SourceStatus name="XDCC" loading />;
+    if (!xdcc.data || xdcc.isFetching || altFetching) return <SourceStatus name="XDCC" loading />;
     return (
       <>
         {xdcc.data.sources.map((x) => (
           <SourceStatus key={x.name} name={x.name} error={x.available ? null : new Error(x.message ?? 'unavailable')}
-            note={x.available ? x.message : undefined} />
+            note={x.available ? withAltPacks(x.name, x.message) : undefined} />
         ))}
       </>
     );
@@ -281,6 +286,7 @@ function ResultCard({ g, xdccPending, onOpen, saved, onToggleSave }: {
         <div className={s.titleRow}>
           <h3 className={s.title}>{g.title}</h3>
         </div>
+        {g.localTitle && <div className={s.localTitle}>{g.localTitle}</div>}
         <div className={s.meta}>
           <span className={s.kind}>{isTV ? 'TV' : 'Film'}</span>
           {g.year && <span>{g.year}</span>}

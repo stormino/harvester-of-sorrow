@@ -40,6 +40,9 @@ public class XdccSearch {
     public List<SourceStatus> status() {
         List<SourceStatus> out = new ArrayList<>();
         out.add(new SourceStatus(XdccEuSearch.SOURCE, xdccEu.enabled(), xdccEu.enabled() ? null : "disabled"));
+        if (!pw.enabled()) {
+            return out;
+        }
         PwSearchEngine.Status s = pw.status();
         out.add(new SourceStatus(PwSearchEngine.SOURCE, s.available(), s.available()
                 ? s.lists() + " lists on " + s.networks() + " networks" : s.message()));
@@ -47,7 +50,9 @@ public class XdccSearch {
     }
 
     public Result search(String words) {
-        var pwFuture = CompletableFuture.supplyAsync(() -> pw.search(words));
+        var pwFuture = pw.enabled()
+                ? CompletableFuture.supplyAsync(() -> pw.search(words))
+                : CompletableFuture.completedFuture(new PwSearchEngine.SearchResult(List.of(), 0, 0));
         var euFuture = CompletableFuture.supplyAsync(() -> {
             if (!xdccEu.enabled()) {
                 return new SourceOutcome(List.of(), new SourceStatus(XdccEuSearch.SOURCE, false, "disabled"));
@@ -63,6 +68,9 @@ public class XdccSearch {
         PwSearchEngine.SearchResult pwResult = pwFuture.join();
         SourceOutcome eu = euFuture.join();
 
+        if (!pw.enabled()) {
+            return new Result(cap(eu.hits()), List.of(eu.status()));
+        }
         PwSearchEngine.Status pwStatus = pw.status();
         SourceStatus pwSource = pwStatus.available()
                 ? new SourceStatus(PwSearchEngine.SOURCE, true, pwResult.packs().size() + " packs from "
@@ -72,11 +80,14 @@ public class XdccSearch {
         Map<String, XdccHit> merged = new LinkedHashMap<>();
         eu.hits().forEach(h -> merged.putIfAbsent(h.key(), h));
         pwResult.packs().forEach(h -> merged.putIfAbsent(h.key(), h));
-        List<XdccHit> hits = new ArrayList<>(merged.values());
+        return new Result(cap(new ArrayList<>(merged.values())), List.of(eu.status(), pwSource));
+    }
+
+    private static List<XdccHit> cap(List<XdccHit> found) {
+        List<XdccHit> hits = new ArrayList<>(found);
         hits.sort(Comparator.comparing(XdccHit::fileName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(XdccHit::network).thenComparing(XdccHit::bot).thenComparingInt(XdccHit::pack));
-        return new Result(hits.size() > MAX_RESULTS ? List.copyOf(hits.subList(0, MAX_RESULTS)) : hits,
-                List.of(eu.status(), pwSource));
+        return hits.size() > MAX_RESULTS ? List.copyOf(hits.subList(0, MAX_RESULTS)) : hits;
     }
 
     private record SourceOutcome(List<XdccHit> hits, SourceStatus status) {

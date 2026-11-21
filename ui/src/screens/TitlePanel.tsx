@@ -46,6 +46,7 @@ export function TitlePanel({ group, onClose, xdccLoading }: {
           </div>
           <div className={s.headText}>
             <h3 className={s.title}>{group.title}</h3>
+            {group.localTitle && <div className={s.localTitle}>{group.localTitle}</div>}
             <div className={s.meta}>
               <span className={s.kind}>{isTV ? 'TV' : 'Film'}</span>
               {group.year && <span>{group.year}</span>}

@@ -84,6 +84,11 @@ public class PwSearchEngine {
     }
 
     /** {@code <browser> HoS/<version>}; the version comes from XDCC_USER_AGENT_VERSION or this build. */
+    /** Searched only when XDCC_PW_ENABLED=true; otherwise left out of searches and of the source list. */
+    public boolean enabled() {
+        return config.isPwEnabled();
+    }
+
     public String userAgent() {
         String v = config.getUserAgentVersion();
         return BROWSER_USER_AGENT + " HoS/" + (v == null || v.isBlank() ? appVersion : v.strip());

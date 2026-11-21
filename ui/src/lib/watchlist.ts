@@ -51,6 +51,7 @@ export function groupFromItem(i: WatchlistItem, xdcc: XdccTitle[] = [], streams?
     rating: base.rating ?? match.rating,
     posterUrl: base.posterUrl ?? match.posterUrl,
     externalUrl: base.externalUrl ?? match.externalUrl,
+    localTitle: match.localTitle,
     streams: match.streams,
     xdcc: match.xdcc,
   };
