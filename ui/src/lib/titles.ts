@@ -23,6 +23,26 @@ export interface TitleGroup {
   names: string[];
   /** How well the names match the query: 4 exact, 3 starts with it, 2 contains it, 1 has all words, 0 none. */
   relevance: number;
+  /** Release date (films) or first air date (shows), ISO, from TMDB. */
+  releaseDate?: string;
+}
+
+/** Whether any source can download the title now (else it can only be saved to the watchlist). */
+export const downloadable = (g: TitleGroup) => g.streams.length > 0 || g.xdcc.length > 0;
+
+/**
+ * Why a title can't be downloaded yet: "Out 12 Dec 2026" before its release date, otherwise
+ * "Not available yet" (released, but no source has it).
+ */
+export function notYetLabel(releaseDate?: string, today = new Date()): string {
+  if (releaseDate) {
+    const d = new Date(`${releaseDate}T00:00:00`);
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (!Number.isNaN(d.getTime()) && d > start) {
+      return `Out ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    }
+  }
+  return 'Not available yet';
 }
 
 const SOURCE_RANK: Record<Source, number> = { VIXSRC: 0, RAIPLAY: 1, LINK: 2 };
@@ -50,8 +70,20 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
   };
 
   for (const r of streams) {
-    const g = find(r.contentType, r.tmdbId, r.title, r.year, [r.originalTitle, r.localTitle], r.source);
-    if (g) {
+    // A title no source has yet (TMDB match, e.g. still in cinemas): details only, nothing to download
+    const pending = r.available === false;
+    const g = find(r.contentType, r.tmdbId, r.title, r.year, [r.originalTitle, r.localTitle], pending ? undefined : r.source);
+    if (g && pending) {
+      g.tmdbId ??= r.tmdbId;
+      g.posterUrl ??= r.posterUrl;
+      g.overview ??= r.overview;
+      g.rating ??= r.rating;
+      g.year ??= r.year;
+      g.releaseDate ??= r.releaseDate;
+      g.localTitle ??= r.localTitle;
+      g.externalUrl ??= r.externalUrl;
+      g.names.push(r.title, r.originalTitle ?? '', r.localTitle ?? '');
+    } else if (g) {
       g.streams.push(r);
       g.tmdbId ??= r.tmdbId;
       g.posterUrl ??= r.posterUrl;
@@ -60,13 +92,15 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
       g.year ??= r.year;
       g.names.push(r.title, r.originalTitle ?? '', r.localTitle ?? '');
       g.localTitle ??= r.localTitle;
+      g.releaseDate ??= r.releaseDate;
       if (r.source === 'VIXSRC' || !g.externalUrl) g.externalUrl = r.externalUrl ?? g.externalUrl;
     } else {
       groups.push({
         key: r.tmdbId != null ? `${r.contentType}:${r.tmdbId}` : `${r.contentType}:${normalize(r.title)}:${r.year ?? ''}`,
         title: r.title, year: r.year, contentType: r.contentType, tmdbId: r.tmdbId, posterUrl: r.posterUrl,
-        overview: r.overview, rating: r.rating, externalUrl: r.externalUrl, localTitle: r.localTitle, streams: [r], xdcc: [], xdccRelevance: -1,
-        names: [r.title, r.originalTitle ?? '', r.localTitle ?? ''], relevance: 0,
+        overview: r.overview, rating: r.rating, externalUrl: r.externalUrl, localTitle: r.localTitle,
+        streams: pending ? [] : [r], xdcc: [], xdccRelevance: -1,
+        names: [r.title, r.originalTitle ?? '', r.localTitle ?? ''], relevance: 0, releaseDate: r.releaseDate,
       });
     }
   }
@@ -115,9 +149,9 @@ export function mergeTitles(streams: SearchResult[], xdcc: XdccTitle[], query = 
 
   for (const g of groups) g.relevance = Math.max(0, ...g.names.filter(Boolean).map((n) => textRelevance(n, query)));
 
-  // Titles matching the query words and known to TMDB (or a streaming source) first; inside each band VixSrc, then RaiPlay, then XDCC-only;
-  // then the closest name match; then the order the sources gave.
-  const tier = (g: TitleGroup) => (g.streams.length ? SOURCE_RANK[g.streams[0].source] : 5);
+  // Titles matching the query words and known to TMDB (or a streaming source) first; inside each band VixSrc, then RaiPlay,
+  // then XDCC-only, then titles nothing can download yet; then the closest name match; then the order the sources gave.
+  const tier = (g: TitleGroup) => (g.streams.length ? SOURCE_RANK[g.streams[0].source] : g.xdcc.length ? 5 : 6);
   return groups.map((g, i) => ({ g, i }))
     .sort((a, b) => band(a.g) - band(b.g)
       || tier(a.g) - tier(b.g)

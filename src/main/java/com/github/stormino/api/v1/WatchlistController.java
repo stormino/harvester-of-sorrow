@@ -3,6 +3,7 @@ package com.github.stormino.api.v1;
 import com.github.stormino.api.ApiException;
 import com.github.stormino.api.dto.WatchlistItemDto;
 import com.github.stormino.api.dto.WatchlistRequest;
+import com.github.stormino.service.WatchlistAvailabilityService;
 import com.github.stormino.service.WatchlistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +34,7 @@ public class WatchlistController {
     static final String DEFAULT_USER = "default";
 
     private final WatchlistService watchlist;
+    private final WatchlistAvailabilityService availability;
 
     @Operation(summary = "The current user's watchlist, most recently saved first")
     @GetMapping
@@ -56,6 +58,23 @@ public class WatchlistController {
         if (!watchlist.remove(userOf(user), id)) {
             throw ApiException.notFound("Watchlist item", id);
         }
+    }
+
+    @Operation(summary = "Mark a title that became available as seen",
+            description = "Drops its \"now available\" badge; the UI calls it when the user opens the title.")
+    @PostMapping("/{id}/seen")
+    public WatchlistItemDto seen(@Parameter(hidden = true) @RequestHeader(value = USER_HEADER, required = false) String user,
+                                 @PathVariable String id) {
+        return watchlist.markSeen(userOf(user), id).orElseThrow(() -> ApiException.notFound("Watchlist item", id));
+    }
+
+    @Operation(summary = "Look for the current user's waiting titles now",
+            description = "Runs the daily check (VixSrc, RaiPlay, XDCC) for this user's titles no source had when "
+                    + "they were saved. Can take a while: XDCC is searched by each name. Returns the watchlist.")
+    @PostMapping("/check")
+    public List<WatchlistItemDto> check(@Parameter(hidden = true) @RequestHeader(value = USER_HEADER, required = false) String user) {
+        availability.checkUser(userOf(user));
+        return watchlist.list(userOf(user));
     }
 
     static String userOf(String header) {

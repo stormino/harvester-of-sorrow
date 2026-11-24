@@ -46,7 +46,9 @@ export function Shell() {
   const [searchTo, setSearchTo] = useState('/');
 
   const activeCount = tasks.filter((t) => isActive(t.status)).length;
-  const watchlistCount = useWatchlist().items.length;
+  const watchlist = useWatchlist();
+  // Titles that became available outrank the plain count of saved ones
+  const watchlistBadge = watchlist.newCount || watchlist.items.length;
 
   useEffect(() => setDrawerOpen(false), [location.pathname, isMobile]);
   useEffect(() => {
@@ -69,8 +71,9 @@ export function Shell() {
 
   const navList = (onNavigate?: () => void) => NAV.map((n) => (
     <NavItem key={n.to} to={href(n.to)} label={n.label} icon={n.icon(17)} testId={n.testId}
-      badge={n.to === '/downloads' ? activeCount : n.to === '/watchlist' ? watchlistCount : undefined}
-      badgeLabel={n.to === '/watchlist' ? 'saved' : 'active'} onNavigate={onNavigate} />
+      badge={n.to === '/downloads' ? activeCount : n.to === '/watchlist' ? watchlistBadge : undefined}
+      badgeLabel={n.to === '/watchlist' ? (watchlist.newCount ? 'now available' : 'saved') : 'active'}
+      highlight={n.to === '/watchlist' && watchlist.newCount > 0} onNavigate={onNavigate} />
   ));
 
   return (
@@ -132,6 +135,9 @@ export function Shell() {
               className={({ isActive: on }) => `${s.tab} ${on ? s.tabActive : ''}`}>
               {n.icon(24)}
               {n.to === '/downloads' && activeCount > 0 && <span className={s.tabBadge}>{activeCount}</span>}
+              {n.to === '/watchlist' && watchlist.newCount > 0 && (
+                <span className={`${s.tabBadge} ${s.tabBadgeNew}`} aria-label={`${watchlist.newCount} now available`}>{watchlist.newCount}</span>
+              )}
             </NavLink>
           ))}
         </nav>

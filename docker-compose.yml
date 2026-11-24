@@ -27,6 +27,9 @@ services:
       # Optional - Library monitoring
       - MONITORING_ENABLED=${MONITORING_ENABLED:-true}
       - MONITORING_CRON=${MONITORING_CRON:-0 0 3,6 * * *}
+      # Optional - Daily check of watchlist titles no source had yet
+      - WATCHLIST_CHECK_ENABLED=${WATCHLIST_CHECK_ENABLED:-true}
+      - WATCHLIST_CHECK_CRON=${WATCHLIST_CHECK_CRON:-0 0 7 * * *}
       # Optional - RaiPlay (enabled only when both are set)
       - RAIPLAY_USERNAME=${RAIPLAY_USERNAME:-}
       - RAIPLAY_PASSWORD=${RAIPLAY_PASSWORD:-}

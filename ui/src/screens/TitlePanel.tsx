@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { sourceLabel } from '../components/Badge';
 import { Dialog } from '../components/Dialog';
 import { StarIcon } from '../components/Icons';
-import { bestRelease, type TitleGroup } from '../lib/titles';
+import { bestRelease, notYetLabel, type TitleGroup } from '../lib/titles';
 import { useWatchlist } from '../lib/useWatchlist';
 import { SaveButton, TrailerLink } from './TitleActions';
 import { StreamForm } from './StreamForm';
@@ -32,6 +32,7 @@ export function TitlePanel({ group, onClose, xdccLoading }: {
   const [tab, setTab] = useState<Tab>(tabs[0]?.id ?? 'XDCC');
   const stream = group.streams.find((r) => r.source === tab);
   const isTV = group.contentType === 'TV';
+  const saved = watchlist.saved(group.key);
 
   return (
     <Dialog open title={group.title} onClose={onClose} width={620} variant="drawer"
@@ -62,7 +63,7 @@ export function TitlePanel({ group, onClose, xdccLoading }: {
             {group.overview && <p className={s.overview}>{group.overview}</p>}
             <div className={s.headActions}>
               <TrailerLink contentType={group.contentType} tmdbId={group.tmdbId} />
-              <SaveButton labelled saved={!!watchlist.saved(group.key)} title={group.title}
+              <SaveButton labelled saved={!!saved} title={group.title}
                 onToggle={() => void watchlist.toggle(group)} />
             </div>
           </div>
@@ -81,7 +82,17 @@ export function TitlePanel({ group, onClose, xdccLoading }: {
       )}
       {tabs.length === 1 && <div className={s.single}>Download from <strong>{tabs[0].label}</strong></div>}
 
-      {stream
+      {tabs.length === 0 && (
+        <div className={s.notYet} data-testid="not-yet-panel">
+          <strong>{notYetLabel(group.releaseDate)}</strong>
+          {saved
+            ? <p>On your watchlist: HoS looks for it on VixSrc, RaiPlay and XDCC every day and marks it
+                <em> Available for download</em> as soon as one has it.</p>
+            : <p>No source has it yet. Save it to your watchlist (above): HoS looks for it every day and marks it
+                <em> Available for download</em> as soon as it can be downloaded.</p>}
+        </div>
+      )}
+      {tabs.length === 0 ? null : stream
         ? <StreamForm key={stream.source} item={stream} onQueued={onClose} />
         : group.xdcc.length === 0 && xdccLoading
           ? <div className={s.single}>Searching XDCC for {group.title}…</div>

@@ -1,5 +1,6 @@
 package com.github.stormino.service.link.xdcc;
 
+import com.github.stormino.util.TitleMatch;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -49,7 +50,9 @@ public class XdccSearch {
         return out;
     }
 
-    public Result search(String words) {
+    public Result search(String query) {
+        // Pack lists are file names: "Dune - Parte due" or "Dune: Part Two" find nothing, "Dune Parte due" does
+        String words = TitleMatch.searchWords(query);
         var pwFuture = pw.enabled()
                 ? CompletableFuture.supplyAsync(() -> pw.search(words))
                 : CompletableFuture.completedFuture(new PwSearchEngine.SearchResult(List.of(), 0, 0));

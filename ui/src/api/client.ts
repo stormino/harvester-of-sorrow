@@ -55,6 +55,8 @@ export const api = {
   watchlist: () => request<WatchlistItem[]>('GET', '/watchlist'),
   addToWatchlist: (req: WatchlistRequest) => request<WatchlistItem>('POST', '/watchlist', req),
   removeFromWatchlist: (id: string) => request<void>('DELETE', `/watchlist/${enc(id)}`),
+  markWatchlistSeen: (id: string) => request<WatchlistItem>('POST', `/watchlist/${enc(id)}/seen`),
+  checkWatchlist: () => request<WatchlistItem[]>('POST', '/watchlist/check'),
   mediaInfo: (source: Source, contentType: ContentType, sourceRef: string) =>
     request<MediaInfo>('POST', '/content/media-info', { source, contentType, sourceRef }),
 

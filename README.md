@@ -47,6 +47,8 @@ All settings are environment variables; the Settings screen shows them read-only
 | `MONITORING_ENABLED` | `true` | Periodic check of monitored shows |
 | `MONITORING_CRON` | `0 0 3,6 * * *` | When monitored shows are checked (Spring cron, server time zone): 03:00 and 06:00 |
 | `MONITORING_LANGUAGE_WAIT_DAYS` | `7` | Days a new episode waits for audio in `DEFAULT_LANGUAGE` before it is downloaded anyway |
+| `WATCHLIST_CHECK_ENABLED` | `true` | Daily check of the watchlist titles no source had when they were saved |
+| `WATCHLIST_CHECK_CRON` | `0 0 7 * * *` | When that check runs (Spring cron, server time zone): 07:00 |
 | `RAIPLAY_USERNAME`, `RAIPLAY_PASSWORD` | (none) | Enable RaiPlay (both required) |
 | `SQLITE_DB_PATH` | `data/hos.db` | Database file (falls back to `data/vixsrc.db` if only that exists) |
 | `SERVER_PORT` | `8080` | HTTP port |
@@ -122,6 +124,12 @@ Monitoring only queues episodes newer than the latest `SxxEyy` already in the sh
 overnight (`MONITORING_CRON`); "Check now" in the library runs it at any time. A new episode that does not
 have audio in `DEFAULT_LANGUAGE` yet waits (VixSrc often gets the Italian dub a few days after the original),
 up to `MONITORING_LANGUAGE_WAIT_DAYS` after it aired; later episodes of the show wait with it.
+
+A film still in cinemas (or just out, but not on VixSrc yet) still shows up in search, marked "Not available
+yet" or "Out 12 Dec 2026", so it can be saved to the watchlist. Every morning (`WATCHLIST_CHECK_CRON`) HoS
+looks for the saved titles nothing could download yet: VixSrc by TMDB id, RaiPlay and XDCC by each of their
+names. A title that turns up gets an "Available for download" badge, and the Watchlist tab shows how many;
+"Find it" opens the search on it. "Check N waiting now" on the watchlist runs the check at any time.
 
 ## Troubleshooting
 

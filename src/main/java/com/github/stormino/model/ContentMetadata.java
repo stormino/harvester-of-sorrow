@@ -4,6 +4,7 @@ import com.github.stormino.model.source.SourceMetadata;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @Data
@@ -27,6 +28,14 @@ public class ContentMetadata {
     private Double voteAverage;
     /** Absolute poster image URL, when the source provides one. */
     private String posterUrl;
+    /** Release date (films) or first air date (shows), from TMDB. */
+    private LocalDate releaseDate;
+    /**
+     * False for a TMDB match that no source serves yet (not released, or not on VixSrc yet):
+     * shown so it can be saved to the watchlist, never downloaded.
+     */
+    @Builder.Default
+    private boolean available = true;
     
     // TV-specific
     private Integer season;

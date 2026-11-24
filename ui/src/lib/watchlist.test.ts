@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { SearchResult, WatchlistItem, XdccTitle } from '../api/types';
 import { savedAgo } from '../screens/WatchlistScreen';
 import { mergeTitles } from './titles';
-import { groupFromItem, requestFromGroup } from './watchlist';
+import { groupFromItem, requestFromGroup, searchHref, sortWatchlist } from './watchlist';
 
 const vixsrc: SearchResult = {
   source: 'VIXSRC', contentType: 'MOVIE', title: 'Perfect Days', year: 2023, tmdbId: 976893,
@@ -54,5 +54,22 @@ describe('watchlist', () => {
     expect(savedAgo('2026-11-15T12:00:00', now)).toBe('5 days ago');
     expect(savedAgo('2026-10-30T12:00:00', now)).toBe('3 weeks ago');
     expect(savedAgo('2026-06-20T12:00:00', now)).toBe('5 months ago');
+  });
+
+  it('saves a title no source has as waiting, with its other names', () => {
+    const pending = { ...vixsrc, title: "If I Don't Come Back", originalTitle: 'Se domani non torno', localTitle: 'Se domani non torno',
+      tmdbId: 7, available: false, releaseDate: '2026-12-12' };
+    const req = requestFromGroup(mergeTitles([pending], [], 'se domani')[0]);
+    expect(req).toMatchObject({ available: false, releaseDate: '2026-12-12', names: ['Se domani non torno'], streams: [] });
+    expect(requestFromGroup(mergeTitles([vixsrc], [], '')[0]).available).toBe(true);
+  });
+
+  it('sends a newly available title to the search page, by the name that found it', () => {
+    const item = { title: "If I Don't Come Back", availableQuery: 'Se domani non torno' } as WatchlistItem;
+    expect(searchHref(item)).toBe('/?q=Se+domani+non+torno');
+    expect(searchHref({ ...item, availableQuery: undefined })).toBe("/?q=If+I+Don%27t+Come+Back");
+    const a = { id: 'a', newlyAvailable: false } as WatchlistItem;
+    const b = { id: 'b', newlyAvailable: true } as WatchlistItem;
+    expect(sortWatchlist([a, b]).map((i) => i.id)).toEqual(['b', 'a']);
   });
 });

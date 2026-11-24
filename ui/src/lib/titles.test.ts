@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SearchResult, XdccRelease, XdccTitle } from '../api/types';
-import { mergeTitles, seasonOf, xdccAltNames } from './titles';
+import { downloadable, mergeTitles, notYetLabel, seasonOf, xdccAltNames } from './titles';
 
 const res = (p: Partial<SearchResult>): SearchResult => ({
   source: 'VIXSRC', contentType: 'MOVIE', title: 'X', seasons: [], sourceRef: p.title ?? 'x', ...p,
@@ -80,5 +80,34 @@ describe('mergeTitles with local titles', () => {
     const groups = mergeTitles([s], [t, { ...t }], 'Curioso come George');
     expect(groups[0].xdcc).toHaveLength(1);
     expect(groups[0].relevance).toBeGreaterThan(0);
+  });
+});
+
+describe('titles no source has yet', () => {
+  const pending = res({ title: "If I Don't Come Back", localTitle: 'Se domani non torno', tmdbId: 7, year: 2025,
+    available: false, releaseDate: '2025-11-20' });
+
+  it('keep their details but nothing to download, after the downloadable ones', () => {
+    const groups = mergeTitles([pending, res({ source: 'RAIPLAY', title: 'Se domani non torno altrove' })], [], 'se domani non torno');
+    const g = groups.find((x) => x.tmdbId === 7)!;
+    expect(g.streams).toEqual([]);
+    expect(downloadable(g)).toBe(false);
+    expect(g.releaseDate).toBe('2025-11-20');
+    expect(groups.map((x) => x.tmdbId ?? x.title)).toEqual(['Se domani non torno altrove', 7]);
+  });
+
+  it('become downloadable when XDCC has them', () => {
+    const [g] = mergeTitles([pending], [xt({ title: 'Se domani non torno', tmdbId: 7, year: 2025, releases: [rel(1080)] })]);
+    expect(g.streams).toEqual([]);
+    expect(g.xdcc).toHaveLength(1);
+    expect(downloadable(g)).toBe(true);
+  });
+
+  it('say when they come out', () => {
+    const today = new Date(2026, 10, 24);
+    expect(notYetLabel('2026-12-12', today)).toBe('Out 12 Dec 2026');
+    expect(notYetLabel('2026-11-24', today)).toBe('Not available yet');
+    expect(notYetLabel('2025-11-20', today)).toBe('Not available yet');
+    expect(notYetLabel(undefined, today)).toBe('Not available yet');
   });
 });

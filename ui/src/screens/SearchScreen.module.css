@@ -78,6 +78,7 @@
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sc); }
 .sourceNote { font-weight: 400; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); }
 .sourcePending { color: var(--text-dim); font-weight: 400; border-style: dashed; }
+.sourceWaiting { --sc: var(--warning); font-weight: 500; color: var(--text-muted); border-style: dashed; }
 
 .skeleton {
   height: 154px; border-radius: 14px; border: 1px solid var(--border);

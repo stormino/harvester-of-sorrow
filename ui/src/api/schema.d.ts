@@ -111,7 +111,7 @@ export interface paths {
          * Check for new episodes now
          * @description Queues episodes newer than the latest one on disk. Returns how many were queued.
          */
-        post: operations["check"];
+        post: operations["check_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -548,6 +548,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/watchlist/{id}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a title that became available as seen
+         * @description Drops its "now available" badge; the UI calls it when the user opens the title.
+         */
+        post: operations["seen"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/watchlist/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Look for the current user's waiting titles now
+         * @description Runs the daily check (VixSrc, RaiPlay, XDCC) for this user's titles no source had when they were saved. Can take a while: XDCC is searched by each name. Returns the watchlist.
+         */
+        post: operations["check"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -855,6 +895,13 @@ export interface components {
             totalEpisodes?: number;
             /** @description Opaque source reference; pass back unchanged to /content/episodes and /downloads */
             sourceRef: string;
+            /**
+             * Format: date
+             * @description Release date (films) or first air date (shows), from TMDB
+             */
+            releaseDate?: string;
+            /** @description False for a title no source serves yet (e.g. still in cinemas): it can be saved to the watchlist but not downloaded. Missing means true (results saved before this field existed). */
+            available?: boolean;
         };
         /** @description A season of a TV show as known at search time */
         SeasonDto: {
@@ -1174,7 +1221,7 @@ export interface components {
             name: string;
             forced: boolean;
         };
-        /** @description Save a title for later. Saving one that is already there returns the existing entry. */
+        /** @description Save a title for later. Saving one that is already there refreshes its details (fields left empty keep their saved value) and keeps the date it was saved. */
         WatchlistRequest: {
             /** @example MOVIE:976893 */
             titleKey: string;
@@ -1193,6 +1240,15 @@ export interface components {
             externalUrl?: string;
             /** @description Streaming search results of the title (may be empty for XDCC-only titles) */
             streams?: components["schemas"]["SearchResultDto"][];
+            /**
+             * Format: date
+             * @description Release date (films) or first air date (shows)
+             */
+            releaseDate?: string;
+            /** @description Other names of the title (original, Italian) the daily check looks it up by */
+            names?: string[];
+            /** @description Whether a source serves the title now. False saves it as waiting: HoS checks every day and flags it when it can be downloaded. Missing means true. */
+            available?: boolean;
         };
         /** @description A title saved for later */
         WatchlistItemDto: {
@@ -1219,6 +1275,27 @@ export interface components {
             streams: components["schemas"]["SearchResultDto"][];
             /** Format: date-time */
             createdAt: string;
+            /** Format: date */
+            releaseDate?: string;
+            names: string[];
+            /** @description Saved before any source had it; checked every day */
+            waiting: boolean;
+            /**
+             * Format: date-time
+             * @description Last daily check
+             */
+            checkedAt?: string;
+            /**
+             * Format: date-time
+             * @description When the daily check found it can be downloaded
+             */
+            availableSince?: string;
+            /** @description Where the daily check found it: VIXSRC, RAIPLAY, XDCC */
+            availableSources: string[];
+            /** @description What to search to find it (the name that found it) */
+            availableQuery?: string;
+            /** @description Became available and the user has not opened it since */
+            newlyAvailable: boolean;
         };
         /** @description A title's trailer */
         TrailerDto: {
@@ -1434,7 +1511,7 @@ export interface operations {
             };
         };
     };
-    check: {
+    check_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2044,6 +2121,48 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    seen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WatchlistItemDto"];
+                };
+            };
+        };
+    };
+    check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WatchlistItemDto"][];
+                };
             };
         };
     };

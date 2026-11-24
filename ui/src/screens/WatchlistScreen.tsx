@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { api } from '../api/client';
 import type { WatchlistItem } from '../api/types';
-import { BookmarkIcon, DownloadIcon, StarIcon } from '../components/Icons';
+import { Button } from '../components/Button';
+import { BookmarkIcon, DownloadIcon, RetryIcon, SearchIcon, StarIcon } from '../components/Icons';
 import { useWatchlist } from '../lib/useWatchlist';
-import { groupFromItem } from '../lib/watchlist';
+import { notYetLabel } from '../lib/titles';
+import { groupFromItem, searchHref, sortWatchlist } from '../lib/watchlist';
 import { SaveButton, TrailerLink } from './TitleActions';
 import { TitlePanel } from './TitlePanel';
 import base from './Screen.module.css';
@@ -19,7 +21,10 @@ export function WatchlistScreen() {
   const type: TypeFilter = params.get('type') === 'MOVIE' || params.get('type') === 'TV' ? params.get('type') as TypeFilter : 'ALL';
   const openId = params.get('open');
   const watchlist = useWatchlist();
-  const items = watchlist.items;
+  const navigate = useNavigate();
+  const items = useMemo(() => sortWatchlist(watchlist.items), [watchlist.items]);
+  const waiting = items.filter((i) => i.waiting).length;
+  const [checking, setChecking] = useState(false);
 
   const movies = items.filter((i) => i.contentType === 'MOVIE').length;
   const shows = items.length - movies;
@@ -43,6 +48,13 @@ export function WatchlistScreen() {
           <span className={s.count}>{items.length} title{items.length > 1 ? 's' : ''} saved for later</span>
         )}
         <span className={s.spacer} />
+        {waiting > 0 && (
+          <Button variant="ghost" size="sm" icon={<RetryIcon size={14} />} disabled={checking}
+            title="HoS looks for the titles no source had yet every morning; this looks now (can take a minute)"
+            onClick={async () => { setChecking(true); await watchlist.check(); setChecking(false); }}>
+            {checking ? 'Checking…' : `Check ${waiting} waiting now`}
+          </Button>
+        )}
         {movies > 0 && shows > 0 && (
           <div className={s.filter} role="radiogroup" aria-label="Show">
             {([['ALL', 'All', items.length], ['MOVIE', 'Films', movies], ['TV', 'Shows', shows]] as const).map(([v, label, n]) => (
@@ -68,7 +80,16 @@ export function WatchlistScreen() {
 
       <div className={s.grid} data-testid="watchlist">
         {shown.map((i) => (
-          <Card key={i.id} item={i} onOpen={() => update({ open: i.id })} onRemove={() => void watchlist.remove(i)} />
+          <Card key={i.id} item={i} onRemove={() => void watchlist.remove(i)}
+            onOpen={() => {
+              if (i.newlyAvailable) {
+                // Just became available: the search page shows every place to get it from
+                void watchlist.markSeen(i);
+                navigate(searchHref(i));
+              } else {
+                update({ open: i.id });
+              }
+            }} />
         ))}
       </div>
 
@@ -101,12 +122,27 @@ function Card({ item, onOpen, onRemove }: { item: WatchlistItem; onOpen: () => v
           {item.rating != null && item.rating > 0 && <span className={s.rating}><StarIcon size={12} />{item.rating.toFixed(1)}</span>}
           <span>saved {savedAgo(item.createdAt)}</span>
         </div>
+        {item.newlyAvailable && (
+          <div className={s.status}>
+            <span className={s.available} data-testid="available-badge">Available for download</span>
+            {item.availableSources.length > 0 && <span className={s.statusNote}>on {item.availableSources.map(sourceName).join(' · ')}</span>}
+          </div>
+        )}
+        {item.waiting && (
+          <div className={s.status}>
+            <span className={s.waiting} data-testid="waiting-badge">{notYetLabel(item.releaseDate)}</span>
+            <span className={s.statusNote}>checked daily</span>
+          </div>
+        )}
         {item.overview && <p className={s.overview}>{item.overview}</p>}
         <div className={s.fill} />
         <div className={s.actions}>
           <TrailerLink contentType={item.contentType} tmdbId={item.tmdbId} />
-          <button type="button" className={s.download} onClick={(e) => { e.stopPropagation(); onOpen(); }}>
-            <DownloadIcon size={14} />Download…
+          <button type="button" className={`${s.download} ${item.waiting ? s.secondary : ''}`}
+            onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+            {item.newlyAvailable
+              ? <><SearchIcon size={14} />Find it</>
+              : item.waiting ? 'Details' : <><DownloadIcon size={14} />Download…</>}
           </button>
         </div>
       </div>
@@ -151,6 +187,8 @@ function WatchlistPanel({ item, onClose }: { item: WatchlistItem; onClose: () =>
   // Remount when sources arrive, so the panel opens on VixSrc rather than staying on XDCC
   return <TitlePanel key={group.streams.map((x) => x.source).join()} group={group} onClose={onClose} xdccLoading={loading} />;
 }
+
+const sourceName = (x: string) => ({ VIXSRC: 'VixSrc', RAIPLAY: 'RaiPlay', XDCC: 'XDCC' } as Record<string, string>)[x] ?? x;
 
 /** "today", "yesterday", "3 days ago", "2 weeks ago", "5 months ago". */
 export function savedAgo(iso: string, now = new Date()): string {

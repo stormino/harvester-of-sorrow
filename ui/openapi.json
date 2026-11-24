@@ -306,7 +306,7 @@
                 ],
                 "summary": "Check for new episodes now",
                 "description": "Queues episodes newer than the latest one on disk. Returns how many were queued.",
-                "operationId": "check",
+                "operationId": "check_1",
                 "parameters": [
                     {
                         "name": "id",
@@ -1160,6 +1160,63 @@
                     }
                 }
             }
+        },
+        "/api/v1/watchlist/{id}/seen": {
+            "post": {
+                "tags": [
+                    "Watchlist"
+                ],
+                "summary": "Mark a title that became available as seen",
+                "description": "Drops its \"now available\" badge; the UI calls it when the user opens the title.",
+                "operationId": "seen",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WatchlistItemDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/watchlist/check": {
+            "post": {
+                "tags": [
+                    "Watchlist"
+                ],
+                "summary": "Look for the current user's waiting titles now",
+                "description": "Runs the daily check (VixSrc, RaiPlay, XDCC) for this user's titles no source had when they were saved. Can take a while: XDCC is searched by each name. Returns the watchlist.",
+                "operationId": "check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/WatchlistItemDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -1929,6 +1986,15 @@
                     "sourceRef": {
                         "type": "string",
                         "description": "Opaque source reference; pass back unchanged to /content/episodes and /downloads"
+                    },
+                    "releaseDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Release date (films) or first air date (shows), from TMDB"
+                    },
+                    "available": {
+                        "type": "boolean",
+                        "description": "False for a title no source serves yet (e.g. still in cinemas): it can be saved to the watchlist but not downloaded. Missing means true (results saved before this field existed)."
                     }
                 },
                 "description": "One search hit"
@@ -2725,7 +2791,7 @@
             },
             "WatchlistRequest": {
                 "type": "object",
-                "description": "Save a title for later. Saving one that is already there returns the existing entry.",
+                "description": "Save a title for later. Saving one that is already there refreshes its details (fields left empty keep their saved value) and keeps the date it was saved.",
                 "properties": {
                     "titleKey": {
                         "type": "string",
@@ -2771,6 +2837,22 @@
                         "items": {
                             "$ref": "#/components/schemas/SearchResultDto"
                         }
+                    },
+                    "releaseDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Release date (films) or first air date (shows)"
+                    },
+                    "names": {
+                        "type": "array",
+                        "description": "Other names of the title (original, Italian) the daily check looks it up by",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "available": {
+                        "type": "boolean",
+                        "description": "Whether a source serves the title now. False saves it as waiting: HoS checks every day and flags it when it can be downloaded. Missing means true."
                     }
                 },
                 "required": [
@@ -2833,6 +2915,45 @@
                     "createdAt": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "releaseDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "names": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "waiting": {
+                        "type": "boolean",
+                        "description": "Saved before any source had it; checked every day"
+                    },
+                    "checkedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Last daily check"
+                    },
+                    "availableSince": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When the daily check found it can be downloaded"
+                    },
+                    "availableSources": {
+                        "type": "array",
+                        "description": "Where the daily check found it: VIXSRC, RAIPLAY, XDCC",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "availableQuery": {
+                        "type": "string",
+                        "description": "What to search to find it (the name that found it)"
+                    },
+                    "newlyAvailable": {
+                        "type": "boolean",
+                        "description": "Became available and the user has not opened it since"
                     }
                 },
                 "required": [
@@ -2841,7 +2962,11 @@
                     "id",
                     "streams",
                     "title",
-                    "titleKey"
+                    "titleKey",
+                    "availableSources",
+                    "names",
+                    "newlyAvailable",
+                    "waiting"
                 ]
             },
             "TrailerDto": {
