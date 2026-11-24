@@ -19,6 +19,7 @@ public class AppProperties {
     private Tmdb tmdb = new Tmdb();
     private Extractor extractor = new Extractor();
     private Monitoring monitoring = new Monitoring();
+    private Watchlist watchlist = new Watchlist();
     private Link link = new Link();
 
     @Data
@@ -74,6 +75,15 @@ public class AppProperties {
          */
         @Min(0)
         private int languageWaitDays = 7;
+    }
+
+    @Data
+    public static class Watchlist {
+        /** Whether the daily check of waiting watchlist titles runs. */
+        private boolean enabled = true;
+        /** When it runs (Spring cron), in the server's time zone. Default: 07:00, after the monitoring check. */
+        @NotBlank
+        private String cron = "0 0 7 * * *";
     }
 
     @Data

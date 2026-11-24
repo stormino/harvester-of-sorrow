@@ -10,6 +10,8 @@ hos:
     api-key: ${TMDB_API_KEY:}
   monitoring:
     enabled: false
+  watchlist:
+    enabled: false
   extractor:
     base-url: https://vixsrc.to
     max-retries: 2

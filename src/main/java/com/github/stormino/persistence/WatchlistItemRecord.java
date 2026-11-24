@@ -27,4 +27,12 @@ public class WatchlistItemRecord {
     private String externalUrl;
     private String streams;          // JSON array of SearchResultDto
     private LocalDateTime createdAt;
+    private String releaseDate;      // ISO date (SQLite has no date type)
+    private String names;            // JSON array of other names (original, local title)
+    private int waiting;             // SQLite boolean 1/0: saved before any source had it; the daily check looks for it
+    private LocalDateTime checkedAt;
+    private LocalDateTime availableSince;
+    private String availableSources; // e.g. "VIXSRC,XDCC"
+    private String availableQuery;   // the name that found it: what the search page should search
+    private LocalDateTime seenAt;
 }

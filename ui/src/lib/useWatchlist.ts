@@ -47,6 +47,8 @@ export function useWatchlist() {
 
   return {
     items: list.data ?? [],
+    /** Titles that became available since the user last opened them. */
+    newCount: (list.data ?? []).filter((i) => i.newlyAvailable).length,
     isLoading: list.isLoading,
     error: list.error as Error | null,
     saved: (key: string) => byKey.get(key),
@@ -56,6 +58,28 @@ export function useWatchlist() {
       return existing ? remove(existing, true) : add(requestFromGroup(g), true);
     },
     remove: (item: WatchlistItem) => remove(item, true),
+    /** The user opened a title that became available: its badge goes (errors ignored). */
+    markSeen: async (item: WatchlistItem) => {
+      if (!item.newlyAvailable) return;
+      setList((xs) => xs.map((x) => (x.id === item.id ? { ...x, newlyAvailable: false } : x)));
+      try {
+        await api.markWatchlistSeen(item.id);
+      } catch {
+        // shown again on the next load
+      }
+    },
+    /** Runs the daily check now for this user's waiting titles. */
+    check: async () => {
+      try {
+        const items = await api.checkWatchlist();
+        qc.setQueryData<WatchlistItem[]>(WATCHLIST_KEY, items);
+        const found = items.filter((i) => i.newlyAvailable).length;
+        toast(found ? `${found} title${found > 1 ? 's' : ''} can now be downloaded` : 'Nothing new yet: checked again tomorrow',
+          found ? 'success' : 'contrast');
+      } catch (e) {
+        toast(`Could not check the watchlist: ${(e as Error).message}`, 'error');
+      }
+    },
     /** Quietly stores what a fresh look at a saved title found (no toast, errors ignored). */
     refresh: async (g: TitleGroup) => {
       try {

@@ -17,10 +17,12 @@ import com.github.stormino.service.VixSrcExtractorService;
 import com.github.stormino.model.source.VixSrcMetadata;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
+import com.github.stormino.util.TitleMatch;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 /**
  * VixSrc-backed implementation of {@link MediaSourceProvider}. Delegates to
@@ -107,13 +110,36 @@ public class VixSrcSourceProvider implements MediaSourceProvider {
                     return avail.isAvailable();
                 }, availabilityExecutor))
                 .toList();
-        List<ContentMetadata> available = new ArrayList<>();
+        // A title VixSrc doesn't have yet (still in cinemas, or just out) is kept, marked unavailable,
+        // when its name has every word of the query: it can be saved to the watchlist, which checks
+        // every day whether it can be downloaded. Only recent or upcoming ones (an old film VixSrc
+        // lacks is unlikely to come), and only the first few, in TMDB's order.
+        List<ContentMetadata> results = new ArrayList<>();
+        int pending = 0;
         for (int i = 0; i < candidates.size(); i++) {
+            ContentMetadata c = candidates.get(i);
             if (checks.get(i).join()) {
-                available.add(candidates.get(i));
+                results.add(c);
+            } else if (pending < MAX_UNAVAILABLE && recent(c, LocalDate.now()) && matchesQuery(c, query)) {
+                c.setAvailable(false);
+                results.add(c);
+                pending++;
             }
         }
-        return available;
+        return results;
+    }
+
+    /** How many titles VixSrc doesn't serve yet a search shows (the closest matches). */
+    static final int MAX_UNAVAILABLE = 3;
+
+    /** Released in the last year, or still to come. Titles without a date are left out (mostly obscure). */
+    static boolean recent(ContentMetadata c, LocalDate today) {
+        return c.getReleaseDate() != null && c.getReleaseDate().isAfter(today.minusYears(1));
+    }
+
+    static boolean matchesQuery(ContentMetadata c, String query) {
+        return Stream.of(c.getTitle(), c.getOriginalTitle(), c.getLocalTitle())
+                .anyMatch(n -> n != null && TitleMatch.hasAllWords(n, query));
     }
 
     @Override

@@ -16,6 +16,11 @@ hos:
     cron: ${MONITORING_CRON:0 0 3,6 * * *}
     language-wait-days: ${MONITORING_LANGUAGE_WAIT_DAYS:7}
 
+  # Daily check of the watchlist titles no source had when they were saved
+  watchlist:
+    enabled: ${WATCHLIST_CHECK_ENABLED:true}
+    cron: ${WATCHLIST_CHECK_CRON:0 0 7 * * *}
+
   extractor:
     base-url: https://vixsrc.to
 

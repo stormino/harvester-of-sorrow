@@ -12,6 +12,7 @@ import com.github.stormino.model.source.RaiPlayMetadata;
 import com.github.stormino.service.HlsParserService;
 import com.github.stormino.service.source.EpisodeRef;
 import com.github.stormino.service.source.MediaSourceProvider;
+import com.github.stormino.util.TitleMatch;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -68,8 +69,11 @@ public class RaiPlaySourceProvider implements MediaSourceProvider {
             return List.of();
         }
 
+        // RaiPlay's search is loose ("Se domani non torno" returns "A domani", "Il Grande Torino"...):
+        // keep the titles that have every word of the query. Checked before the per-card requests.
         List<CompletableFuture<ContentMetadata>> futures = titoli.cards().stream()
                 .filter(c -> c.pathId() != null)
+                .filter(c -> TitleMatch.hasAllWords(c.titolo(), query))
                 .map(card -> CompletableFuture.supplyAsync(() -> classifyAndBuild(card, filter)))
                 .collect(Collectors.toList());
 

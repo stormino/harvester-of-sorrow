@@ -4,6 +4,7 @@ import com.github.stormino.model.DownloadTask;
 import com.github.stormino.model.MediaSource;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Schema(description = "One search hit")
@@ -24,5 +25,10 @@ public record SearchResultDto(
         Integer totalEpisodes,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED,
                 description = "Opaque source reference; pass back unchanged to /content/episodes and /downloads")
-        String sourceRef
+        String sourceRef,
+        @Schema(description = "Release date (films) or first air date (shows), from TMDB")
+        LocalDate releaseDate,
+        @Schema(description = "False for a title no source serves yet (e.g. still in cinemas): it can be saved to "
+                + "the watchlist but not downloaded. Missing means true (results saved before this field existed).")
+        Boolean available
 ) {}

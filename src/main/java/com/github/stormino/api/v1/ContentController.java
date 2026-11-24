@@ -212,7 +212,9 @@ public class ContentController {
                 c.getPosterUrl(),
                 type == DownloadTask.ContentType.TV ? seasons(c) : List.of(),
                 c.getTotalEpisodes(),
-                sourceRefCodec.encode(c.getSourceMetadata()));
+                sourceRefCodec.encode(c.getSourceMetadata()),
+                c.getReleaseDate(),
+                c.isAvailable());
     }
 
     private static List<SeasonDto> seasons(ContentMetadata c) {

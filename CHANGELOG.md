@@ -4,6 +4,28 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.5.0 — unreleased
+
+### New
+- **Films not out yet can be saved to the watchlist.** A title still in cinemas, or just out but not on
+  VixSrc yet, used to be missing from the search: *Se domani non torno* found nothing at all. Now it is
+  shown with "Not available yet" (or "Out 15 Dec 2026" before its release date) and can be saved.
+  Only recent and upcoming titles are shown this way.
+- **The watchlist tells you when a saved title can be downloaded.** Every morning at 07:00 HoS looks for
+  the saved titles nothing could download yet, on VixSrc, RaiPlay and XDCC (by each of the title's names).
+  When one turns up it gets an **Available for download** badge, and the Watchlist tab shows how many
+  in green. "Find it" opens the search on the title, with the search box filled in. "Check N waiting
+  now" runs the check at any time. Set the time with `WATCHLIST_CHECK_CRON`.
+
+### Fixed
+- **RaiPlay results match the search.** RaiPlay's own search is loose: "Se domani non torno" returned 27
+  titles such as *A domani* and *Il Grande Torino*. Now only titles with every word of the search are
+  kept (the last word can be cut short, so "montalb" still finds *Il commissario Montalbano*), and
+  searches are faster since the others are no longer looked up.
+- **XDCC search by a title's other name works with punctuation.** xdcc.eu finds nothing for
+  "Dune - Parte due" or "Dune: Part Two", so the search by the Italian or English name (7.4.0) often came
+  back empty. Punctuation and accents are now left out of XDCC searches.
+
 ## 7.4.1 — 2026-11-21
 
 ### Changed

@@ -22,6 +22,9 @@ import retrofit2.Response;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -155,6 +158,11 @@ public class TmdbMetadataService {
     
     private static final String POSTER_BASE_URL = "https://image.tmdb.org/t/p/w342";
 
+    /** TMDB dates are parsed at midnight in the default time zone (like the year above). */
+    static LocalDate localDate(Date d) {
+        return d == null ? null : d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
     private static String posterUrl(String posterPath) {
         return posterPath == null || posterPath.isBlank() ? null : POSTER_BASE_URL + posterPath;
     }
@@ -197,6 +205,7 @@ public class TmdbMetadataService {
                         .contentType(DownloadTask.ContentType.MOVIE)
                         .tmdbId(movie.id)
                         .title(movie.title)
+                        .releaseDate(localDate(movie.release_date))
                         .posterUrl(posterUrl(movie.poster_path))
                         .originalTitle(movie.original_title)
                         .year(year)
@@ -312,6 +321,7 @@ public class TmdbMetadataService {
                             .posterUrl(posterUrl(show.poster_path))
                             .originalTitle(show.original_name)
                             .year(year)
+                            .releaseDate(localDate(show.first_air_date != null ? show.first_air_date : detail != null ? detail.first_air_date : null))
                             .numberOfSeasons(numberOfSeasons)
                             .totalEpisodes(totalEpisodes)
                             .episodesPerSeason(episodesPerSeason)

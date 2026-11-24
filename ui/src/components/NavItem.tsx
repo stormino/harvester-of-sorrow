@@ -9,11 +9,13 @@ interface Props {
   badge?: number;
   /** What the badge counts, for screen readers: "active" → "3 active". */
   badgeLabel?: string;
+  /** Badge in the success colour: something new to look at (e.g. titles now available). */
+  highlight?: boolean;
   onNavigate?: () => void;
   testId?: string;
 }
 
-export function NavItem({ to, icon, label, badge, badgeLabel = 'active', onNavigate, testId }: Props) {
+export function NavItem({ to, icon, label, badge, badgeLabel = 'active', highlight, onNavigate, testId }: Props) {
   return (
     <NavLink
       to={to}
@@ -24,7 +26,7 @@ export function NavItem({ to, icon, label, badge, badgeLabel = 'active', onNavig
     >
       <span className={s.icon}>{icon}</span>
       <span className={s.label}>{label}</span>
-      {badge != null && badge > 0 && <span className={s.badge} aria-label={`${badge} ${badgeLabel}`}>{badge}</span>}
+      {badge != null && badge > 0 && <span className={`${s.badge} ${highlight ? s.badgeNew : ''}`} aria-label={`${badge} ${badgeLabel}`}>{badge}</span>}
     </NavLink>
   );
 }

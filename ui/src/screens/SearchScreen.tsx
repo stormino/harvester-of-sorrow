@@ -5,7 +5,7 @@ import { api } from '../api/client';
 import { Button } from '../components/Button';
 import { AlertIcon, DownloadIcon, RetryIcon, SearchIcon, StarIcon } from '../components/Icons';
 import { SearchField } from '../components/Input';
-import { band, bestRelease, mergeTitles, xdccAltNames, type TitleGroup } from '../lib/titles';
+import { band, bestRelease, downloadable, mergeTitles, notYetLabel, xdccAltNames, type TitleGroup } from '../lib/titles';
 import { useWatchlist } from '../lib/useWatchlist';
 import { LinkDialog, looksLikeLink } from './LinkDialog';
 import { SaveButton } from './TitleActions';
@@ -138,6 +138,15 @@ export function SearchScreen() {
   };
 
   const loading = streams.isFetching || xdcc.isFetching || altFetching;
+
+  // A saved title waiting for a source that this search can download: it is no longer waiting
+  useEffect(() => {
+    if (loading) return;
+    for (const g of groups) {
+      if (watchlist.saved(g.key)?.waiting && downloadable(g)) void watchlist.refresh(g);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, groups]);
   const nothing = q && !loading && groups.length === 0 && !streams.isError;
 
   return (
@@ -159,9 +168,9 @@ export function SearchScreen() {
         <div className={s.statusRow}>
           <div className={s.status} data-testid="search-status">
             <SourceStatus name="VixSrc" loading={streams.isFetching} error={streams.error as Error | null}
-              count={streams.data?.filter((r) => r.source === 'VIXSRC').length} onRetry={() => void streams.refetch()} />
+              count={streams.data?.filter((r) => r.source === 'VIXSRC' && r.available !== false).length} onRetry={() => void streams.refetch()} />
             <SourceStatus name="RaiPlay" loading={streams.isFetching} error={streams.error as Error | null}
-              count={streams.data?.filter((r) => r.source === 'RAIPLAY').length} onRetry={() => void streams.refetch()} />
+              count={streams.data?.filter((r) => r.source === 'RAIPLAY' && r.available !== false).length} onRetry={() => void streams.refetch()} />
             {xdccItems()}
           </div>
           {movies > 0 && shows > 0 && (
@@ -275,7 +284,7 @@ function ResultCard({ g, xdccPending, onOpen, saved, onToggleSave }: {
     <div className={s.cardWrap}>
     <button type="button" className={`${s.card} ${isTV ? s.tv : ''}`} onClick={onOpen}
       data-testid="result-card" data-type={g.contentType} data-title={g.title}
-      data-source={g.streams[0]?.source.toLowerCase() ?? 'xdcc'}>
+      data-source={g.streams[0]?.source.toLowerCase() ?? (g.xdcc.length ? 'xdcc' : 'none')}>
       <div className={s.poster}>
         {g.posterUrl
           ? <img src={g.posterUrl} alt="" loading="lazy" referrerPolicy="no-referrer"
@@ -307,6 +316,11 @@ function ResultCard({ g, xdccPending, onOpen, saved, onToggleSave }: {
             </li>
           )}
           {g.xdcc.length === 0 && xdccPending && <li className={`${s.source} ${s.sourcePending}`}><span className={s.spinner} />XDCC</li>}
+          {!downloadable(g) && !xdccPending && (
+            <li className={`${s.source} ${s.sourceWaiting}`} data-testid="not-yet">
+              <span className={s.dot} />{notYetLabel(g.releaseDate)}
+            </li>
+          )}
         </ul>
       </div>
     </button>

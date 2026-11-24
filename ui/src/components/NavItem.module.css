@@ -14,4 +14,5 @@
   padding: 2px 7px; border-radius: 20px;
   background: color-mix(in srgb, var(--brand) 20%, transparent); color: var(--brand);
 }
+.badgeNew { background: var(--success); color: var(--bg); }
 .section { padding: 6px 10px 8px; }
