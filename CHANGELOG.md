@@ -4,7 +4,7 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
-## 7.5.0 — unreleased
+## 7.5.0 — 2026-11-24
 
 ### New
 - **Films not out yet can be saved to the watchlist.** A title still in cinemas, or just out but not on
