@@ -4,6 +4,13 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.5.1 — 2026-11-26
+
+### Fixed
+- **VixSrc downloads work again.** VixSrc now refuses the Full HD playlist unless the video page allows
+  it, and HoS always asked for Full HD, so every download failed at once ("Video track download
+  failed"). HoS now asks for Full HD only when VixSrc offers it.
+
 ## 7.5.0 — 2026-11-24
 
 ### New
