@@ -39,6 +39,9 @@ public class VixSrcExtractorService {
     private static final Pattern EMBED_SRC_PATTERN =
             Pattern.compile("\"src\"\\s*:\\s*\"([^\"]+)\"");
 
+    private static final Pattern CAN_PLAY_FHD_PATTERN =
+            Pattern.compile("window\\.canPlayFHD\\s*=\\s*(true|false)");
+
     /**
      * Get playlist URL for a movie
      */
@@ -120,7 +123,8 @@ public class VixSrcExtractorService {
         try {
             String htmlContent = fetchEmbedPage(embedUrl, pageUrl);
             // Try multiple extraction strategies
-            Optional<String> playlistUrl = extractFromMasterPlaylist(htmlContent, language)
+            boolean canPlayFhd = canPlayFhd(htmlContent);
+            Optional<String> playlistUrl = extractFromMasterPlaylist(htmlContent, language, canPlayFhd)
                     .or(() -> extractFromDirectPattern(htmlContent))
                     .or(() -> extractFromApiEndpoints(htmlContent, embedUrl))
                     .or(() -> extractFromVideoId(htmlContent));
@@ -169,7 +173,7 @@ public class VixSrcExtractorService {
     /**
      * Strategy 1: Extract from window.masterPlaylist object
      */
-    private Optional<String> extractFromMasterPlaylist(String html, String language) {
+    private Optional<String> extractFromMasterPlaylist(String html, String language, boolean canPlayFhd) {
         Matcher matcher = MASTER_PLAYLIST_PATTERN.matcher(html);
         
         if (!matcher.find()) {
@@ -188,7 +192,7 @@ public class VixSrcExtractorService {
         }
         
         // Build complete URL
-        String playlistUrl = buildPlaylistUrl(url, token, expires, language, section);
+        String playlistUrl = buildPlaylistUrl(url, token, expires, language, section, canPlayFhd);
         log.debug("Extracted from masterPlaylist: {}", playlistUrl);
         
         return Optional.of(playlistUrl);
@@ -277,14 +281,24 @@ public class VixSrcExtractorService {
         return Optional.empty();
     }
     
-    private String buildPlaylistUrl(String base, String token, String expires, String language, String section) {
+    /**
+     * The embed page sets {@code window.canPlayFHD}; the player only adds {@code h=1} (Full HD) when
+     * it is true, and VixSrc answers 403 for {@code h=1} otherwise.
+     */
+    static boolean canPlayFhd(String html) {
+        Matcher m = CAN_PLAY_FHD_PATTERN.matcher(html);
+        return m.find() && "true".equals(m.group(1));
+    }
+
+    String buildPlaylistUrl(String base, String token, String expires, String language, String section,
+                            boolean canPlayFhd) {
         // Extract ASN if present
         String asn = extractValue(section, "['\"]asn['\"]\\s*:\\s*['\"]([^'\"]*)['\"]");
 
         HttpUrl parsedUrl = HttpUrl.parse(base);
         if (parsedUrl == null) {
             log.warn("Failed to parse base URL: {}", base);
-            return base + "?token=" + token + "&expires=" + expires + "&h=1&lang=" + language;
+            return base + "?token=" + token + "&expires=" + expires + (canPlayFhd ? "&h=1" : "") + "&lang=" + language;
         }
 
         HttpUrl.Builder urlBuilder = parsedUrl.newBuilder()
@@ -295,8 +309,10 @@ public class VixSrcExtractorService {
             urlBuilder.addQueryParameter("asn", asn);
         }
 
-        urlBuilder.addQueryParameter("h", "1")
-                .addQueryParameter("lang", language);
+        if (canPlayFhd) {
+            urlBuilder.addQueryParameter("h", "1");
+        }
+        urlBuilder.addQueryParameter("lang", language);
 
         return urlBuilder.build().toString().replace("&amp;", "&");
     }
