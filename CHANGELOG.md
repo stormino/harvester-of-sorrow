@@ -4,6 +4,15 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.6.0 — 2026-11-26
+
+### New
+- **XDCC from channels that need a registered nick.** Some channels, such as #THE.SOURCE on SceneP2P,
+  only let registered users in, so the download stopped at "You need a registered nick to join that
+  channel". Set `XDCC_IRC_ACCOUNTS` (for example `irc.scenep2p.net=MyNick:password`) and HoS connects
+  with that nick and logs in to it. With `XDCC_IRC_REGISTER_EMAIL` set, HoS also registers the nick the
+  first time. When the channel still refuses, the error says why (wrong password, nick not registered,
+  e-mail confirmation pending).
 ## 7.5.1 — 2026-11-26
 
 ### Fixed

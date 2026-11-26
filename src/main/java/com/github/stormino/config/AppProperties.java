@@ -163,6 +163,14 @@ public class AppProperties {
             private String userAgentVersion = "";
             /** Nick prefix; a random number is appended (HoS-12345). */
             private String nickPrefix = "HoS-";
+            /**
+             * Registered nicks for networks whose channels need one:
+             * {@code "server=nick:password, other.net=nick:password"}; a domain matches its servers
+             * ("scenep2p.net" covers irc.scenep2p.net). Logged in via SASL, else NickServ IDENTIFY.
+             */
+            private String ircAccounts = "";
+            /** If set, nicks in {@link #ircAccounts} that are not registered yet get registered with this e-mail. */
+            private String ircRegisterEmail = "";
             /** XDCC files downloaded at the same time (bots usually give 1-2 slots per user). */
             @Min(1)
             private int maxConcurrent = 2;

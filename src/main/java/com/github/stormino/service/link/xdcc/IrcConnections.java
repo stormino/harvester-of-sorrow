@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,11 +21,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class IrcConnections {
 
     private final AppProperties.Link.Xdcc config;
+    private final List<IrcAccount> accounts;
     private final Map<String, IrcClient> clients = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> inUse = new ConcurrentHashMap<>();
 
     public IrcConnections(AppProperties properties) {
         this.config = properties.getLink().getXdcc();
+        this.accounts = IrcAccount.parse(config.getIrcAccounts(), config.getIrcRegisterEmail());
+        if (!accounts.isEmpty()) {
+            log.info("IRC: registered nicks configured for {}", accounts.stream().map(IrcAccount::server).toList());
+        }
     }
 
     /** Connected client for {@code host:port}; marks it in use until {@link #release} is called. */
@@ -35,7 +41,8 @@ public class IrcConnections {
             synchronized (this) {
                 IrcClient c = clients.get(key);
                 if (c == null || !c.isConnected()) {
-                    c = new IrcClient(host, port, config.getNickPrefix());
+                    c = new IrcClient(host, port, config.getNickPrefix(),
+                            IrcAccount.forHost(accounts, host).orElse(null));
                     c.connect(Duration.ofSeconds(45));
                     clients.put(key, c);
                 }
