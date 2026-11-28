@@ -588,6 +588,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/xdcc/identity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The registered IRC nick
+         * @description Used only on networks where a channel needs a registered nick. Saved in Settings, else taken from the XDCC_IRC_* variables.
+         */
+        get: operations["identity"];
+        /**
+         * Save the registered IRC nick
+         * @description Used from the next login on; leave the password empty to keep it.
+         */
+        put: operations["saveIdentity"];
+        post?: never;
+        /** Remove the registered IRC nick saved in Settings */
+        delete: operations["clearIdentity"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/xdcc/networks/{host}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the nick with the code NickServ e-mailed
+         * @description Connects to the network if needed and sends NickServ CONFIRM <code>.
+         */
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/xdcc/networks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** IRC networks: connected now, or where a channel needed the registered nick */
+        get: operations["networks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/xdcc/networks/{host}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Forget that a network needs the registered nick */
+        delete: operations["forget"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1309,6 +1388,48 @@ export interface components {
              * @example it
              */
             language?: string;
+        };
+        /** @description Save the registered IRC nick */
+        IrcIdentityRequest: {
+            /** @example MyNick */
+            nick: string;
+            /** @description Empty or omitted: keep the current password */
+            password?: string;
+            email?: string;
+            autoRegister: boolean;
+        };
+        /** @description The registered IRC nick used where an XDCC channel needs one. The password is never returned. */
+        IrcIdentityDto: {
+            /** @description Empty when none is set */
+            nick: string;
+            passwordSet: boolean;
+            /** @description Used only to register the nick */
+            email?: string;
+            /** @description Register the nick where it is not registered yet */
+            autoRegister: boolean;
+            /**
+             * @description SETTINGS (saved here), ENVIRONMENT (XDCC_IRC_* variables) or NONE
+             * @enum {string}
+             */
+            origin: "SETTINGS" | "ENVIRONMENT" | "NONE";
+        };
+        /** @description The code NickServ e-mailed after registering the nick */
+        IrcConfirmRequest: {
+            code: string;
+        };
+        /** @description An IRC network: connected now, or remembered because a channel there needed the registered nick */
+        IrcNetworkDto: {
+            /** @example irc.scenep2p.net */
+            host: string;
+            /** Format: int32 */
+            port: number;
+            connected: boolean;
+            nick?: string;
+            /** @enum {string} */
+            state: "ANONYMOUS" | "LOGGING_IN" | "LOGGED_IN" | "NEEDS_CONFIRM" | "FAILED" | "NO_ACCOUNT";
+            message?: string;
+            /** @description A channel here needs the registered nick */
+            needsAccount: boolean;
         };
     };
     responses: never;
@@ -2163,6 +2284,134 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["WatchlistItemDto"][];
                 };
+            };
+        };
+    };
+    identity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IrcIdentityDto"];
+                };
+            };
+        };
+    };
+    saveIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IrcIdentityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IrcIdentityDto"];
+                };
+            };
+        };
+    };
+    clearIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IrcConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IrcNetworkDto"];
+                };
+            };
+        };
+    };
+    networks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IrcNetworkDto"][];
+                };
+            };
+        };
+    };
+    forget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                host: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

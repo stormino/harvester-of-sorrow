@@ -38,5 +38,8 @@ export type XdccStatus = S['XdccStatusDto'];
 export type XdccSearch = S['XdccSearchDto'];
 export type XdccTitle = S['XdccTitleDto'];
 export type XdccRelease = S['XdccReleaseDto'];
+export type IrcIdentity = S['IrcIdentityDto'];
+export type IrcIdentityRequest = S['IrcIdentityRequest'];
+export type IrcNetwork = S['IrcNetworkDto'];
 
 export type SearchType = 'MOVIES' | 'TV' | 'BOTH';

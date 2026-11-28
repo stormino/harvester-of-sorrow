@@ -43,10 +43,11 @@ hos:
       # Sent as "<browser User-Agent> HoS/<version>" (agreed with the PW Search Engine authors); empty = this version
       user-agent-version: ${XDCC_USER_AGENT_VERSION:}
       max-concurrent: ${XDCC_MAX_CONCURRENT:2}
-      # Registered nicks for channels that need one: "irc.scenep2p.net=MyNick:password,other.net=Nick:pw"
-      irc-accounts: ${XDCC_IRC_ACCOUNTS:}
-      # If set, nicks above that are not registered yet are registered with NickServ using this e-mail
-      irc-register-email: ${XDCC_IRC_REGISTER_EMAIL:}
+      # Registered nick for channels that need one (defaults: Settings > IRC account wins once saved)
+      irc-nick: ${XDCC_IRC_NICK:}
+      irc-password: ${XDCC_IRC_PASSWORD:}
+      irc-email: ${XDCC_IRC_EMAIL:}
+      irc-auto-register: ${XDCC_IRC_AUTO_REGISTER:false}
 
 raiplay:
   base-url: https://www.raiplay.it

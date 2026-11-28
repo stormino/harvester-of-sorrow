@@ -33,9 +33,11 @@ services:
       # Optional - RaiPlay (enabled only when both are set)
       - RAIPLAY_USERNAME=${RAIPLAY_USERNAME:-}
       - RAIPLAY_PASSWORD=${RAIPLAY_PASSWORD:-}
-      # Optional - registered IRC nicks for XDCC channels that need one (irc.scenep2p.net=MyNick:password)
-      - XDCC_IRC_ACCOUNTS=${XDCC_IRC_ACCOUNTS:-}
-      - XDCC_IRC_REGISTER_EMAIL=${XDCC_IRC_REGISTER_EMAIL:-}
+      # Optional - registered IRC nick for XDCC channels that need one (usually set in Settings > IRC Account)
+      - XDCC_IRC_NICK=${XDCC_IRC_NICK:-}
+      - XDCC_IRC_PASSWORD=${XDCC_IRC_PASSWORD:-}
+      - XDCC_IRC_EMAIL=${XDCC_IRC_EMAIL:-}
+      - XDCC_IRC_AUTO_REGISTER=${XDCC_IRC_AUTO_REGISTER:-false}
       # Optional - Logging
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:

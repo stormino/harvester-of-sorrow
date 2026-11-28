@@ -9,6 +9,7 @@ import { AlertIcon, CheckIcon, WarningIcon, WrenchIcon } from '../components/Ico
 import { ReadonlyField } from '../components/Input';
 import { useToast } from '../components/Toast';
 import { formatBytes } from '../lib/format';
+import { IrcAccountPanel } from './IrcAccountPanel';
 import base from './Screen.module.css';
 import s from './SettingsScreen.module.css';
 
@@ -81,6 +82,8 @@ export function SettingsScreen() {
       )}
 
       <LinkProvidersPanel />
+
+      <IrcAccountPanel />
 
       <section className={s.panel} aria-labelledby="sys-h">
         <h3 id="sys-h" className={s.h3}>System Information</h3>

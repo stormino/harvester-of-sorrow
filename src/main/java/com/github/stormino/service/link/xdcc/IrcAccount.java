@@ -1,65 +1,40 @@
 package com.github.stormino.service.link.xdcc;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
- * A registered nick on an IRC network, for channels that only let registered users in
+ * The registered IRC nick HoS uses on networks whose channels only let registered users in
  * ("You need a registered nick to join that channel").
  *
- * @param server        network host, or a domain matching its servers ("scenep2p.net" matches irc.scenep2p.net)
  * @param nick          registered nick (also the services account name)
  * @param password      services password
- * @param registerEmail when set, the nick is registered with NickServ using this e-mail if it is not yet
+ * @param registerEmail when set, the nick is registered with NickServ using this e-mail where it is not yet
  */
-public record IrcAccount(String server, String nick, String password, String registerEmail) {
+public record IrcAccount(String nick, String password, String registerEmail) {
 
-    public IrcAccount {
-        server = server.strip().toLowerCase(Locale.ROOT);
-    }
+    /** RFC 2812 nick characters; most networks allow up to 30. */
+    private static final Pattern NICK = Pattern.compile("[A-Za-z\\[\\]\\\\`_^{|}][A-Za-z0-9\\[\\]\\\\`_^{|}-]{1,29}");
+    private static final Pattern EMAIL = Pattern.compile("[^@\\s]+@[^@\\s]+\\.[^@\\s]+");
 
     @Override
     public String toString() {
-        return "IrcAccount[" + server + ", " + nick + "]"; // keep the password out of logs
+        return "IrcAccount[" + nick + "]"; // keep the password out of logs
     }
 
-    public boolean matches(String host) {
-        String h = host.toLowerCase(Locale.ROOT);
-        return h.equals(server) || h.endsWith("." + server);
-    }
-
-    /**
-     * Parses {@code "server=nick:password, other.net=nick2:password2"} (IRC passwords cannot contain
-     * spaces; commas separate entries).
-     */
-    public static List<IrcAccount> parse(String spec, String registerEmail) {
-        List<IrcAccount> out = new ArrayList<>();
-        if (spec == null || spec.isBlank()) {
-            return out;
+    /** Why these values cannot be used, or null when they can. */
+    public static String validate(String nick, String password, String email, boolean register) {
+        if (nick == null || !NICK.matcher(nick).matches()) {
+            return "Nick: 2-30 letters, digits or - _ [ ] { } | ^ `, not starting with a digit or -";
         }
-        String email = registerEmail == null || registerEmail.isBlank() ? null : registerEmail.strip();
-        for (String entry : spec.split("[,\\s]+")) {
-            if (entry.isBlank()) {
-                continue;
-            }
-            int eq = entry.indexOf('=');
-            int colon = entry.indexOf(':', eq + 1);
-            if (eq <= 0 || colon <= eq + 1 || colon == entry.length() - 1) {
-                throw new IllegalArgumentException("IRC account must look like server=nick:password, got '"
-                        + entry.substring(0, Math.max(eq, 0)) + "=…'");
-            }
-            out.add(new IrcAccount(entry.substring(0, eq), entry.substring(eq + 1, colon),
-                    entry.substring(colon + 1), email));
+        if (password == null || password.length() < 5 || password.chars().anyMatch(Character::isWhitespace)) {
+            return "Password: at least 5 characters, no spaces";
         }
-        return out;
-    }
-
-    /** The most specific account for {@code host} (an exact host wins over a domain). */
-    public static Optional<IrcAccount> forHost(List<IrcAccount> accounts, String host) {
-        return accounts.stream()
-                .filter(a -> a.matches(host))
-                .max((a, b) -> Integer.compare(a.server().length(), b.server().length()));
+        if (password.equalsIgnoreCase(nick)) {
+            return "Password: must not be the nick";
+        }
+        if (register && (email == null || !EMAIL.matcher(email).matches())) {
+            return "E-mail: needed to register the nick";
+        }
+        return null;
     }
 }

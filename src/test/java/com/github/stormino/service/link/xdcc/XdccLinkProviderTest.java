@@ -54,7 +54,7 @@ class XdccLinkProviderTest {
         AppProperties props = new AppProperties();
         props.getLink().getXdcc().setBotReplyTimeoutSeconds(10);
         props.getLink().getXdcc().setQueueTimeoutMinutes(1);
-        connections = new IrcConnections(props);
+        connections = new IrcConnections(props, org.mockito.Mockito.mock(IrcIdentityService.class));
         provider = new XdccLinkProvider(connections, props);
     }
 

@@ -23,28 +23,57 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
- * Minimal IRC client: registration (with a random nick, retried when taken, or the nick of a
- * registered {@link IrcAccount}, logged in via SASL PLAIN or NickServ IDENTIFY and optionally
- * registered with NickServ first), PING/PONG, joining channels, tracking who is in them, and
- * sending messages. Everything received is also handed to
+ * Minimal IRC client: registration (with a random nick, retried when taken), PING/PONG, joining
+ * channels, tracking who is in them, and sending messages. Everything received is also handed to
  * the registered listeners (for XDCC: bot notices and CTCP DCC offers).
+ *
+ * <p>Registered nick: when a channel answers "You need a registered nick" (477), the client takes the
+ * configured {@link IrcAccount}'s nick on the same connection, logs in with NickServ (registering the
+ * nick first if allowed) and joins again. On networks known to need it, it logs in while connecting
+ * instead (SASL PLAIN, else NickServ).
  */
 @Slf4j
 public final class IrcClient implements Closeable {
 
     /** Numerics that refuse a JOIN: no such channel, full, invite-only, banned, bad key, needs registration, ... */
     private static final Set<String> JOIN_ERRORS = Set.of("403", "405", "471", "473", "474", "475", "477", "489", "520");
+    private static final String NEEDS_REGISTERED_NICK = "477";
+
+    /** Where the client stands with the registered nick, for the Settings screen. */
+    public enum AuthState {
+        /** Random nick; no channel asked for more. */
+        ANONYMOUS,
+        LOGGING_IN,
+        LOGGED_IN,
+        /** NickServ mailed a code that must be confirmed. */
+        NEEDS_CONFIRM,
+        FAILED,
+        /** A channel needs a registered nick but none is configured. */
+        NO_ACCOUNT
+    }
+
+    /** Told about every login state change, and when a channel turned out to need a registered nick. */
+    public interface AuthListener {
+        void authState(IrcClient client, AuthState state, String message);
+
+        default void needsAccount(IrcClient client) {
+        }
+    }
 
     private final String host;
     private final int port;
     private final String nickPrefix;
-    private final IrcAccount account;
+    private final Supplier<IrcAccount> accounts;
+    private final boolean loginOnConnect;
+    private final AuthListener authListener;
     private final List<Consumer<IrcMessage>> listeners = new CopyOnWriteArrayList<>();
     /** channel (lower case) -> nicks (lower case) */
     private final Map<String, Set<String>> members = new ConcurrentHashMap<>();
     private final Map<String, JoinWait> joins = new ConcurrentHashMap<>();
+    private final Object loginLock = new Object();
 
     private Socket socket;
     private OutputStream out;
@@ -52,12 +81,23 @@ public final class IrcClient implements Closeable {
     private volatile boolean closed;
     private volatile long lastActivity = System.nanoTime();
     private final CountDownLatch registered = new CountDownLatch(1);
-    /** Counted down once logged in to the services account, or once that has clearly failed. */
-    private final CountDownLatch identified = new CountDownLatch(1);
+
+    /** Account being logged in to / logged in to; null while anonymous. */
+    private volatile IrcAccount account;
+    /** Counted down once logged in, or once that has clearly failed; replaced per attempt. */
+    private volatile CountDownLatch identified = new CountDownLatch(1);
+    /** Counted down when the server accepts or refuses our nick change. */
+    private volatile CountDownLatch nickChanged = new CountDownLatch(1);
+    private volatile CountDownLatch confirmed = new CountDownLatch(1);
+    /** Counted down when NickServ asks for the mailed code after REGISTER. */
+    private volatile CountDownLatch passcode = new CountDownLatch(1);
     private volatile boolean loggedIn;
     private volatile boolean capEnded;
     private volatile boolean registerSent;
+    private volatile boolean confirmSent;
+    private volatile boolean confirmOk;
     private volatile String authProblem;
+    private volatile AuthState authState = AuthState.ANONYMOUS;
 
     private static final class JoinWait {
         final CountDownLatch done = new CountDownLatch(1);
@@ -66,20 +106,30 @@ public final class IrcClient implements Closeable {
     }
 
     public IrcClient(String host, int port, String nickPrefix) {
-        this(host, port, nickPrefix, null);
+        this(host, port, nickPrefix, () -> null, false, null);
     }
 
-    /** {@code account}: registered nick to log in with, or null for a random unregistered nick. */
-    public IrcClient(String host, int port, String nickPrefix, IrcAccount account) {
+    /**
+     * @param accounts       the registered nick to use when a channel needs one (null result: none configured)
+     * @param loginOnConnect log in while connecting (the network is known to need it)
+     * @param authListener   told about login state changes; may be null
+     */
+    public IrcClient(String host, int port, String nickPrefix, Supplier<IrcAccount> accounts,
+                     boolean loginOnConnect, AuthListener authListener) {
         this.host = host;
         this.port = port;
         this.nickPrefix = nickPrefix;
-        this.account = account;
+        this.accounts = accounts;
+        this.loginOnConnect = loginOnConnect;
+        this.authListener = authListener;
     }
 
-    /** Whether we are logged in to a services account (registered nick). */
-    public boolean isLoggedIn() {
-        return loggedIn;
+    public String host() {
+        return host;
+    }
+
+    public int port() {
+        return port;
     }
 
     public String server() {
@@ -88,6 +138,20 @@ public final class IrcClient implements Closeable {
 
     public String nick() {
         return nick;
+    }
+
+    /** Whether we are logged in to a services account (registered nick). */
+    public boolean isLoggedIn() {
+        return loggedIn;
+    }
+
+    public AuthState authState() {
+        return authState;
+    }
+
+    /** Last login problem, or null. */
+    public String authProblem() {
+        return authProblem;
     }
 
     public boolean isConnected() {
@@ -107,17 +171,20 @@ public final class IrcClient implements Closeable {
         listeners.remove(l);
     }
 
-    /** Connects and registers; returns once the server has welcomed us. */
+    /** Connects and registers; returns once the server has welcomed us (and we logged in, if asked to). */
     public void connect(Duration timeout) throws IOException {
+        IrcAccount acc = loginOnConnect ? accounts.get() : null;
         socket = new Socket();
         socket.connect(new InetSocketAddress(host, port), (int) Math.min(timeout.toMillis(), 30_000));
         socket.setKeepAlive(true);
         out = socket.getOutputStream();
-        nick = account != null ? account.nick() : randomNick();
+        account = acc;
+        nick = acc != null ? acc.nick() : randomNick();
         Thread reader = new Thread(this::readLoop, "irc-" + host);
         reader.setDaemon(true);
         reader.start();
-        if (account != null) {
+        if (acc != null) {
+            setState(AuthState.LOGGING_IN, null);
             send("CAP REQ :sasl"); // holds registration until CAP END
         }
         send("NICK " + nick);
@@ -136,39 +203,55 @@ public final class IrcClient implements Closeable {
             throw new IOException("Disconnected from " + server() + " during registration");
         }
         log.info("IRC: connected to {} as {}", server(), nick);
-        if (account != null) {
-            identify(Duration.ofSeconds(30));
+        if (acc != null) {
+            synchronized (loginLock) {
+                finishLogin(acc, Duration.ofSeconds(30));
+            }
         }
     }
 
     /**
-     * Logs in to the account with NickServ unless SASL already did; failures are only logged, as
-     * most channels do not need it (the JOIN error then says why).
+     * Joins {@code channel} (no-op if already in it) and waits for the member list. If the channel
+     * needs a registered nick, logs in with the configured one and tries once more.
      */
-    private void identify(Duration timeout) throws IOException {
-        if (!loggedIn) {
-            send("PRIVMSG NickServ :IDENTIFY " + account.nick() + " " + account.password());
+    public void join(String channel, Duration timeout) throws IOException {
+        JoinWait first = tryJoin(channel, timeout);
+        if (first == null) {
+            return;
         }
-        try {
-            if (!identified.await(timeout.toMillis(), TimeUnit.MILLISECONDS) && authProblem == null) {
-                authProblem = "no answer from NickServ";
+        if (NEEDS_REGISTERED_NICK.equals(first.code)) {
+            if (authListener != null) {
+                authListener.needsAccount(this);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while logging in to " + server());
+            if (!loggedIn) {
+                login();
+            }
+            if (loggedIn && authState != AuthState.NEEDS_CONFIRM) {
+                JoinWait again = tryJoin(channel, timeout);
+                if (again == null) {
+                    return;
+                }
+                first = again;
+            }
+            throw new IOException("Cannot join " + channel + ": " + first.error + loginHint());
         }
-        if (loggedIn) {
-            log.info("IRC: logged in to {} as {}", server(), account.nick());
-        } else {
-            log.warn("IRC: could not log in to {} as {}: {}", server(), account.nick(), authProblem);
-        }
+        throw new IOException("Cannot join " + channel + ": " + first.error);
     }
 
-    /** Joins {@code channel} (no-op if already in it) and waits for the member list. */
-    public void join(String channel, Duration timeout) throws IOException {
+    private String loginHint() {
+        return switch (authState) {
+            case NO_ACCOUNT -> " (set the IRC account in Settings)";
+            case NEEDS_CONFIRM -> " (" + authProblem + ": enter it in Settings > IRC Account)";
+            case LOGGED_IN -> "";
+            default -> authProblem == null ? "" : " (login as " + account.nick() + " failed: " + authProblem + ")";
+        };
+    }
+
+    /** Null when joined, else the refusal. */
+    private JoinWait tryJoin(String channel, Duration timeout) throws IOException {
         String key = channel.toLowerCase(Locale.ROOT);
         if (members.containsKey(key)) {
-            return;
+            return null;
         }
         JoinWait wait = joins.computeIfAbsent(key, k -> new JoinWait());
         send("JOIN " + channel);
@@ -182,14 +265,99 @@ public final class IrcClient implements Closeable {
         } finally {
             joins.remove(key);
         }
-        if (wait.error != null) {
-            String hint = "";
-            if ("477".equals(wait.code) && !loggedIn) {
-                hint = account == null
-                        ? " (add a registered nick for " + host + " to XDCC_IRC_ACCOUNTS)"
-                        : " (login as " + account.nick() + " failed: " + authProblem + ")";
+        return wait.error == null ? null : wait;
+    }
+
+    /** Takes the configured nick on this connection and logs in to it (registering it if allowed). */
+    private void login() throws IOException {
+        synchronized (loginLock) {
+            if (loggedIn) {
+                return;
             }
-            throw new IOException("Cannot join " + channel + ": " + wait.error + hint);
+            IrcAccount acc = accounts.get();
+            if (acc == null) {
+                setState(AuthState.NO_ACCOUNT, "a channel needs a registered nick; none is set");
+                return;
+            }
+            account = acc;
+            authProblem = null;
+            registerSent = false;
+            identified = new CountDownLatch(1);
+            passcode = new CountDownLatch(1);
+            setState(AuthState.LOGGING_IN, null);
+            if (!acc.nick().equalsIgnoreCase(nick)) {
+                nickChanged = new CountDownLatch(1);
+                send("NICK " + acc.nick());
+                await(nickChanged, Duration.ofSeconds(10));
+                // nick taken (e.g. our own ghost): IDENTIFY <account> still logs in under the stand-in nick
+            }
+            finishLogin(acc, Duration.ofSeconds(30));
+        }
+    }
+
+    /** IDENTIFY unless SASL already logged us in, then wait for the outcome. Caller holds loginLock. */
+    private void finishLogin(IrcAccount acc, Duration timeout) throws IOException {
+        if (!loggedIn) {
+            send("PRIVMSG NickServ :IDENTIFY " + acc.nick() + " " + acc.password());
+        }
+        if (!await(identified, timeout) && authProblem == null && !loggedIn) {
+            authProblem = "no answer from NickServ";
+        }
+        if (registerSent && authState != AuthState.NEEDS_CONFIRM) {
+            await(passcode, Duration.ofSeconds(3)); // the login may come before "a passcode has been sent"
+        }
+        if (authState == AuthState.NEEDS_CONFIRM) {
+            log.warn("IRC: {} on {} needs e-mail confirmation", acc.nick(), server());
+        } else if (loggedIn) {
+            log.info("IRC: logged in to {} as {}", server(), acc.nick());
+            setState(AuthState.LOGGED_IN, null);
+        } else {
+            log.warn("IRC: could not log in to {} as {}: {}", server(), acc.nick(), authProblem);
+            setState(AuthState.FAILED, authProblem);
+        }
+    }
+
+    /**
+     * Sends the code NickServ mailed after registering ({@code CONFIRM <code>}), then logs in again.
+     *
+     * @throws IOException when NickServ refuses the code or does not answer
+     */
+    public void confirm(String code) throws IOException {
+        synchronized (loginLock) {
+            IrcAccount acc = account != null ? account : accounts.get();
+            if (acc == null) {
+                throw new IOException("No IRC account is set");
+            }
+            if (account == null || !loggedIn && authState != AuthState.NEEDS_CONFIRM) {
+                account = acc;
+                if (!acc.nick().equalsIgnoreCase(nick)) {
+                    nickChanged = new CountDownLatch(1);
+                    send("NICK " + acc.nick());
+                    await(nickChanged, Duration.ofSeconds(10));
+                }
+                identified = new CountDownLatch(1);
+                send("PRIVMSG NickServ :IDENTIFY " + acc.nick() + " " + acc.password());
+                await(identified, Duration.ofSeconds(15));
+            }
+            confirmed = new CountDownLatch(1);
+            confirmOk = false;
+            confirmSent = true;
+            send("PRIVMSG NickServ :CONFIRM " + code.strip());
+            boolean answered = await(confirmed, Duration.ofSeconds(20));
+            confirmSent = false;
+            if (!answered) {
+                throw new IOException("No answer from NickServ");
+            }
+            if (!confirmOk) {
+                throw new IOException(authProblem);
+            }
+            log.info("IRC: {} confirmed on {}", acc.nick(), server());
+            authProblem = null;
+            registerSent = false;
+            loggedIn = false;
+            identified = new CountDownLatch(1);
+            setState(AuthState.LOGGING_IN, null);
+            finishLogin(acc, Duration.ofSeconds(20));
         }
     }
 
@@ -233,12 +401,7 @@ public final class IrcClient implements Closeable {
             // closing anyway
         }
         closed = true;
-        registered.countDown();
-        identified.countDown();
-        joins.values().forEach(w -> {
-            w.error = "disconnected";
-            w.done.countDown();
-        });
+        releaseWaiters();
         try {
             if (socket != null) {
                 socket.close();
@@ -246,6 +409,18 @@ public final class IrcClient implements Closeable {
         } catch (IOException ignored) {
             // nothing to do
         }
+    }
+
+    private void releaseWaiters() {
+        registered.countDown();
+        identified.countDown();
+        nickChanged.countDown();
+        confirmed.countDown();
+        passcode.countDown();
+        joins.values().forEach(w -> {
+            w.error = "disconnected";
+            w.done.countDown();
+        });
     }
 
     private void readLoop() {
@@ -282,12 +457,7 @@ public final class IrcClient implements Closeable {
                 log.info("IRC: disconnected from {}", server());
             }
             closed = true;
-            registered.countDown();
-            identified.countDown();
-            joins.values().forEach(w -> {
-                w.error = "disconnected";
-                w.done.countDown();
-            });
+            releaseWaiters();
         }
     }
 
@@ -300,19 +470,22 @@ public final class IrcClient implements Closeable {
                 }
                 registered.countDown();
             }
-            case "433", "432" -> { // nick in use / erroneous
+            case "433", "432", "437" -> { // nick in use / erroneous / unavailable
                 if (registered.getCount() > 0) {
                     // with an account, SASL/IDENTIFY still log in to it under another nick
-                    nick = account != null && "433".equals(m.command())
+                    nick = account != null && !"432".equals(m.command())
                             ? account.nick() + "_" + ThreadLocalRandom.current().nextInt(100, 999)
                             : randomNick();
                     send("NICK " + nick);
+                } else {
+                    nickChanged.countDown(); // keep the current nick
                 }
             }
             case "CAP" -> handleCap(m);
             case "AUTHENTICATE" -> {
-                if ("+".equals(m.param(0)) && account != null) {
-                    String plain = account.nick() + "\0" + account.nick() + "\0" + account.password();
+                IrcAccount acc = account;
+                if ("+".equals(m.param(0)) && acc != null) {
+                    String plain = acc.nick() + "\0" + acc.nick() + "\0" + acc.password();
                     send("AUTHENTICATE " + Base64.getEncoder().encodeToString(plain.getBytes(StandardCharsets.UTF_8)));
                 }
             }
@@ -325,7 +498,7 @@ public final class IrcClient implements Closeable {
                 identified.countDown();
                 capEnd();
             }
-            case "902", "904", "905", "906" -> { // SASL failed: fall back to NickServ after registration
+            case "902", "904", "905", "906" -> { // SASL failed: NickServ IDENTIFY after registration
                 log.debug("IRC: SASL login to {} failed: {}", server(), m.text());
                 capEnd();
             }
@@ -386,6 +559,7 @@ public final class IrcClient implements Closeable {
                 String now = lower(m.text());
                 if (nick.equalsIgnoreCase(m.nick())) {
                     nick = m.text();
+                    nickChanged.countDown();
                 }
                 members.values().forEach(s -> {
                     if (s.remove(old)) {
@@ -423,41 +597,75 @@ public final class IrcClient implements Closeable {
         }
     }
 
-    /** Anope/Atheme style NickServ replies to IDENTIFY and REGISTER. */
+    /** Anope/Atheme style NickServ replies to IDENTIFY, REGISTER and CONFIRM. */
     private void handleNickServ(String text) throws IOException {
+        IrcAccount acc = account;
+        String t = text.toLowerCase(Locale.ROOT);
+        if (confirmSent) {
+            if (t.contains("confirmed") || t.contains("verified")) {
+                confirmOk = true;
+                confirmed.countDown();
+            } else if (t.contains("invalid") || t.contains("incorrect") || t.contains("wrong") || t.contains("unknown")) {
+                authProblem = "NickServ refused the code: " + text;
+                confirmed.countDown();
+            }
+            return;
+        }
+        if (t.contains("passcode") || registerSent && t.contains("confirm")) {
+            authProblem = "NickServ sent a code to " + acc.registerEmail() + " to confirm the nick";
+            setState(AuthState.NEEDS_CONFIRM, authProblem);
+            identified.countDown();
+            passcode.countDown();
+            return;
+        }
         if (loggedIn) {
             return;
         }
-        String t = text.toLowerCase(Locale.ROOT);
         if (t.contains("password accepted") || t.contains("you are now identified") || t.contains("you are now logged in")) {
             loggedIn = true;
             identified.countDown();
         } else if (t.contains("password incorrect") || t.contains("invalid password") || t.contains("incorrect password")) {
-            authProblem = text;
-            identified.countDown();
-        } else if (t.contains("passcode") || t.contains("confirm") && registerSent) {
-            authProblem = "NickServ wants the account confirmed (see the e-mail sent to "
-                    + account.registerEmail() + "): " + text;
+            authProblem = "wrong password";
             identified.countDown();
         } else if (t.contains("not registered") || t.contains("isn't registered") || t.contains("is not a registered")) {
-            boolean ownNick = account.nick().equalsIgnoreCase(nick);
-            if (!ownNick && !t.contains(account.nick().toLowerCase(Locale.ROOT))) {
+            boolean ownNick = acc.nick().equalsIgnoreCase(nick);
+            if (!ownNick && !t.contains(acc.nick().toLowerCase(Locale.ROOT))) {
                 return; // about the stand-in nick we got because ours was taken
             }
-            if (account.registerEmail() != null && !registerSent && ownNick && registered.getCount() == 0) {
+            if (acc.registerEmail() != null && !registerSent && ownNick && registered.getCount() == 0) {
                 registerSent = true;
-                log.info("IRC: registering nick {} on {}", account.nick(), server());
-                send("PRIVMSG NickServ :REGISTER " + account.password() + " " + account.registerEmail());
+                log.info("IRC: registering nick {} on {}", acc.nick(), server());
+                send("PRIVMSG NickServ :REGISTER " + acc.password() + " " + acc.registerEmail());
             } else if (!registerSent) {
-                authProblem = account.registerEmail() == null
-                        ? "nick " + account.nick() + " is not registered (register it, or set XDCC_IRC_REGISTER_EMAIL)"
-                        : text;
+                authProblem = acc.registerEmail() == null
+                        ? "nick " + acc.nick() + " is not registered here (turn on automatic registration)"
+                        : "nick " + acc.nick() + " is not registered here";
                 identified.countDown();
             }
         } else if (registerSent && (t.contains("denied") || t.contains("cannot") || t.contains("too many")
                 || t.contains("must") || t.contains("invalid"))) {
-            authProblem = "NickServ refused to register " + account.nick() + ": " + text;
+            authProblem = "NickServ refused to register " + acc.nick() + ": " + text;
             identified.countDown();
+        }
+    }
+
+    private void setState(AuthState state, String message) {
+        authState = state;
+        if (authListener != null) {
+            try {
+                authListener.authState(this, state, message);
+            } catch (RuntimeException e) {
+                log.debug("IRC auth listener failed: {}", e.getMessage());
+            }
+        }
+    }
+
+    private static boolean await(CountDownLatch latch, Duration timeout) throws IOException {
+        try {
+            return latch.await(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted");
         }
     }
 

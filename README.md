@@ -50,8 +50,8 @@ All settings are environment variables; the Settings screen shows them read-only
 | `WATCHLIST_CHECK_ENABLED` | `true` | Daily check of the watchlist titles no source had when they were saved |
 | `WATCHLIST_CHECK_CRON` | `0 0 7 * * *` | When that check runs (Spring cron, server time zone): 07:00 |
 | `RAIPLAY_USERNAME`, `RAIPLAY_PASSWORD` | (none) | Enable RaiPlay (both required) |
-| `XDCC_IRC_ACCOUNTS` | (none) | Registered IRC nicks, for XDCC channels that only let registered users in: `irc.scenep2p.net=MyNick:password` (comma-separated for more networks; a domain such as `scenep2p.net` covers all its servers). HoS logs in with SASL, or NickServ `IDENTIFY` |
-| `XDCC_IRC_REGISTER_EMAIL` | (none) | If set, a nick in `XDCC_IRC_ACCOUNTS` that is not registered yet is registered with NickServ using this e-mail (some networks then mail a code to confirm) |
+| `XDCC_IRC_NICK`, `XDCC_IRC_PASSWORD` | (none) | Registered IRC nick for XDCC channels that only let registered users in. Normally set in **Settings › IRC Account**, which wins once saved |
+| `XDCC_IRC_EMAIL`, `XDCC_IRC_AUTO_REGISTER` | (none), `false` | Register the nick with NickServ where it is not registered yet, with this e-mail |
 | `SQLITE_DB_PATH` | `data/hos.db` | Database file (falls back to `data/vixsrc.db` if only that exists) |
 | `SERVER_PORT` | `8080` | HTTP port |
 | `LOG_LEVEL` | `INFO` | Application log level |
