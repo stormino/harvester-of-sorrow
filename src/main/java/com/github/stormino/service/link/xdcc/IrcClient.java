@@ -24,6 +24,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Minimal IRC client: registration (with a random nick, retried when taken), PING/PONG, joining
@@ -41,6 +43,10 @@ public final class IrcClient implements Closeable {
     /** Numerics that refuse a JOIN: no such channel, full, invite-only, banned, bad key, needs registration, ... */
     private static final Set<String> JOIN_ERRORS = Set.of("403", "405", "471", "473", "474", "475", "477", "489", "520");
     private static final String NEEDS_REGISTERED_NICK = "477";
+    /** Anope: "You must have been using this nick for at least 30 seconds to register." */
+    private static final Pattern REGISTER_TOO_SOON = Pattern.compile("at least (\\d+) seconds?");
+    /** Longest wait before registering again that we accept (a download is waiting meanwhile). */
+    private static final int MAX_REGISTER_WAIT_SECONDS = 120;
 
     /** Where the client stands with the registered nick, for the Settings screen. */
     public enum AuthState {
@@ -97,6 +103,8 @@ public final class IrcClient implements Closeable {
     private volatile boolean confirmSent;
     private volatile boolean confirmOk;
     private volatile String authProblem;
+    /** Seconds NickServ wants us to hold the nick before registering it; 0 = no such request. */
+    private volatile int registerWaitSeconds;
     private volatile AuthState authState = AuthState.ANONYMOUS;
 
     private static final class JoinWait {
@@ -282,6 +290,7 @@ public final class IrcClient implements Closeable {
             account = acc;
             authProblem = null;
             registerSent = false;
+            registerWaitSeconds = 0;
             identified = new CountDownLatch(1);
             passcode = new CountDownLatch(1);
             setState(AuthState.LOGGING_IN, null);
@@ -302,6 +311,20 @@ public final class IrcClient implements Closeable {
         }
         if (!await(identified, timeout) && authProblem == null && !loggedIn) {
             authProblem = "no answer from NickServ";
+        }
+        int wait = registerWaitSeconds;
+        if (wait > 0 && !loggedIn && wait <= MAX_REGISTER_WAIT_SECONDS) {
+            registerWaitSeconds = 0;
+            log.info("IRC: NickServ on {} wants {} held for {}s before registering it; waiting", server(), acc.nick(), wait);
+            sleep(Duration.ofSeconds(wait + 3));
+            authProblem = null;
+            identified = new CountDownLatch(1);
+            passcode = new CountDownLatch(1);
+            log.info("IRC: registering nick {} on {} (again)", acc.nick(), server());
+            send("PRIVMSG NickServ :REGISTER " + acc.password() + " " + acc.registerEmail());
+            if (!await(identified, timeout) && authProblem == null && !loggedIn) {
+                authProblem = "no answer from NickServ";
+            }
         }
         if (registerSent && authState != AuthState.NEEDS_CONFIRM) {
             await(passcode, Duration.ofSeconds(3)); // the login may come before "a passcode has been sent"
@@ -601,6 +624,7 @@ public final class IrcClient implements Closeable {
     private void handleNickServ(String text) throws IOException {
         IrcAccount acc = account;
         String t = text.toLowerCase(Locale.ROOT);
+        Matcher m;
         if (confirmSent) {
             if (t.contains("confirmed") || t.contains("verified")) {
                 confirmOk = true;
@@ -642,6 +666,10 @@ public final class IrcClient implements Closeable {
                         : "nick " + acc.nick() + " is not registered here";
                 identified.countDown();
             }
+        } else if (registerSent && (m = REGISTER_TOO_SOON.matcher(t)).find()) {
+            registerWaitSeconds = Integer.parseInt(m.group(1));
+            authProblem = "NickServ refused to register " + acc.nick() + ": " + text;
+            identified.countDown();
         } else if (registerSent && (t.contains("denied") || t.contains("cannot") || t.contains("too many")
                 || t.contains("must") || t.contains("invalid"))) {
             authProblem = "NickServ refused to register " + acc.nick() + ": " + text;
@@ -663,6 +691,15 @@ public final class IrcClient implements Closeable {
     private static boolean await(CountDownLatch latch, Duration timeout) throws IOException {
         try {
             return latch.await(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted");
+        }
+    }
+
+    private static void sleep(Duration d) throws IOException {
+        try {
+            Thread.sleep(d.toMillis());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted");

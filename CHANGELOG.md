@@ -4,6 +4,14 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.7.0 — 2026-11-28
+
+### Fixed
+- **Registering the IRC nick works on SceneP2P.** Its NickServ only registers a nick that has been in use
+  for 30 seconds, and HoS asked right after switching to it, so the download failed with "You must have
+  been using this nick for at least 30 seconds to register". HoS now waits as long as NickServ asks
+  (up to 2 minutes) and registers again, then joins the channel.
+
 ## 7.6.0 — 2026-11-28
 
 ### New
