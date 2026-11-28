@@ -1217,6 +1217,160 @@
                     }
                 }
             }
+        },
+        "/api/v1/xdcc/identity": {
+            "get": {
+                "tags": [
+                    "XDCC"
+                ],
+                "summary": "The registered IRC nick",
+                "description": "Used only on networks where a channel needs a registered nick. Saved in Settings, else taken from the XDCC_IRC_* variables.",
+                "operationId": "identity",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IrcIdentityDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "XDCC"
+                ],
+                "summary": "Save the registered IRC nick",
+                "description": "Used from the next login on; leave the password empty to keep it.",
+                "operationId": "saveIdentity",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IrcIdentityRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IrcIdentityDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "XDCC"
+                ],
+                "summary": "Remove the registered IRC nick saved in Settings",
+                "operationId": "clearIdentity",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/v1/xdcc/networks/{host}/confirm": {
+            "post": {
+                "tags": [
+                    "XDCC"
+                ],
+                "summary": "Confirm the nick with the code NickServ e-mailed",
+                "description": "Connects to the network if needed and sends NickServ CONFIRM <code>.",
+                "operationId": "confirm",
+                "parameters": [
+                    {
+                        "name": "host",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/IrcConfirmRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IrcNetworkDto"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/xdcc/networks": {
+            "get": {
+                "tags": [
+                    "XDCC"
+                ],
+                "summary": "IRC networks: connected now, or where a channel needed the registered nick",
+                "operationId": "networks",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/IrcNetworkDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/xdcc/networks/{host}": {
+            "delete": {
+                "tags": [
+                    "XDCC"
+                ],
+                "summary": "Forget that a network needs the registered nick",
+                "operationId": "forget",
+                "parameters": [
+                    {
+                        "name": "host",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -2984,6 +3138,124 @@
                         "example": "it"
                     }
                 }
+            },
+            "IrcIdentityRequest": {
+                "type": "object",
+                "description": "Save the registered IRC nick",
+                "properties": {
+                    "nick": {
+                        "type": "string",
+                        "example": "MyNick"
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Empty or omitted: keep the current password"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "autoRegister": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "autoRegister",
+                    "nick"
+                ]
+            },
+            "IrcIdentityDto": {
+                "type": "object",
+                "description": "The registered IRC nick used where an XDCC channel needs one. The password is never returned.",
+                "properties": {
+                    "nick": {
+                        "type": "string",
+                        "description": "Empty when none is set"
+                    },
+                    "passwordSet": {
+                        "type": "boolean"
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "Used only to register the nick"
+                    },
+                    "autoRegister": {
+                        "type": "boolean",
+                        "description": "Register the nick where it is not registered yet"
+                    },
+                    "origin": {
+                        "type": "string",
+                        "description": "SETTINGS (saved here), ENVIRONMENT (XDCC_IRC_* variables) or NONE",
+                        "enum": [
+                            "SETTINGS",
+                            "ENVIRONMENT",
+                            "NONE"
+                        ]
+                    }
+                },
+                "required": [
+                    "autoRegister",
+                    "nick",
+                    "origin",
+                    "passwordSet"
+                ]
+            },
+            "IrcConfirmRequest": {
+                "type": "object",
+                "description": "The code NickServ e-mailed after registering the nick",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "minLength": 1
+                    }
+                },
+                "required": [
+                    "code"
+                ]
+            },
+            "IrcNetworkDto": {
+                "type": "object",
+                "description": "An IRC network: connected now, or remembered because a channel there needed the registered nick",
+                "properties": {
+                    "host": {
+                        "type": "string",
+                        "example": "irc.scenep2p.net"
+                    },
+                    "port": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "connected": {
+                        "type": "boolean"
+                    },
+                    "nick": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string",
+                        "enum": [
+                            "ANONYMOUS",
+                            "LOGGING_IN",
+                            "LOGGED_IN",
+                            "NEEDS_CONFIRM",
+                            "FAILED",
+                            "NO_ACCOUNT"
+                        ]
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "needsAccount": {
+                        "type": "boolean",
+                        "description": "A channel here needs the registered nick"
+                    }
+                },
+                "required": [
+                    "connected",
+                    "host",
+                    "needsAccount",
+                    "port",
+                    "state"
+                ]
             }
         }
     }

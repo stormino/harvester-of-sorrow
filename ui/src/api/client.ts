@@ -1,5 +1,5 @@
 import type {
-  CheckResult, ClearResult, ContentType, DownloadRequest, Episode, LibraryEntry, LinkDownloadRequest, MediaInfo,
+  CheckResult, ClearResult, IrcIdentity, IrcIdentityRequest, IrcNetwork, ContentType, DownloadRequest, Episode, LibraryEntry, LinkDownloadRequest, MediaInfo,
   LinkProvider, LinkResolution, MonitoredShow, TmdbMatch, XdccSearch, XdccStatus,
   MonitoredShowRequest, SearchResult, SearchType, Settings, Source, SourcesInfo,
   SystemInfo, Task, ToolCheck, Trailer, WatchlistItem, WatchlistRequest,
@@ -86,6 +86,13 @@ export const api = {
 
   xdccStatus: () => request<XdccStatus>('GET', '/xdcc/status'),
   xdccSearch: (query: string) => request<XdccSearch>('GET', `/xdcc/search?query=${enc(query)}`),
+  ircIdentity: () => request<IrcIdentity>('GET', '/xdcc/identity'),
+  saveIrcIdentity: (req: IrcIdentityRequest) => request<IrcIdentity>('PUT', '/xdcc/identity', req),
+  clearIrcIdentity: () => request<void>('DELETE', '/xdcc/identity'),
+  ircNetworks: () => request<IrcNetwork[]>('GET', '/xdcc/networks'),
+  confirmIrcNetwork: (host: string, code: string) =>
+    request<IrcNetwork>('POST', `/xdcc/networks/${enc(host)}/confirm`, { code }),
+  forgetIrcNetwork: (host: string) => request<void>('DELETE', `/xdcc/networks/${enc(host)}`),
 
   system: () => request<SystemInfo>('GET', '/system'),
   settings: () => request<Settings>('GET', '/settings'),

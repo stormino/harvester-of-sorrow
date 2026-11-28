@@ -43,6 +43,11 @@ hos:
       # Sent as "<browser User-Agent> HoS/<version>" (agreed with the PW Search Engine authors); empty = this version
       user-agent-version: ${XDCC_USER_AGENT_VERSION:}
       max-concurrent: ${XDCC_MAX_CONCURRENT:2}
+      # Registered nick for channels that need one (defaults: Settings > IRC account wins once saved)
+      irc-nick: ${XDCC_IRC_NICK:}
+      irc-password: ${XDCC_IRC_PASSWORD:}
+      irc-email: ${XDCC_IRC_EMAIL:}
+      irc-auto-register: ${XDCC_IRC_AUTO_REGISTER:false}
 
 raiplay:
   base-url: https://www.raiplay.it

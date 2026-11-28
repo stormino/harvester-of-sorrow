@@ -8,6 +8,8 @@ export const keys = {
   sources: ['sources'] as const,
   library: ['library'] as const,
   linkProviders: ['link-providers'] as const,
+  ircIdentity: ['irc-identity'] as const,
+  ircNetworks: ['irc-networks'] as const,
 };
 
 export const useSystem = () =>
@@ -26,6 +28,16 @@ export const useLinkProviders = (enabled = true) =>
     queryFn: api.linkProviders,
     enabled,
     refetchInterval: (q) => (q.state.data?.some((p) => p.state === 'WARMING_UP') ? 3000 : 30_000),
+  });
+
+export const useIrcIdentity = () => useQuery({ queryKey: keys.ircIdentity, queryFn: api.ircIdentity });
+
+/** IRC networks; polled more often while one is logging in. */
+export const useIrcNetworks = () =>
+  useQuery({
+    queryKey: keys.ircNetworks,
+    queryFn: api.ircNetworks,
+    refetchInterval: (q) => (q.state.data?.some((n) => n.state === 'LOGGING_IN') ? 3000 : 20_000),
   });
 
 /**
