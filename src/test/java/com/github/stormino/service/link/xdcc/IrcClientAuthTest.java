@@ -32,6 +32,9 @@ class IrcClientAuthTest {
         volatile boolean confirmByMail;
         volatile boolean confirmed = true;
         volatile Set<String> takenNicks = Set.of();
+        /** Anope's "you must have been using this nick for at least N seconds to register". */
+        volatile int registerMinSeconds;
+        private volatile long nickSince = System.nanoTime();
         private PrintWriter out;
         private String nick;
         private boolean loggedIn;
@@ -106,6 +109,7 @@ class IrcClientAuthTest {
                             } else {
                                 send(":" + nick + "!u@h NICK :" + wanted);
                                 nick = wanted;
+                                nickSince = System.nanoTime();
                             }
                         }
                         case "USER" -> {
@@ -155,6 +159,11 @@ class IrcClientAuthTest {
                     }
                 }
                 case "REGISTER" -> {
+                    if (System.nanoTime() - nickSince < registerMinSeconds * 1_000_000_000L) {
+                        nickServ("You must have been using this nick for at least " + registerMinSeconds
+                                + " seconds to register.");
+                        return;
+                    }
                     registeredNick = nick;
                     password = w[1];
                     nickServ("Nickname \u0002" + nick + "\u0002 registered.");
@@ -294,6 +303,18 @@ class IrcClientAuthTest {
         c.join("#reg", Duration.ofSeconds(5));
         assertThat(server.received).contains("PRIVMSG NickServ :REGISTER pw12345 me@example.org");
         assertThat(c.authState()).isEqualTo(IrcClient.AuthState.LOGGED_IN);
+    }
+
+    @Test
+    void waitsWhenNickServWantsTheNickHeldBeforeRegistering() throws IOException {
+        server = new Server();
+        server.registeredNick = "Someone";
+        server.registerMinSeconds = 1;
+        IrcClient c = connect(new IrcAccount("New", "pw12345", "me@example.org"), false);
+        c.join("#reg", Duration.ofSeconds(5));
+        assertThat(server.received.stream().filter(l -> l.startsWith("PRIVMSG NickServ :REGISTER"))).hasSize(2);
+        assertThat(c.authState()).isEqualTo(IrcClient.AuthState.LOGGED_IN);
+        assertThat(c.isIn("#reg")).isTrue();
     }
 
     @Test
