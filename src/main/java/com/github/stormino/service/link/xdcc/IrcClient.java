@@ -7,12 +7,16 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -26,6 +30,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Minimal IRC client: registration (with a random nick, retried when taken), PING/PONG, joining
@@ -47,6 +54,12 @@ public final class IrcClient implements Closeable {
     private static final Pattern REGISTER_TOO_SOON = Pattern.compile("at least (\\d+) seconds?");
     /** Longest wait before registering again that we accept (a download is waiting meanwhile). */
     private static final int MAX_REGISTER_WAIT_SECONDS = 120;
+    /** Standard IRC-over-TLS port, tried before the link's (plain) port. */
+    static final int TLS_PORT = 6697;
+    /** Addresses of a round-robin host tried over TLS before falling back to plain IRC. */
+    private static final int TLS_ADDRESS_ATTEMPTS = 3;
+    private static final int TLS_CONNECT_MILLIS = 6_000;
+    private static final int PLAIN_CONNECT_MILLIS = 8_000;
 
     /** Where the client stands with the registered nick, for the Settings screen. */
     public enum AuthState {
@@ -74,6 +87,7 @@ public final class IrcClient implements Closeable {
     private final String nickPrefix;
     private final Supplier<IrcAccount> accounts;
     private final boolean loginOnConnect;
+    private final boolean tlsEnabled;
     private final AuthListener authListener;
     private final List<Consumer<IrcMessage>> listeners = new CopyOnWriteArrayList<>();
     /** channel (lower case) -> nicks (lower case) */
@@ -82,6 +96,7 @@ public final class IrcClient implements Closeable {
     private final Object loginLock = new Object();
 
     private Socket socket;
+    private volatile boolean tls;
     private OutputStream out;
     private volatile String nick;
     private volatile boolean closed;
@@ -114,22 +129,29 @@ public final class IrcClient implements Closeable {
     }
 
     public IrcClient(String host, int port, String nickPrefix) {
-        this(host, port, nickPrefix, () -> null, false, null);
+        this(host, port, nickPrefix, () -> null, false, null, true);
+    }
+
+    public IrcClient(String host, int port, String nickPrefix, Supplier<IrcAccount> accounts,
+                     boolean loginOnConnect, AuthListener authListener) {
+        this(host, port, nickPrefix, accounts, loginOnConnect, authListener, true);
     }
 
     /**
      * @param accounts       the registered nick to use when a channel needs one (null result: none configured)
      * @param loginOnConnect log in while connecting (the network is known to need it)
      * @param authListener   told about login state changes; may be null
+     * @param tlsEnabled     try TLS on 6697 before plain IRC
      */
     public IrcClient(String host, int port, String nickPrefix, Supplier<IrcAccount> accounts,
-                     boolean loginOnConnect, AuthListener authListener) {
+                     boolean loginOnConnect, AuthListener authListener, boolean tlsEnabled) {
         this.host = host;
         this.port = port;
         this.nickPrefix = nickPrefix;
         this.accounts = accounts;
         this.loginOnConnect = loginOnConnect;
         this.authListener = authListener;
+        this.tlsEnabled = tlsEnabled;
     }
 
     public String host() {
@@ -182,8 +204,7 @@ public final class IrcClient implements Closeable {
     /** Connects and registers; returns once the server has welcomed us (and we logged in, if asked to). */
     public void connect(Duration timeout) throws IOException {
         IrcAccount acc = loginOnConnect ? accounts.get() : null;
-        socket = new Socket();
-        socket.connect(new InetSocketAddress(host, port), (int) Math.min(timeout.toMillis(), 30_000));
+        socket = open();
         socket.setKeepAlive(true);
         out = socket.getOutputStream();
         account = acc;
@@ -210,11 +231,84 @@ public final class IrcClient implements Closeable {
         if (closed) {
             throw new IOException("Disconnected from " + server() + " during registration");
         }
-        log.info("IRC: connected to {} as {}", server(), nick);
+        log.info("IRC: connected to {} as {}{}", server(), nick,
+                tls ? " (TLS, " + socket.getInetAddress().getHostAddress() + ":" + socket.getPort() + ")"
+                        : " (" + socket.getInetAddress().getHostAddress() + ")");
         if (acc != null) {
             synchronized (loginLock) {
                 finishLogin(acc, Duration.ofSeconds(30));
             }
+        }
+    }
+
+    /** Whether the connection is encrypted (TLS on {@link #TLS_PORT}). */
+    public boolean isTls() {
+        return tls;
+    }
+
+    /**
+     * Opens the connection: TLS on 6697 first (certificate checked), else plain IRC on {@link #port}.
+     * Networks often publish many servers under one name, some of them down or plain IRC firewalled,
+     * so every address is tried in turn with a short timeout.
+     */
+    private Socket open() throws IOException {
+        List<InetAddress> addresses = Arrays.stream(InetAddress.getAllByName(host))
+                .sorted(Comparator.comparing(a -> a instanceof Inet4Address ? 0 : 1)) // stable: keeps DNS order
+                .toList();
+        IOException last = null;
+        if (tlsEnabled && port != TLS_PORT) {
+            for (InetAddress a : addresses.subList(0, Math.min(TLS_ADDRESS_ATTEMPTS, addresses.size()))) {
+                try {
+                    Socket s = openTls(a, TLS_PORT);
+                    tls = true;
+                    return s;
+                } catch (IOException e) {
+                    log.debug("IRC: TLS to {} ({}:{}) failed: {}", host, a.getHostAddress(), TLS_PORT, e.getMessage());
+                    last = e;
+                }
+            }
+        }
+        for (InetAddress a : addresses) {
+            try {
+                if (port == TLS_PORT && tlsEnabled) {
+                    Socket s = openTls(a, port);
+                    tls = true;
+                    return s;
+                }
+                Socket s = new Socket();
+                try {
+                    s.connect(new InetSocketAddress(a, port), PLAIN_CONNECT_MILLIS);
+                } catch (IOException e) {
+                    s.close();
+                    throw e;
+                }
+                return s;
+            } catch (IOException e) {
+                log.debug("IRC: {} ({}:{}) failed: {}", host, a.getHostAddress(), port, e.getMessage());
+                last = e;
+            }
+        }
+        throw new IOException(addresses.size() > 1
+                ? "none of the " + addresses.size() + " servers answered (" + (last == null ? "?" : last.getMessage()) + ")"
+                : last == null ? "no address" : last.getMessage());
+    }
+
+    private Socket openTls(InetAddress address, int tlsPort) throws IOException {
+        Socket raw = new Socket();
+        try {
+            raw.connect(new InetSocketAddress(address, tlsPort), TLS_CONNECT_MILLIS);
+            SSLSocket s = (SSLSocket) ((SSLSocketFactory) SSLSocketFactory.getDefault())
+                    .createSocket(raw, host, tlsPort, true);
+            SSLParameters params = s.getSSLParameters();
+            params.setEndpointIdentificationAlgorithm("HTTPS"); // certificate must match the host name
+            s.setSSLParameters(params);
+            raw.setSoTimeout(TLS_CONNECT_MILLIS);
+            s.startHandshake();
+            raw.setSoTimeout(0);
+            return s;
+        } catch (IOException e) {
+            raw.close();
+            throw e;
         }
     }
 
