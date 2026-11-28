@@ -4,6 +4,15 @@ What changed in each release of Harvester of Sorrow (HoS), newest first.
 Versions follow [Semantic Versioning](https://semver.org): a major version can change how you use
 HoS, a minor version adds features, a patch version only fixes things.
 
+## 7.7.1 — 2026-11-28
+
+### Fixed
+- **XDCC on SceneP2P connects again.** irc.scenep2p.net points to seven servers, and six of them no longer
+  accept plain IRC on port 6667, so most downloads failed with "Connect timed out". HoS now connects with
+  TLS on port 6697 first (encrypted, with the server's certificate checked), and tries every server of a
+  network in turn before giving up. Plain IRC is still used where TLS is not offered (`XDCC_IRC_TLS=false`
+  turns TLS off).
+
 ## 7.7.0 — 2026-11-28
 
 ### New

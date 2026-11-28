@@ -67,7 +67,8 @@ public class IrcConnections {
                 IrcClient c = clients.get(key);
                 if (c == null || !c.isConnected()) {
                     boolean loginOnConnect = identity.needsAccount(host) && identity.account() != null;
-                    c = new IrcClient(host, port, config.getNickPrefix(), identity::account, loginOnConnect, authListener);
+                    c = new IrcClient(host, port, config.getNickPrefix(), identity::account, loginOnConnect, authListener,
+                            config.isIrcTls());
                     c.connect(Duration.ofSeconds(45));
                     clients.put(key, c);
                 }

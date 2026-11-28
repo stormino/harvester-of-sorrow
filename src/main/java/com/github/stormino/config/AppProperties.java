@@ -161,6 +161,8 @@ public class AppProperties {
              * Search Engine authors. Empty: this HoS version.
              */
             private String userAgentVersion = "";
+            /** Connect with TLS on port 6697 first, falling back to plain IRC on the link's port. */
+            private boolean ircTls = true;
             /** Nick prefix; a random number is appended (HoS-12345). */
             private String nickPrefix = "HoS-";
             /**

@@ -44,6 +44,8 @@ hos:
       user-agent-version: ${XDCC_USER_AGENT_VERSION:}
       max-concurrent: ${XDCC_MAX_CONCURRENT:2}
       # Registered nick for channels that need one (defaults: Settings > IRC account wins once saved)
+      # TLS on 6697 first (certificate checked), plain IRC on the link's port if that fails
+      irc-tls: ${XDCC_IRC_TLS:true}
       irc-nick: ${XDCC_IRC_NICK:}
       irc-password: ${XDCC_IRC_PASSWORD:}
       irc-email: ${XDCC_IRC_EMAIL:}

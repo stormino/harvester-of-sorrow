@@ -232,7 +232,7 @@ class IrcClientAuthTest {
                     public void needsAccount(IrcClient c) {
                         needsAccount.add(c.host());
                     }
-                });
+                }, false);
         client.connect(Duration.ofSeconds(10));
         return client;
     }
@@ -354,6 +354,21 @@ class IrcClientAuthTest {
                 .hasMessageContaining("Settings");
         assertThat(c.authState()).isEqualTo(IrcClient.AuthState.NO_ACCOUNT);
         assertThat(needsAccount).hasSize(1);
+    }
+
+    @Test
+    void fallsBackToPlainIrcWhenTlsIsNotOffered() throws IOException {
+        server = new Server();
+        client = new IrcClient("127.0.0.1", server.port(), "HoS-", () -> null, false, null, true);
+        client.connect(Duration.ofSeconds(20));
+        assertThat(client.isTls()).isFalse();
+        client.join("#open", Duration.ofSeconds(5));
+    }
+
+    @Test
+    void reportsEveryUnreachableServer() {
+        IrcClient c = new IrcClient("127.0.0.1", 1, "HoS-", () -> null, false, null, false);
+        assertThatThrownBy(() -> c.connect(Duration.ofSeconds(5))).isInstanceOf(IOException.class);
     }
 
     @Test
