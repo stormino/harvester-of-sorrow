@@ -123,6 +123,7 @@ export function LibraryScreen() {
         <h2 id="library-title" className={base.title}>Library</h2>
         <SearchField id="library-filter-input" size="md" wrapClassName={s.filter} prefix={<SearchIcon size={16} />}
           value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter by title..."
+          onClear={() => setFilter('')} clearLabel="Clear the filter"
           aria-label="Filter by title" type="search" />
         <Switch id="library-show-completed" checked={showCompleted} onChange={toggleCompleted}>
           Show completed{completedCount > 0 ? ` (${completedCount})` : ''}

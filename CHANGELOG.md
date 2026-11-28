@@ -6,6 +6,10 @@ HoS, a minor version adds features, a patch version only fixes things.
 
 ## 7.7.0 — 2026-11-28
 
+### New
+- **Clear the search with one click.** An × in the search box empties it and the results, back to the
+  recent searches. The Library filter has one too.
+
 ### Fixed
 - **Registering the IRC nick works on SceneP2P.** Its NickServ only registers a nick that has been in use
   for 30 seconds, and HoS asked right after switching to it, so the download failed with "You must have

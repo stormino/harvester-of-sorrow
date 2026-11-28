@@ -16,6 +16,13 @@
 }
 .md .input { font-size: 13.5px; }
 .input:focus-visible { outline: none; }
+.input::-webkit-search-cancel-button { appearance: none; display: none; }
+.clear {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-right: -6px;
+  border: none; border-radius: 7px; background: transparent; color: var(--text-dim); cursor: pointer;
+}
+.clear:hover { color: var(--text); background: var(--surface-2); }
+.clear:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 
 .field {
   width: 100%; height: 40px; padding: 0 12px; border-radius: 8px;

@@ -132,6 +132,13 @@ export function SearchScreen() {
     }
   };
 
+  /** Empties the box and the results (back to the recent searches), keeping the focus in the box. */
+  const clear = () => {
+    setInput('');
+    if (q) setParams({});
+    inputRef.current?.focus();
+  };
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     run(input);
@@ -154,6 +161,7 @@ export function SearchScreen() {
       <form className={s.toolbar} onSubmit={submit}>
         <SearchField ref={inputRef} id="search-input" wrapClassName={s.query} prefix={<SearchIcon size={18} />}
           value={input} onChange={(e) => setInput(e.target.value)}
+          onClear={clear} clearLabel="Clear the search"
           placeholder="Search a film or a show, or paste a link…" aria-label="Search films and shows, or paste a link"
           autoComplete="off" enterKeyHint="search" autoFocus={!q} />
         <Button id="search-button" type="submit" size="xl" className={s.searchBtn}
